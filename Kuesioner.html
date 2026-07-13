@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pemetaan Pembelajaran Bahasa Arab — MAN Balikpapan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --color-bg:#FAF6ED;
+    --color-bg-card:#FFFDF8;
+    --color-bg-alt:#F1EAD9;
+    --color-ink:#21302B;
+    --color-ink-soft:#5B6B62;
+    --color-primary:#1B4B43;
+    --color-primary-light:#2F6E5F;
+    --color-accent:#C08A2E;
+    --color-accent-soft:#E9D6A8;
+    --color-line:#D9CFB2;
+    --color-error:#B5482F;
+    --radius-sm:6px;
+    --radius-md:12px;
+    --radius-lg:20px;
+    --shadow-card:0 1px 2px rgba(33,48,43,0.05), 0 8px 24px -12px rgba(33,48,43,0.18);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+  body{
+    margin:0;
+    background:var(--color-bg);
+    color:var(--color-ink);
+    font-family:'Inter',system-ui,sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .progress-track{
+    position:fixed; top:0; left:0; right:0; height:3px; background:transparent; z-index:50;
+  }
+  .progress-bar{
+    height:100%; width:0%; background:linear-gradient(90deg,var(--color-accent),var(--color-primary));
+    transition:width 0.15s ease-out;
+  }
+
+  /* --- Islamic geometric star divider (signature element) --- */
+  .star-divider{
+    height:16px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='16' viewBox='0 0 48 16'%3E%3Cg fill='none' stroke='%23C08A2E' stroke-width='1' opacity='0.55'%3E%3Cpath d='M8 1 L11 6 L16 6 L12 9 L14 14 L8 11 L2 14 L4 9 L0 6 L5 6 Z'/%3E%3Cpath d='M32 1 L35 6 L40 6 L36 9 L38 14 L32 11 L26 14 L28 9 L24 6 L29 6 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:repeat-x;
+    background-position:center;
+    background-size:48px 16px;
+  }
+  .star-divider.dense{background-size:28px 16px; opacity:0.7;}
+
+  header.hero{
+    position:relative;
+    background:var(--color-primary);
+    color:#F4EFDF;
+    padding:56px 24px 40px;
+    overflow:hidden;
+  }
+  header.hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23F4EFDF' stroke-width='0.6' opacity='0.08'%3E%3Cpath d='M60 8 L72 40 L104 40 L78 60 L88 92 L60 72 L32 92 L42 60 L16 40 L48 40 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:120px 120px;
+  }
+  .hero-inner{ position:relative; max-width:720px; margin:0 auto; text-align:center;}
+  .eyebrow-ar{
+    font-family:'Amiri',serif;
+    font-size:1.15rem;
+    color:var(--color-accent-soft);
+    letter-spacing:0.02em;
+    display:block;
+    margin-bottom:6px;
+  }
+  .hero h1{
+    font-family:'Amiri',serif;
+    font-weight:700;
+    font-size:clamp(1.6rem,4.2vw,2.4rem);
+    margin:0 0 10px;
+  }
+  .hero p{
+    margin:0;
+    font-size:0.98rem;
+    color:#D9E4DE;
+    max-width:520px;
+    margin:0 auto;
+  }
+  .hero .madrasah{
+    margin-top:18px;
+    display:inline-flex;
+    gap:10px;
+    align-items:center;
+    font-size:0.8rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--color-accent-soft);
+    border:1px solid rgba(244,239,223,0.25);
+    padding:6px 16px;
+    border-radius:999px;
+  }
+
+  main{max-width:720px; margin:-24px auto 80px; padding:0 20px;}
+
+  .card{
+    background:var(--color-bg-card);
+    border:1px solid var(--color-line);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+    padding:32px clamp(18px,4vw,40px);
+    margin-bottom:22px;
+  }
+  .card.intro{ margin-top:0; }
+  .intro p{color:var(--color-ink-soft); font-size:0.95rem; margin:0 0 6px;}
+  .intro ul{margin:12px 0 0; padding-left:20px; color:var(--color-ink-soft); font-size:0.92rem;}
+  .intro li{margin-bottom:4px;}
+
+  .section-head{ display:flex; flex-direction:column; margin-bottom:22px; }
+  .section-head .ar{
+    font-family:'Amiri',serif;
+    font-size:1.35rem;
+    color:var(--color-accent);
+    margin-bottom:2px;
+  }
+  .section-head h2{
+    margin:0;
+    font-size:1.15rem;
+    font-weight:700;
+    color:var(--color-primary);
+  }
+  .section-head .desc{ color:var(--color-ink-soft); font-size:0.88rem; margin-top:4px;}
+  .section-num{
+    display:inline-block;
+    font-size:0.72rem;
+    font-weight:700;
+    letter-spacing:0.08em;
+    color:var(--color-primary-light);
+    background:var(--color-bg-alt);
+    border-radius:999px;
+    padding:3px 10px;
+    margin-bottom:10px;
+    width:fit-content;
+  }
+
+  label.field-label{
+    display:block;
+    font-weight:600;
+    font-size:0.92rem;
+    color:var(--color-ink);
+    margin-bottom:6px;
+  }
+  .field{ margin-bottom:20px; }
+  .field small.hint{ display:block; color:var(--color-ink-soft); font-size:0.8rem; margin-top:4px; font-weight:400;}
+
+  input[type=text], input[type=url], select, textarea{
+    width:100%;
+    font-family:inherit;
+    font-size:0.95rem;
+    padding:11px 14px;
+    border:1px solid var(--color-line);
+    border-radius:var(--radius-sm);
+    background:#fff;
+    color:var(--color-ink);
+  }
+  textarea{ min-height:80px; resize:vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, .rate-opt input:focus-visible + label{
+    outline:2.5px solid var(--color-accent);
+    outline-offset:2px;
+  }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:520px){ .grid-2{grid-template-columns:1fr;} }
+
+  /* radio pill group (jenis kelamin, motivasi) */
+  .pill-group{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pill-group input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .pill-group label{
+    padding:9px 16px;
+    border:1px solid var(--color-line);
+    border-radius:999px;
+    font-size:0.88rem;
+    cursor:pointer;
+    background:#fff;
+    color:var(--color-ink-soft);
+    transition:background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .pill-group input:checked + label{
+    background:var(--color-primary);
+    border-color:var(--color-primary);
+    color:#fff;
+  }
+
+  /* checkbox list (kesulitan, metode) */
+  .check-list{ display:flex; flex-direction:column; gap:8px; }
+  .check-item{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--color-line); border-radius:var(--radius-sm); background:#fff; cursor:pointer;}
+  .check-item input{ margin-top:3px; accent-color:var(--color-primary); width:16px; height:16px; flex-shrink:0;}
+  .check-item span{ font-size:0.9rem; }
+  .check-item:has(input:checked){ border-color:var(--color-primary); background:#F2F7F4; }
+
+  /* rating scale (1-5) */
+  .rate-row{
+    border:1px solid var(--color-line);
+    border-radius:var(--radius-md);
+    padding:14px 16px 12px;
+    margin-bottom:12px;
+    background:#fff;
+  }
+  .rate-row .rlabel{ font-size:0.9rem; font-weight:600; margin-bottom:10px; display:flex; justify-content:space-between; gap:8px;}
+  .rate-row .rlabel .ar-mini{ font-family:'Amiri',serif; color:var(--color-accent); font-weight:400; font-size:0.95rem;}
+  .rate-opts{ display:flex; gap:6px; }
+  .rate-opt{ flex:1; position:relative; }
+  .rate-opt input{ position:absolute; opacity:0; width:1px; height:1px; }
+  .rate-opt label{
+    display:flex; align-items:center; justify-content:center;
+    height:38px;
+    border:1px solid var(--color-line);
+    border-radius:var(--radius-sm);
+    font-size:0.85rem; font-weight:600;
+    color:var(--color-ink-soft);
+    cursor:pointer;
+    background:#FDFCF8;
+    transition:background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .rate-opt input:checked + label{
+    background:var(--color-accent);
+    border-color:var(--color-accent);
+    color:#fff;
+  }
+  .rate-scale-caption{ display:flex; justify-content:space-between; font-size:0.72rem; color:var(--color-ink-soft); margin-top:6px;}
+
+  fieldset{ border:none; margin:0; padding:0; }
+  legend{ padding:0; }
+
+  .btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:inherit; font-weight:700; font-size:0.95rem;
+    padding:13px 22px; border-radius:999px;
+    display:inline-flex; align-items:center; gap:8px;
+    transition:transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{ background:var(--color-primary); color:#fff; }
+  .btn-primary:hover{ background:var(--color-primary-light); }
+  .btn-ghost{ background:transparent; color:var(--color-primary); border:1px solid var(--color-primary); }
+  .btn-ghost:hover{ background:var(--color-bg-alt); }
+  .btn[disabled]{ opacity:0.55; cursor:not-allowed; }
+  .btn-row{ display:flex; flex-wrap:wrap; gap:12px; margin-top:6px; }
+
+  .required-mark{ color:var(--color-error); }
+  .error-text{ color:var(--color-error); font-size:0.8rem; margin-top:5px; display:none; }
+  .field.has-error input, .field.has-error select, .field.has-error textarea{ border-color:var(--color-error); }
+  .field.has-error .error-text{ display:block; }
+
+  details.storage-info{
+    border:1px dashed var(--color-line);
+    border-radius:var(--radius-md);
+    padding:14px 18px;
+    background:var(--color-bg-alt);
+  }
+  details.storage-info summary{ cursor:pointer; font-weight:700; font-size:0.9rem; color:var(--color-primary); }
+  details.storage-info[open] summary{ margin-bottom:10px; }
+  details.storage-info p, details.storage-info li{ font-size:0.85rem; color:var(--color-ink-soft); }
+  details.storage-info pre{
+    background:#22302B; color:#EFEADA; padding:14px; border-radius:var(--radius-sm);
+    overflow-x:auto; font-size:0.75rem; line-height:1.5;
+  }
+  details.storage-info code{ font-family:'SFMono-Regular',Consolas,monospace; }
+
+  .status-msg{
+    margin-top:14px; padding:12px 16px; border-radius:var(--radius-sm);
+    font-size:0.88rem; display:none;
+  }
+  .status-msg.show{ display:block; }
+  .status-msg.ok{ background:#E7F1EA; color:#1B4B43; border:1px solid #BFDBC9; }
+  .status-msg.err{ background:#FBE9E4; color:#8A331E; border:1px solid #F1C4B6; }
+  .status-msg.pending{ background:#FDF3DC; color:#7A5A12; border:1px solid #F1DFAE; }
+
+  footer{ text-align:center; padding:30px 20px 50px; color:var(--color-ink-soft); font-size:0.8rem; }
+  footer .ar{ font-family:'Amiri',serif; font-size:1rem; color:var(--color-accent); display:block; margin-bottom:6px; }
+
+  .thankyou{ display:none; text-align:center; padding:20px 4px 4px; }
+  .thankyou.show{ display:block; }
+  .thankyou .ar{ font-family:'Amiri',serif; font-size:1.6rem; color:var(--color-accent); display:block; margin-bottom:8px;}
+  .thankyou h3{ margin:0 0 8px; color:var(--color-primary); }
+  .thankyou p{ color:var(--color-ink-soft); font-size:0.92rem; }
+  .form-body.hidden{ display:none; }
+  #mapForm.hidden{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow-ar">استبانة تعلّم اللغة العربية</span>
+    <h1>Pemetaan Pembelajaran Bahasa Arab</h1>
+    <p>Kuesioner untuk mengetahui tingkat pemahaman, ketertarikan, dan kesulitan siswa kelas X, XI &amp; XII dalam belajar Bahasa Arab.</p>
+    <span class="madrasah">MAN Balikpapan · Kelas X, XI &amp; XII</span>
+  </div>
+</header>
+<div class="star-divider dense"></div>
+
+<main>
+  <div id="statusChecking" class="card" style="text-align:center; color:var(--color-ink-soft);">
+    Memeriksa status kuisioner...
+  </div>
+
+  <div id="closedCard" class="card" style="display:none; text-align:center;">
+    <span class="ar" style="font-family:'Amiri',serif; font-size:1.6rem; color:var(--color-accent); display:block; margin-bottom:8px;">مغلق مؤقتًا</span>
+    <h2 style="color:var(--color-primary); margin:0 0 10px;">Kuisioner Sedang Ditutup</h2>
+    <p style="color:var(--color-ink-soft);">Pengisian sedang tidak dibuka oleh guru saat ini. Silakan hubungi guru Bahasa Arab Ananda atau coba lagi nanti.</p>
+  </div>
+
+  <div id="formArea" style="display:none;">
+  <section class="card intro">
+    <p><strong>Assalamu'alaikum, Ananda.</strong> Isian ini digunakan guru untuk memetakan kondisi belajar Bahasa Arab di kelas Ananda — bukan penilaian/ujian, jadi jawablah sesuai kondisi sebenarnya.</p>
+    <ul>
+      <li>Waktu pengisian sekitar 4–6 menit.</li>
+      <li>Semua jawaban akan dijaga kerahasiaannya dan hanya dipakai untuk keperluan pembelajaran.</li>
+      <li>Setelah dikirim, Ananda bisa mengunduh salinan jawaban sendiri.</li>
+    </ul>
+  </section>
+
+  <form id="mapForm" novalidate>
+
+    <!-- SECTION 1: DATA DIRI -->
+    <section class="card">
+      <div class="section-head">
+        <span class="section-num">BAGIAN 1</span>
+        <span class="ar">البيانات</span>
+        <h2>Data Diri</h2>
+        <span class="desc">Digunakan hanya untuk mengelompokkan hasil per kelas.</span>
+      </div>
+
+      <div class="field" id="field-nama">
+        <label class="field-label" for="nama">Nama lengkap <span class="required-mark">*</span></label>
+        <input type="text" id="nama" name="nama" autocomplete="name" placeholder="Tulis nama lengkap">
+        <span class="error-text">Nama wajib diisi.</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="field" id="field-nisn">
+          <label class="field-label" for="nisn">NISN <span class="required-mark">*</span></label>
+          <input type="text" id="nisn" name="nisn" inputmode="numeric" placeholder="Contoh: 0081234567" maxlength="15">
+          <span class="error-text">NISN wajib diisi (10 digit).</span>
+        </div>
+        <div class="field" id="field-kelas">
+          <label class="field-label" for="kelas">Kelas <span class="required-mark">*</span></label>
+          <input type="text" id="kelas" name="kelas" placeholder="Contoh: XI Agama 2">
+          <span class="error-text">Kelas wajib diisi.</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field" id="field-tingkat">
+          <label class="field-label" for="tingkat">Tingkat <span class="required-mark">*</span></label>
+          <select id="tingkat" name="tingkat">
+            <option value="">Pilih tingkat</option>
+            <option value="X">Kelas X</option>
+            <option value="XI">Kelas XI</option>
+            <option value="XII">Kelas XII</option>
+          </select>
+          <span class="error-text">Silakan pilih tingkat kelas.</span>
+        </div>
+        <div class="field" id="field-jurusan">
+          <label class="field-label" for="jurusan">Program peminatan</label>
+          <select id="jurusan" name="jurusan">
+            <option value="">Pilih program</option>
+            <option value="MIPA">MIPA</option>
+            <option value="IPS">IPS</option>
+            <option value="Keagamaan">Keagamaan</option>
+            <option value="Bahasa">Bahasa</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" id="field-gender">
+        <label class="field-label">Jenis kelamin <span class="required-mark">*</span></label>
+        <div class="pill-group" role="radiogroup">
+          <input type="radio" id="jk-l" name="jenis_kelamin" value="Laki-laki"><label for="jk-l">Laki-laki</label>
+          <input type="radio" id="jk-p" name="jenis_kelamin" value="Perempuan"><label for="jk-p">Perempuan</label>
+        </div>
+        <span class="error-text">Silakan pilih salah satu.</span>
+      </div>
+    </section>
+
+    <!-- SECTION 2: PEMAHAMAN -->
+    <section class="card">
+      <div class="section-head">
+        <span class="section-num">BAGIAN 2</span>
+        <span class="ar">الفهم</span>
+        <h2>Tingkat Pemahaman</h2>
+        <span class="desc">Nilai kemampuan Ananda sendiri untuk tiap keterampilan, dari 1 (sangat kurang) sampai 5 (sangat baik).</span>
+      </div>
+
+      <fieldset>
+        <legend class="field-label" style="margin-bottom:14px;">Seberapa baik kemampuan Ananda dalam:</legend>
+
+        <div class="rate-row" data-name="p_membaca">
+          <div class="rlabel"><span>Membaca teks Arab (qira'ah)</span><span class="ar-mini">قراءة</span></div>
+          <div class="rate-opts"></div>
+        </div>
+        <div class="rate-row" data-name="p_menulis">
+          <div class="rlabel"><span>Menulis huruf/kalimat Arab (kitabah)</span><span class="ar-mini">كتابة</span></div>
+          <div class="rate-opts"></div>
+        </div>
+        <div class="rate-row" data-name="p_mendengar">
+          <div class="rlabel"><span>Menyimak/mendengarkan Bahasa Arab (istima')</span><span class="ar-mini">استماع</span></div>
+          <div class="rate-opts"></div>
+        </div>
+        <div class="rate-row" data-name="p_berbicara">
+          <div class="rlabel"><span>Berbicara/bercakap Bahasa Arab (kalam)</span><span class="ar-mini">كلام</span></div>
+          <div class="rate-opts"></div>
+        </div>
+        <div class="rate-row" data-name="p_kosakata">
+          <div class="rlabel"><span>Penguasaan kosakata (mufradat)</span><span class="ar-mini">مفردات</span></div>
+          <div class="rate-opts"></div>
+        </div>
+        <div class="rate-row" data-name="p_tatabahasa">
+          <div class="rlabel"><span>Tata bahasa (nahwu &amp; sharaf)</span><span class="ar-mini">نحو وصرف</span></div>
+          <div class="rate-opts"></div>
+        </div>
+        <div class="rate-scale-caption"><span>1 · Sangat kurang</span><span>5 · Sangat baik</span></div>
+        <div class="field" style="margin-top:6px;"><span class="error-text" id="err-pemahaman">Mohon isi seluruh penilaian pemahaman di atas.</span></div>
+      </fieldset>
+    </section>
+
+    <!-- SECTION 3: KETERTARIKAN -->
+    <section class="card">
+      <div class="section-head">
+        <span class="section-num">BAGIAN 3</span>
+        <span class="ar">الاهتمام</span>
+        <h2>Ketertarikan Belajar</h2>
+        <span class="desc">Ceritakan minat dan cara belajar yang paling Ananda sukai.</span>
+      </div>
+
+      <div class="rate-row" data-name="minat_umum">
+        <div class="rlabel"><span>Secara umum, seberapa besar minat Ananda pada pelajaran Bahasa Arab?</span></div>
+        <div class="rate-opts"></div>
+        <div class="rate-scale-caption"><span>1 · Tidak tertarik</span><span>5 · Sangat tertarik</span></div>
+      </div>
+      <div class="field" id="field-minat_umum-err"><span class="error-text">Mohon beri penilaian minat secara umum.</span></div>
+
+      <div class="field" id="field-metode">
+        <label class="field-label">Cara belajar yang paling disukai <span class="required-mark">*</span> <small style="font-weight:400;">(boleh pilih lebih dari satu)</small></label>
+        <div class="check-list">
+          <label class="check-item"><input type="checkbox" name="metode" value="Video/film berbahasa Arab"><span>Menonton video/film berbahasa Arab</span></label>
+          <label class="check-item"><input type="checkbox" name="metode" value="Lagu/nasyid Arab"><span>Mendengarkan lagu/nasyid Arab</span></label>
+          <label class="check-item"><input type="checkbox" name="metode" value="Permainan/kuis bahasa"><span>Permainan atau kuis bahasa</span></label>
+          <label class="check-item"><input type="checkbox" name="metode" value="Percakapan langsung"><span>Latihan percakapan langsung (muhadatsah)</span></label>
+          <label class="check-item"><input type="checkbox" name="metode" value="Membaca kisah/cerita"><span>Membaca kisah atau cerita pendek</span></label>
+          <label class="check-item"><input type="checkbox" name="metode" value="Aplikasi belajar bahasa"><span>Aplikasi/website belajar bahasa</span></label>
+          <label class="check-item"><input type="checkbox" name="metode" value="Lainnya"><span>Lainnya</span></label>
+        </div>
+        <span class="error-text">Pilih minimal satu cara belajar.</span>
+      </div>
+
+      <div class="field" id="field-motivasi">
+        <label class="field-label" for="motivasi">Motivasi utama belajar Bahasa Arab <span class="required-mark">*</span></label>
+        <select id="motivasi" name="motivasi">
+          <option value="">Pilih motivasi utama</option>
+          <option value="Nilai akademik">Mendapat nilai akademik yang baik</option>
+          <option value="Memahami Al-Qur'an dan kitab">Memahami Al-Qur'an dan kitab kuning</option>
+          <option value="Komunikasi/dakwah">Bisa berkomunikasi/berdakwah</option>
+          <option value="Studi lanjut Timur Tengah">Persiapan studi lanjut ke Timur Tengah</option>
+          <option value="Minat pribadi">Minat/hobi pribadi terhadap bahasa Arab</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+        <span class="error-text">Silakan pilih motivasi utama.</span>
+      </div>
+    </section>
+
+    <!-- SECTION 4: KESULITAN -->
+    <section class="card">
+      <div class="section-head">
+        <span class="section-num">BAGIAN 4</span>
+        <span class="ar">الصعوبة</span>
+        <h2>Kesulitan Belajar</h2>
+        <span class="desc">Bantu guru mengetahui kendala yang paling sering Ananda temui.</span>
+      </div>
+
+      <div class="field" id="field-kesulitan">
+        <label class="field-label">Kesulitan yang paling sering dirasakan <span class="required-mark">*</span> <small style="font-weight:400;">(boleh pilih lebih dari satu)</small></label>
+        <div class="check-list">
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Kosakata terbatas"><span>Kosakata (mufradat) yang dikuasai masih terbatas</span></label>
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Tata bahasa sulit"><span>Tata bahasa (nahwu &amp; sharaf) terasa rumit</span></label>
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Kurang percaya diri berbicara"><span>Kurang percaya diri saat berbicara (kalam)</span></label>
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Sulit memahami teks"><span>Sulit memahami teks bacaan (qira'ah)</span></label>
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Sulit menyimak"><span>Sulit menyimak/mendengarkan (istima')</span></label>
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Metode kurang menarik"><span>Metode pembelajaran di kelas kurang menarik</span></label>
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Kurang waktu latihan"><span>Kurang waktu untuk belajar/berlatih di rumah</span></label>
+          <label class="check-item"><input type="checkbox" name="kesulitan" value="Lainnya"><span>Lainnya</span></label>
+        </div>
+        <span class="error-text">Pilih minimal satu kesulitan.</span>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="kesulitan_lain">Ceritakan kesulitan lain (jika ada)</label>
+        <textarea id="kesulitan_lain" name="kesulitan_lain" placeholder="Tuliskan kesulitan spesifik yang Ananda alami..."></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="saran">Saran untuk pembelajaran Bahasa Arab di kelas</label>
+        <textarea id="saran" name="saran" placeholder="Contoh: lebih banyak latihan percakapan, permainan kosakata, dsb."></textarea>
+      </div>
+    </section>
+
+    <!-- SUBMIT -->
+    <section class="card">
+      <div class="section-head" style="margin-bottom:14px;">
+        <span class="ar">الإرسال</span>
+        <h2>Kirim Jawaban</h2>
+        <span class="desc">Jawaban dapat diunduh sebagai file, dan/atau otomatis tersimpan ke Google Sheets bila guru sudah mengaktifkan penyimpanan cloud.</span>
+      </div>
+
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="submitBtn">Kirim Jawaban</button>
+      </div>
+      <div class="status-msg" id="statusMsg"></div>
+
+      <div class="thankyou" id="thankyou">
+        <span class="ar">شكرًا لك</span>
+        <h3>Terima kasih, jawaban tersimpan!</h3>
+        <p>Jawaban Ananda telah tercatat. Ananda boleh menutup halaman ini atau mengisi ulang untuk siswa berikutnya.</p>
+        <button type="button" class="btn btn-ghost" id="resetBtn" style="margin-top:14px;">Isi Jawaban Baru</button>
+      </div>
+
+      <div style="margin-top:26px;">
+        <details class="storage-info">
+          <summary>Untuk guru — cara menghubungkan ke Google Sheets/Drive (opsional)</summary>
+          <p>Secara bawaan, jawaban siswa hanya tersimpan sementara di sesi browser masing-masing. Agar <strong>semua jawaban dari semua siswa otomatis terkumpul di satu Google Spreadsheet</strong>, dengan kolom yang sudah tersusun rapi sesuai urutan pertanyaan, ikuti langkah berikut:</p>
+
+          <p><strong>Langkah 1 — Buat spreadsheet</strong></p>
+          <ol>
+            <li>Buka <strong>sheets.google.com</strong>, buat spreadsheet kosong baru.</li>
+            <li>Beri nama, misalnya <em>"Rekap Pemetaan Bahasa Arab MAN Balikpapan"</em>.</li>
+          </ol>
+
+          <p><strong>Langkah 2 — Pasang skrip penerima data</strong></p>
+          <ol>
+            <li>Di spreadsheet tadi, klik menu <strong>Extensions &gt; Apps Script</strong>.</li>
+            <li>Hapus semua kode bawaan di editor, lalu tempel kode berikut (kode ini otomatis membuat baris judul kolom sesuai urutan pertanyaan pada formulir, sehingga admin tinggal mengoreksi baris demi baris tanpa perlu menyusun ulang):</li>
+          </ol>
+          <pre><code>// Ganti kode admin di bawah ini agar sama dengan kode admin di file index.html
+var ADMIN_KEY = 'guru123';
+
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var d = JSON.parse(e.postData.contents);
+
+  // aksi khusus: buka/tutup kuisioner (dipakai oleh panel admin)
+  if (d.action === 'setStatus') {
+    if (d.adminKey !== ADMIN_KEY) {
+      return ContentService.createTextOutput(JSON.stringify({status:'error', message:'Kode admin salah'}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    var configSheet = ss.getSheetByName('Config') || ss.insertSheet('Config');
+    configSheet.getRange('A1').setValue(d.value === 'CLOSED' ? 'CLOSED' : 'OPEN');
+    return ContentService.createTextOutput(JSON.stringify({status:'ok', value:d.value}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // default: simpan jawaban siswa
+  var sheet = ss.getSheets()[0];
+  var headers = [
+    'Waktu Pengisian','Nama','NISN','Kelas','Tingkat','Program Peminatan','Jenis Kelamin',
+    'Pemahaman - Membaca (Qira\'ah)','Pemahaman - Menulis (Kitabah)',
+    'Pemahaman - Mendengar (Istima\')','Pemahaman - Berbicara (Kalam)',
+    'Pemahaman - Kosakata (Mufradat)','Pemahaman - Tata Bahasa (Nahwu-Sharaf)',
+    'Minat Umum (1-5)','Cara Belajar Favorit','Motivasi Utama',
+    'Kesulitan yang Dirasakan','Kesulitan Lain','Saran'
+  ];
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  sheet.appendRow([
+    new Date(), d.nama, d.nisn, d.kelas, d.tingkat, d.jurusan, d.jenis_kelamin,
+    d.p_membaca, d.p_menulis, d.p_mendengar, d.p_berbicara, d.p_kosakata, d.p_tatabahasa,
+    d.minat_umum, d.metode, d.motivasi,
+    d.kesulitan, d.kesulitan_lain, d.saran
+  ]);
+  return ContentService.createTextOutput(JSON.stringify({status:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// endpoint ini yang dibaca form untuk tahu kuisioner sedang buka/tutup
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var configSheet = ss.getSheetByName('Config');
+  var status = 'OPEN';
+  if (configSheet) {
+    var val = configSheet.getRange('A1').getValue();
+    if (String(val).toUpperCase() === 'CLOSED') status = 'CLOSED';
+  }
+  return ContentService.createTextOutput(JSON.stringify({status: status}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</code></pre>
+          <ol start="3">
+            <li>Klik ikon <strong>disket/Save</strong> (atau Ctrl+S) untuk menyimpan skrip. Beri nama proyek bebas, misalnya "Penerima Kuisioner".</li>
+          </ol>
+
+          <p><strong>Langkah 3 — Deploy sebagai Web App</strong></p>
+          <ol>
+            <li>Klik tombol biru <strong>Deploy</strong> di kanan atas &gt; pilih <strong>New deployment</strong>.</li>
+            <li>Klik ikon gerigi ⚙️ di samping "Select type" &gt; pilih <strong>Web app</strong>.</li>
+            <li>Pada "Execute as" pilih <strong>Me (akun Anda)</strong>. Pada "Who has access" pilih <strong>Anyone</strong>.</li>
+            <li>Klik <strong>Deploy</strong>. Google akan meminta otorisasi — klik <strong>Authorize access</strong>, pilih akun, lalu klik <strong>Advanced &gt; Buka (nama proyek) (unsafe)</strong> jika muncul peringatan, lalu <strong>Allow</strong>. Ini normal karena skrip milik Anda sendiri.</li>
+            <li>Setelah selesai, salin <strong>Web app URL</strong> yang muncul (formatnya <code>https://script.google.com/macros/s/xxxxx/exec</code>).</li>
+          </ol>
+
+          <p><strong>Langkah 4 — Hubungkan ke formulir ini (penting!)</strong></p>
+          <ol>
+            <li>Tempel URL tadi ke kolom "URL Google Apps Script" di bawah ini, lalu klik <strong>Tes Koneksi</strong> untuk memastikan berhasil (akan muncul 1 baris data uji coba di spreadsheet — boleh dihapus setelah tes berhasil).</li>
+            <li>Kolom di bawah ini hanya berlaku untuk browser Anda sendiri. Agar jawaban <strong>semua siswa</strong> otomatis masuk ke spreadsheet yang sama, URL tersebut harus ditempel langsung ke dalam file <code>index.html</code> sebelum dibagikan/di-upload ke Netlify — cari baris <code>SCRIPT_URL: ''</code> di bagian paling atas kode, lalu isi di antara tanda kutip: <code>SCRIPT_URL: 'https://script.google.com/macros/s/xxxxx/exec'</code>. Setelah itu, semua siswa yang membuka link otomatis terhubung tanpa perlu mengatur apa pun.</li>
+          </ol>
+          <p style="margin-top:10px;"><em>Catatan:</em> jika suatu saat kode skrip diedit lagi, gunakan <strong>Deploy &gt; Manage deployments &gt; ikon pensil &gt; New version &gt; Deploy</strong> agar URL yang sama tetap berlaku dengan kode terbaru.</p>
+
+          <p><strong>Langkah 5 — Menutup/membuka kuisioner</strong></p>
+          <p>Setelah Langkah 4 selesai (URL sudah ditanam ke file), panel admin di bawah akan menampilkan tombol <strong>"Tutup Kuisioner"</strong> dan <strong>"Buka Kuisioner"</strong>. Menutup kuisioner akan langsung menyembunyikan formulir dari semua siswa di semua perangkat sampai dibuka kembali — cocok dipakai saat periode pengisian sudah selesai.</p>
+
+          <div class="field" style="margin-top:14px;">
+            <label class="field-label" for="scriptUrl">URL Google Apps Script (Web App)</label>
+            <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+            <small class="hint">Kolom ini otomatis terisi jika <code>CONFIG.SCRIPT_URL</code> sudah diisi di dalam file. Kosongkan/ubah di sini hanya untuk pengujian sementara di browser ini.</small>
+          </div>
+          <div class="btn-row" style="margin-top:4px;">
+            <button type="button" class="btn btn-ghost" id="testConnBtn">Tes Koneksi</button>
+          </div>
+          <div class="status-msg" id="testStatusMsg"></div>
+
+          <hr style="border:none; border-top:1px dashed var(--color-line); margin:20px 0;">
+
+          <p style="margin-top:0;"><strong>Unduh rekap jawaban (khusus admin/guru).</strong> Rekap ini hanya berisi jawaban yang masuk pada perangkat &amp; sesi browser ini — bukan gabungan dari seluruh perangkat siswa. Untuk kumpulan data dari semua siswa, gunakan integrasi Google Sheets di atas lalu unduh langsung dari Google Drive.</p>
+
+          <div id="adminGate">
+            <div class="field" style="margin-bottom:10px;">
+              <label class="field-label" for="adminCode">Kode admin</label>
+              <input type="text" id="adminCode" placeholder="Masukkan kode admin" autocomplete="off">
+              <small class="hint">Kode bawaan: <code>guru123</code>. Guru dapat mengganti kode ini di bagian atas file, cari <code>ADMIN_CODE</code> di dalam objek <code>CONFIG</code>.</small>
+            </div>
+            <button type="button" class="btn btn-ghost" id="adminUnlockBtn">Buka Panel Admin</button>
+          </div>
+
+          <div id="adminPanel" style="display:none; margin-top:14px;">
+            <div class="btn-row">
+              <button type="button" class="btn btn-primary" id="downloadAllBtn">Unduh Rekap Sesi Ini (CSV)</button>
+            </div>
+            <hr style="border:none; border-top:1px dashed var(--color-line); margin:18px 0;">
+            <p style="margin-top:0;"><strong>Buka/Tutup Kuisioner.</strong> Menutup kuisioner akan menyembunyikan formulir dari semua siswa (di semua perangkat) sampai dibuka kembali. Butuh URL Google Apps Script di atas agar berlaku untuk semua orang, bukan hanya browser ini.</p>
+            <p id="currentStatusLabel" style="font-size:0.85rem; color:var(--color-ink-soft);">Status saat ini: memeriksa...</p>
+            <div class="btn-row">
+              <button type="button" class="btn btn-ghost" id="openFormBtn">Buka Kuisioner</button>
+              <button type="button" class="btn btn-ghost" id="closeFormBtn" style="color:var(--color-error); border-color:var(--color-error);">Tutup Kuisioner</button>
+            </div>
+            <div class="status-msg" id="toggleStatusMsg"></div>
+          </div>
+        </details>
+      </div>
+    </section>
+  </form>
+  </div>
+
+  <footer>
+    <span class="ar">بارك الله فيكم</span>
+    Pemetaan Pembelajaran Bahasa Arab · MAN Balikpapan · Kelas X, XI &amp; XII
+  </footer>
+</main>
+
+<script>
+(function(){
+  // ====== KONFIGURASI GURU ======
+  // Tempel URL Google Apps Script di sini SEBELUM file ini dibagikan ke siswa,
+  // supaya semua siswa otomatis terhubung ke spreadsheet & fitur buka/tutup
+  // berlaku untuk semua orang (lihat panduan "Untuk guru" di bagian bawah form).
+  var CONFIG = {
+    SCRIPT_URL: '', // contoh: 'https://script.google.com/macros/s/xxxxx/exec'
+    ADMIN_CODE: 'guru123'
+  };
+  // ================================
+
+  var formArea = document.getElementById('formArea');
+  var statusChecking = document.getElementById('statusChecking');
+  var closedCard = document.getElementById('closedCard');
+  var formIsClosed = false;
+
+  // prefill the admin script-url field so it works out of the box on this device too
+  var scriptUrlInput = document.getElementById('scriptUrl');
+  if (CONFIG.SCRIPT_URL) scriptUrlInput.value = CONFIG.SCRIPT_URL;
+
+  function revealForm(){
+    statusChecking.style.display = 'none';
+    formArea.style.display = 'block';
+  }
+  function revealClosed(){
+    statusChecking.style.display = 'none';
+    closedCard.style.display = 'block';
+    formIsClosed = true;
+  }
+
+  if (!CONFIG.SCRIPT_URL) {
+    // no shared backend configured yet — nothing to check status against, stay open
+    revealForm();
+  } else {
+    fetch(CONFIG.SCRIPT_URL)
+      .then(function(res){ return res.json(); })
+      .then(function(json){
+        if (json && json.status === 'CLOSED') revealClosed();
+        else revealForm();
+      })
+      .catch(function(){
+        // if the status check fails (e.g. network issue), fail open rather than
+        // blocking every student from filling the form
+        revealForm();
+      });
+  }
+
+  // build 1-5 rating scales
+  document.querySelectorAll('.rate-row').forEach(function(row){
+    var name = row.dataset.name;
+    var opts = row.querySelector('.rate-opts');
+    for(var i=1;i<=5;i++){
+      var id = name + '-' + i;
+      var wrap = document.createElement('div');
+      wrap.className = 'rate-opt';
+      wrap.innerHTML = '<input type="radio" id="'+id+'" name="'+name+'" value="'+i+'">' +
+                        '<label for="'+id+'">'+i+'</label>';
+      opts.appendChild(wrap);
+    }
+  });
+
+  // scroll progress bar
+  var bar = document.getElementById('progressBar');
+  window.addEventListener('scroll', function(){
+    var h = document.documentElement;
+    var scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    bar.style.width = (scrolled || 0) + '%';
+  });
+
+  var form = document.getElementById('mapForm');
+  var statusMsg = document.getElementById('statusMsg');
+  var thankyou = document.getElementById('thankyou');
+  var sessionRows = []; // in-memory accumulation for this browser session only
+
+  var RATING_FIELDS = ['p_membaca','p_menulis','p_mendengar','p_berbicara','p_kosakata','p_tatabahasa'];
+  var CSV_HEADERS = ['timestamp','nama','nisn','kelas','tingkat','jurusan','jenis_kelamin',
+    'p_membaca','p_menulis','p_mendengar','p_berbicara','p_kosakata','p_tatabahasa',
+    'minat_umum','metode','motivasi','kesulitan','kesulitan_lain','saran'];
+
+  function showStatus(kind, text){
+    statusMsg.className = 'status-msg show ' + kind;
+    statusMsg.textContent = text;
+  }
+
+  function clearErrors(){
+    form.querySelectorAll('.field.has-error').forEach(function(f){ f.classList.remove('has-error'); });
+    document.getElementById('err-pemahaman').style.display = 'none';
+    document.getElementById('field-minat_umum-err').classList.remove('has-error');
+  }
+
+  function markError(fieldId){
+    var el = document.getElementById(fieldId);
+    if(el) el.classList.add('has-error');
+  }
+
+  function getRadioValue(name){
+    var el = form.querySelector('input[name="'+name+'"]:checked');
+    return el ? el.value : '';
+  }
+  function getCheckboxValues(name){
+    return Array.from(form.querySelectorAll('input[name="'+name+'"]:checked')).map(function(el){return el.value;});
+  }
+
+  function validate(){
+    clearErrors();
+    var ok = true;
+    var nama = document.getElementById('nama').value.trim();
+    var nisn = document.getElementById('nisn').value.trim();
+    var kelas = document.getElementById('kelas').value.trim();
+    var tingkat = document.getElementById('tingkat').value;
+
+    if(!nama){ markError('field-nama'); ok = false; }
+    if(!nisn){ markError('field-nisn'); ok = false; }
+    if(!kelas){ markError('field-kelas'); ok = false; }
+    if(!tingkat){ markError('field-tingkat'); ok = false; }
+    if(!getRadioValue('jenis_kelamin')){ markError('field-gender'); ok = false; }
+
+    var pemahamanOk = RATING_FIELDS.every(function(f){ return getRadioValue(f) !== ''; });
+    if(!pemahamanOk){ document.getElementById('err-pemahaman').style.display = 'block'; ok = false; }
+
+    if(!getRadioValue('minat_umum')){ document.getElementById('field-minat_umum-err').classList.add('has-error'); ok = false; }
+    if(getCheckboxValues('metode').length === 0){ markError('field-metode'); ok = false; }
+    if(!document.getElementById('motivasi').value){ markError('field-motivasi'); ok = false; }
+    if(getCheckboxValues('kesulitan').length === 0){ markError('field-kesulitan'); ok = false; }
+
+    return ok;
+  }
+
+  function collectData(){
+    return {
+      timestamp: new Date().toISOString(),
+      nama: document.getElementById('nama').value.trim(),
+      nisn: document.getElementById('nisn').value.trim(),
+      kelas: document.getElementById('kelas').value.trim(),
+      tingkat: document.getElementById('tingkat').value,
+      jurusan: document.getElementById('jurusan').value,
+      jenis_kelamin: getRadioValue('jenis_kelamin'),
+      p_membaca: getRadioValue('p_membaca'),
+      p_menulis: getRadioValue('p_menulis'),
+      p_mendengar: getRadioValue('p_mendengar'),
+      p_berbicara: getRadioValue('p_berbicara'),
+      p_kosakata: getRadioValue('p_kosakata'),
+      p_tatabahasa: getRadioValue('p_tatabahasa'),
+      minat_umum: getRadioValue('minat_umum'),
+      metode: getCheckboxValues('metode').join('; '),
+      motivasi: document.getElementById('motivasi').value,
+      kesulitan: getCheckboxValues('kesulitan').join('; '),
+      kesulitan_lain: document.getElementById('kesulitan_lain').value.trim(),
+      saran: document.getElementById('saran').value.trim()
+    };
+  }
+
+  function csvEscape(val){
+    val = String(val === undefined || val === null ? '' : val);
+    if(/[",\n;]/.test(val)) return '"' + val.replace(/"/g,'""') + '"';
+    return val;
+  }
+
+  function rowsToCsv(rows){
+    var lines = [CSV_HEADERS.join(',')];
+    rows.forEach(function(r){
+      lines.push(CSV_HEADERS.map(function(h){ return csvEscape(r[h]); }).join(','));
+    });
+    return '\uFEFF' + lines.join('\n');
+  }
+
+  function downloadCsv(csvText, filename){
+    var blob = new Blob([csvText], {type:'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function safeFileSlug(s){
+    return (s || 'jawaban').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    statusMsg.className = 'status-msg';
+    if(!validate()){
+      showStatus('err', 'Mohon lengkapi bagian yang masih kosong (ditandai merah) sebelum mengirim.');
+      var firstError = form.querySelector('.has-error, [style*="display: block"]');
+      if(firstError) firstError.scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+
+    var data = collectData();
+    sessionRows.push(data);
+
+    // send to Google Sheets if teacher configured a script URL; otherwise
+    // the response simply stays in this session's memory for the admin to
+    // export later from the admin panel below.
+    var scriptUrl = document.getElementById('scriptUrl').value.trim();
+    if(scriptUrl){
+      showStatus('pending', 'Mengirim jawaban ke Google Sheets...');
+      fetch(scriptUrl, {
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(data)
+      }).then(function(){
+        showStatus('ok', 'Jawaban berhasil dikirim dan tersimpan ke Google Sheets.');
+      }).catch(function(){
+        showStatus('err', 'Jawaban tercatat di sesi ini, tetapi gagal mengirim ke Google Sheets. Periksa URL Apps Script.');
+      });
+    } else {
+      showStatus('ok', 'Jawaban berhasil dikirim dan tercatat.');
+    }
+
+    form.classList.add('hidden');
+    thankyou.classList.add('show');
+    thankyou.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    form.reset();
+    form.classList.remove('hidden');
+    thankyou.classList.remove('show');
+    statusMsg.className = 'status-msg';
+    clearErrors();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  // --- test connection to Google Sheets ---
+  document.getElementById('testConnBtn').addEventListener('click', function(){
+    var testStatus = document.getElementById('testStatusMsg');
+    var scriptUrl = document.getElementById('scriptUrl').value.trim();
+    if(!scriptUrl){
+      testStatus.className = 'status-msg show err';
+      testStatus.textContent = 'Isi dulu URL Google Apps Script sebelum menguji koneksi.';
+      return;
+    }
+    testStatus.className = 'status-msg show pending';
+    testStatus.textContent = 'Mengirim data uji coba...';
+    var testData = {
+      nama:'(Uji Coba)', nisn:'-', kelas:'-', tingkat:'-', jurusan:'-', jenis_kelamin:'-',
+      p_membaca:'-', p_menulis:'-', p_mendengar:'-', p_berbicara:'-', p_kosakata:'-', p_tatabahasa:'-',
+      minat_umum:'-', metode:'-', motivasi:'-', kesulitan:'-', kesulitan_lain:'-',
+      saran:'Baris ini hanya untuk menguji koneksi, boleh dihapus dari spreadsheet.'
+    };
+    fetch(scriptUrl, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(testData)
+    }).then(function(){
+      testStatus.className = 'status-msg show ok';
+      testStatus.textContent = 'Data uji coba terkirim. Periksa spreadsheet — jika muncul 1 baris baru dengan nama "(Uji Coba)", koneksi berhasil.';
+    }).catch(function(){
+      testStatus.className = 'status-msg show err';
+      testStatus.textContent = 'Gagal mengirim. Periksa kembali URL Web App dan pastikan akses "Anyone" sudah dipilih saat Deploy.';
+    });
+  });
+
+  // --- admin-only panel: simple client-side code gate ---
+  document.getElementById('adminUnlockBtn').addEventListener('click', function(){
+    var input = document.getElementById('adminCode').value.trim();
+    if(input === CONFIG.ADMIN_CODE){
+      document.getElementById('adminGate').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      refreshStatusLabel();
+    } else {
+      showStatus('err', 'Kode admin salah.');
+    }
+  });
+
+  document.getElementById('downloadAllBtn').addEventListener('click', function(){
+    if(sessionRows.length === 0){
+      showStatus('err', 'Belum ada jawaban yang terkumpul pada sesi ini. Rekap hanya mencakup pengisian di perangkat/tab ini sejak dibuka.');
+      return;
+    }
+    downloadCsv(rowsToCsv(sessionRows), 'rekap-pemetaan-bahasa-arab-' + new Date().toISOString().slice(0,10) + '.csv');
+    showStatus('ok', 'Rekap ' + sessionRows.length + ' jawaban pada sesi ini berhasil diunduh.');
+  });
+
+  // --- open / close the questionnaire (requires CONFIG.SCRIPT_URL / scriptUrl field) ---
+  var statusLabel = document.getElementById('currentStatusLabel');
+  var toggleMsg = document.getElementById('toggleStatusMsg');
+
+  function refreshStatusLabel(){
+    var url = document.getElementById('scriptUrl').value.trim();
+    if(!url){
+      statusLabel.textContent = 'Status saat ini: fitur ini butuh URL Google Apps Script terlebih dulu.';
+      return;
+    }
+    statusLabel.textContent = 'Status saat ini: memeriksa...';
+    fetch(url).then(function(res){ return res.json(); }).then(function(json){
+      statusLabel.textContent = 'Status saat ini: ' + (json.status === 'CLOSED' ? 'DITUTUP' : 'DIBUKA');
+    }).catch(function(){
+      statusLabel.textContent = 'Status saat ini: gagal memeriksa (periksa URL).';
+    });
+  }
+
+  function setFormStatus(value){
+    var url = document.getElementById('scriptUrl').value.trim();
+    if(!url){
+      toggleMsg.className = 'status-msg show err';
+      toggleMsg.textContent = 'Isi dulu URL Google Apps Script di atas.';
+      return;
+    }
+    toggleMsg.className = 'status-msg show pending';
+    toggleMsg.textContent = 'Menyimpan perubahan status...';
+    fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action:'setStatus', value:value, adminKey:CONFIG.ADMIN_CODE})
+    }).then(function(res){ return res.json(); }).then(function(json){
+      if(json.status === 'error'){
+        toggleMsg.className = 'status-msg show err';
+        toggleMsg.textContent = json.message || 'Gagal mengubah status.';
+        return;
+      }
+      toggleMsg.className = 'status-msg show ok';
+      toggleMsg.textContent = value === 'CLOSED' ? 'Kuisioner sekarang ditutup untuk siswa.' : 'Kuisioner sekarang dibuka untuk siswa.';
+      refreshStatusLabel();
+    }).catch(function(){
+      toggleMsg.className = 'status-msg show err';
+      toggleMsg.textContent = 'Gagal mengubah status. Periksa kembali URL Web App.';
+    });
+  }
+
+  document.getElementById('openFormBtn').addEventListener('click', function(){ setFormStatus('OPEN'); });
+  document.getElementById('closeFormBtn').addEventListener('click', function(){ setFormStatus('CLOSED'); });
+})();
+</script>
+</body>
+</html>
