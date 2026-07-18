@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ruang Ujian — Asesmen Bahasa Arab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-deep:#0f3627;
+    --green:#175c41;
+    --gold:#eab628;
+    --gold-deep:#c9960a;
+    --ink:#1c2624;
+    --muted:#5c6b66;
+    --line:rgba(15,54,39,.12);
+    --bg-alt:#f2f7f4;
+    --red:#b3311f;
+    --red-bg:#fbeae7;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:#ffffff;color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;}
+  a{color:inherit;text-decoration:none;}
+  .display{font-family:'Poppins',sans-serif;}
+  .hidden{display:none !important;}
+
+  header{position:sticky;top:0;z-index:60;background:var(--green-deep);}
+  .nav-wrap{max-width:1000px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .brand-text{font-family:'Poppins',sans-serif;font-weight:700;letter-spacing:.02em;font-size:16px;color:#fff;}
+  .brand-text span{color:var(--gold);}
+  .back-home{font-size:12.5px;font-weight:600;color:#dce9e2;opacity:.9;}
+  .back-home:hover{color:var(--gold);opacity:1;}
+  .admin-link{font-size:11.5px;font-weight:600;color:#9db8ab;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;}
+  .admin-link:hover{color:#fff;border-color:var(--gold);}
+
+  main{max-width:840px;margin:0 auto;padding:48px 24px 80px;}
+
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);font-weight:700;margin-bottom:8px;display:block;}
+  h1{font-family:'Poppins',sans-serif;font-weight:800;font-size:28px;margin:0 0 8px;color:var(--green-deep);}
+  .lead{color:var(--muted);font-size:15px;margin:0 0 32px;max-width:560px;}
+
+  .crumb{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--green);margin-bottom:20px;cursor:pointer;}
+  .crumb:hover{color:var(--green-deep);text-decoration:underline;}
+
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media (max-width:680px){.grid-3{grid-template-columns:1fr;}}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:24px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left;}
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,54,39,.1);border-color:var(--green);}
+  .card .k{font-family:'Poppins',sans-serif;font-weight:800;font-size:22px;color:var(--green-deep);margin:0 0 4px;}
+  .card .d{font-size:13px;color:var(--muted);margin:0;}
+
+  .topik-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .topik-card h3{font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;margin:0 0 4px;color:var(--green-deep);}
+  .topik-card p{margin:0;font-size:13px;color:var(--muted);}
+  .topik-meta{font-size:11.5px;color:var(--gold-deep);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+
+  .btn{font-weight:700;font-size:13.5px;padding:12px 24px;border-radius:4px;display:inline-block;border:none;cursor:pointer;transition:transform .15s,background .15s;letter-spacing:.01em;font-family:'Inter',sans-serif;}
+  .btn-solid{background:var(--green);color:#fff;}
+  .btn-solid:hover{background:var(--green-deep);transform:translateY(-1px);}
+  .btn-gold{background:var(--gold);color:var(--green-deep);}
+  .btn-gold:hover{background:var(--gold-deep);}
+  .btn-outline{border:1.5px solid var(--green);color:var(--green);background:#fff;}
+  .btn-outline:hover{background:var(--green);color:#fff;}
+  .btn-sm{padding:8px 16px;font-size:12.5px;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+  .btn-danger{background:var(--red);color:#fff;}
+  .btn-danger:hover{background:#8f2718;}
+
+  .empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px;background:var(--bg-alt);border-radius:10px;border:1px dashed var(--line);}
+
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--green-deep);margin-bottom:6px;}
+  .field input[type=text], .field input[type=email], .field input[type=password], .field input[type=number], .field textarea, .field select{
+    width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:#fff;
+  }
+  .field textarea{resize:vertical;min-height:70px;}
+  .field input:focus, .field textarea:focus, .field select:focus{outline:none;border-color:var(--green);}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
+
+  .soal-block{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:16px;}
+  .soal-no{font-size:11.5px;font-weight:700;color:var(--gold-deep);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+  .soal-text{font-size:15px;font-weight:600;color:var(--ink);margin:0 0 14px;}
+  .opsi{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1.5px solid var(--line);border-radius:6px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;}
+  .opsi:hover{border-color:var(--green);}
+  .opsi.checked{border-color:var(--green);background:#f2f7f4;}
+  .opsi input{margin-top:3px;}
+  .opsi span{font-size:14px;}
+
+  .banner{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:18px;}
+  .banner-error{background:var(--red-bg);color:var(--red);border:1px solid rgba(179,49,31,.25);}
+  .banner-ok{background:#eaf5ee;color:var(--green-deep);border:1px solid rgba(23,92,65,.2);}
+
+  .tabs{display:flex;gap:6px;border-bottom:1.5px solid var(--line);margin-bottom:24px;flex-wrap:wrap;}
+  .tab-btn{background:none;border:none;padding:12px 16px;font-family:'Inter',sans-serif;font-weight:700;font-size:13.5px;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;}
+  .tab-btn.active{color:var(--green-deep);border-color:var(--gold);}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 10px;border-bottom:1.5px solid var(--line);}
+  td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr.clickable{cursor:pointer;}
+  tr.clickable:hover td{background:var(--bg-alt);}
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;}
+  .badge-wait{background:#fdf3da;color:var(--gold-deep);}
+  .badge-done{background:#eaf5ee;color:var(--green-deep);}
+
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .row-between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+
+  .list-item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin-bottom:10px;}
+  .list-item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .list-item h4{margin:0 0 4px;font-size:14.5px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
+  .list-item .meta{font-size:11.5px;color:var(--muted);}
+  .icon-btn{background:none;border:none;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--green);padding:4px 8px;}
+  .icon-btn.danger{color:var(--red);}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(15,54,39,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100;}
+  .modal-box{background:#fff;border-radius:10px;padding:28px;max-width:520px;width:100%;max-height:88vh;overflow:auto;}
+  .modal-box h3{margin:0 0 18px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
+
+  .loading{padding:60px 20px;text-align:center;color:var(--muted);font-size:13.5px;}
+
+  footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;font-size:12px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-wrap">
+    <span class="brand-text">Ruang <span>Ujian</span> — Bahasa Arab</span>
+    <div class="row">
+      <a class="back-home" href="index.html">&larr; Beranda</a>
+      <a class="admin-link" href="#" id="btnShowAdmin">Admin</a>
+    </div>
+  </div>
+</header>
+
+<main id="studentApp">
+  <!-- View: pilih kelas -->
+  <div id="viewKelas">
+    <span class="eyebrow">Ruang Ujian</span>
+    <h1>Pilih kelas kamu</h1>
+    <p class="lead">Pilih jenjang kelas untuk melihat daftar asesmen (materi) yang tersedia.</p>
+    <div class="grid-3">
+      <div class="card" data-kelas="X"><p class="k">Kelas X</p><p class="d">Materi kelas X</p></div>
+      <div class="card" data-kelas="XI"><p class="k">Kelas XI</p><p class="d">Materi kelas XI</p></div>
+      <div class="card" data-kelas="XII"><p class="k">Kelas XII</p><p class="d">Materi kelas XII</p></div>
+    </div>
+  </div>
+
+  <!-- View: pilih topik -->
+  <div id="viewTopik" class="hidden">
+    <span class="crumb" id="crumbKelas">&larr; Ganti kelas</span>
+    <span class="eyebrow" id="topikEyebrow">Kelas X</span>
+    <h1>Pilih materi asesmen</h1>
+    <p class="lead">Pilih tahapan asesmen sesuai materi yang sudah diajarkan.</p>
+    <div id="topikList"><div class="loading">Memuat daftar materi…</div></div>
+  </div>
+
+  <!-- View: isi nama -->
+  <div id="viewNama" class="hidden">
+    <span class="crumb" id="crumbTopik">&larr; Pilih materi lain</span>
+    <span class="eyebrow" id="namaEyebrow">Materi</span>
+    <h1 id="namaTitle">Mulai ujian</h1>
+    <p class="lead">Tulis nama lengkap kamu sebelum mulai mengerjakan.</p>
+    <div class="field" style="max-width:360px;">
+      <label>Nama Lengkap</label>
+      <input type="text" id="inputNamaSiswa" placeholder="Contoh: Ahmad Fauzan">
+    </div>
+    <button class="btn btn-solid" id="btnMulaiUjian">Mulai Mengerjakan</button>
+  </div>
+
+  <!-- View: ujian -->
+  <div id="viewUjian" class="hidden">
+    <span class="eyebrow" id="ujianEyebrow">Materi</span>
+    <h1 id="ujianTitle">Soal</h1>
+    <p class="lead">Jawab semua soal di bawah ini, lalu klik kumpulkan.</p>
+    <div id="banner"></div>
+    <div id="soalList"><div class="loading">Memuat soal…</div></div>
+    <button class="btn btn-gold" id="btnKumpulkan">Kumpulkan Jawaban</button>
+  </div>
+
+  <!-- View: selesai -->
+  <div id="viewSelesai" class="hidden">
+    <div class="empty" style="background:#eaf5ee;border-color:rgba(23,92,65,.2);">
+      <h1 style="margin-bottom:8px;">Jawaban terkirim ✓</h1>
+      <p style="margin:0 0 20px;color:var(--green-deep);">Jawaban kamu sudah tersimpan dan akan dinilai secara manual oleh guru. Hasil penilaian akan diinformasikan lewat kelas.</p>
+      <a class="btn btn-solid" href="ruang-ujian.html">Kembali ke Ruang Ujian</a>
+    </div>
+  </div>
+</main>
+
+<!-- ================= ADMIN ================= -->
+<main id="adminApp" class="hidden">
+
+  <div id="viewLogin">
+    <span class="crumb" id="crumbAdminBack">&larr; Kembali ke tampilan siswa</span>
+    <span class="eyebrow">Panel Admin</span>
+    <h1>Masuk sebagai Guru/Admin</h1>
+    <p class="lead">Login untuk mengelola materi, soal, dan menilai hasil ujian siswa.</p>
+    <div id="loginBanner"></div>
+    <div class="field" style="max-width:360px;">
+      <label>Email</label>
+      <input type="email" id="adminEmail" placeholder="guru@sekolah.sch.id">
+    </div>
+    <div class="field" style="max-width:360px;">
+      <label>Kata Sandi</label>
+      <input type="password" id="adminPassword" placeholder="••••••••">
+    </div>
+    <button class="btn btn-solid" id="btnLogin">Masuk</button>
+    <p class="hint" style="margin-top:16px;">Akun admin dibuat lewat Firebase Console (Authentication → Add user), bukan lewat halaman ini.</p>
+  </div>
+
+  <div id="viewDashboard" class="hidden">
+    <div class="row-between">
+      <div>
+        <span class="crumb" id="crumbAdminBack2">&larr; Kembali ke tampilan siswa</span>
+        <span class="eyebrow">Panel Admin</span>
+        <h1 style="margin-bottom:0;">Kelola Ruang Ujian</h1>
+      </div>
+      <div class="row">
+        <span id="adminWhoami" class="hint" style="margin:0;"></span>
+        <button class="btn btn-outline btn-sm" id="btnLogout">Keluar</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="topik">Materi / Topik</button>
+      <button class="tab-btn" data-tab="soal">Soal</button>
+      <button class="tab-btn" data-tab="hasil">Hasil Ujian</button>
+    </div>
+
+    <!-- Tab: Topik -->
+    <div id="tabTopik">
+      <div class="row-between">
+        <p class="lead" style="margin:0;">Materi/tahapan asesmen yang muncul ke siswa, per kelas.</p>
+        <button class="btn btn-gold btn-sm" id="btnTambahTopik">+ Tambah Materi</button>
+      </div>
+      <div id="topikAdminList"><div class="loading">Memuat…</div></div>
+    </div>
+
+    <!-- Tab: Soal -->
+    <div id="tabSoal" class="hidden">
+      <div class="field" style="max-width:420px;">
+        <label>Pilih Materi</label>
+        <select id="selectTopikSoal"></select>
+      </div>
+      <div class="row-between">
+        <p class="lead" style="margin:0;">Soal untuk materi yang dipilih di atas.</p>
+        <button class="btn btn-gold btn-sm" id="btnTambahSoal">+ Tambah Soal</button>
+      </div>
+      <div id="soalAdminList"><div class="loading">Pilih materi dahulu…</div></div>
+    </div>
+
+    <!-- Tab: Hasil -->
+    <div id="tabHasil" class="hidden">
+      <div class="field" style="max-width:280px;">
+        <label>Filter Status</label>
+        <select id="filterStatusHasil">
+          <option value="semua">Semua</option>
+          <option value="belum_dinilai">Belum Dinilai</option>
+          <option value="sudah_dinilai">Sudah Dinilai</option>
+        </select>
+      </div>
+      <div id="hasilAdminList"><div class="loading">Memuat…</div></div>
+    </div>
+  </div>
+</main>
+
+<div id="modalRoot"></div>
+
+<footer>
+  Ruang Ujian · MAN Balikpapan · Bahasa Arab &middot; <a href="index.html" style="text-decoration:underline;">Kembali ke Beranda</a>
+</footer>
+
+<!-- ============ FIREBASE ============ -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+/* =========================================================================
+   ISI KONFIGURASI FIREBASE ANDA DI SINI
+   Ambil dari: Firebase Console -> Project Settings -> General -> Your apps -> SDK setup and configuration
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyDDi8odiYL0h2xCsghfNr1EdGd8wXVfidY",
+  authDomain: "arabic-class-manbpn.firebaseapp.com",
+  projectId: "arabic-class-manbpn",
+  storageBucket: "arabic-class-manbpn.firebasestorage.app",
+  messagingSenderId: "82009627923",
+  appId: "1:82009627923:web:143877e1c45fcd861c4ee6"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const CONFIG_BELUM_DIISI = firebaseConfig.apiKey === "GANTI_DENGAN_API_KEY";
+</script>
+<script src="ruang-ujian.js"></script>
+</body>
+</html>

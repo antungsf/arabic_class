@@ -1,0 +1,485 @@
+/* ============================================================
+   ABSENSI & NILAI — logic
+   Struktur Firestore:
+   - kelas_absensi { nama, jenjang, urutan, aktif }
+   - siswa         { kelasId, nama, jk:'L'|'P', urutan }
+   - pertemuan     { kelasId, tanggal:'YYYY-MM-DD', materi,
+                      kehadiran: { [siswaId]: 'H'|'S'|'I'|'A' } }
+     doc id = `${kelasId}_${tanggal}` (upsert per kelas+tanggal)
+   - nilai         { kelasId, siswaId, tp, nilai, tanggal }
+     doc id = `${kelasId}_${siswaId}_${tp}` (upsert per siswa+tp)
+   ============================================================ */
+
+const TP_LIST = ['TP1','TP2','TP3','TP4','TP5','TP6','TP7','TP8'];
+const state = {
+  kelasPublik: null,
+  editKelasId: null,
+  adminKelasCache: [],
+  siswaCacheByKelas: {}
+};
+
+function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}</div>`; }
+function bannerErr(el, msg){ el.innerHTML = `<div class="banner banner-error">${msg}</div>`; }
+function escapeHtml(str){
+  return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+
+/* ---------------- PUBLIC ---------------- */
+function showPublicView(id){
+  document.querySelectorAll('#publicApp > div').forEach(el => el.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+async function loadKelasPublik(){
+  const box = document.getElementById('kelasPublikList');
+  box.innerHTML = '<div class="loading">Memuat daftar kelas…</div>';
+  try{
+    const snap = await db.collection('kelas_absensi').where('aktif','==',true).orderBy('jenjang').orderBy('urutan').get();
+    if(snap.empty){ box.innerHTML = '<div class="empty">Belum ada kelas terdaftar.</div>'; return; }
+    box.innerHTML = '<div class="grid-cards" id="gridKelasPublik"></div>';
+    const grid = document.getElementById('gridKelasPublik');
+    snap.forEach(doc => {
+      const d = doc.data();
+      const c = document.createElement('div');
+      c.className = 'card';
+      c.innerHTML = `<p class="k">${escapeHtml(d.nama)}</p><p class="d">Kelas ${escapeHtml(d.jenjang)}</p>`;
+      c.addEventListener('click', () => bukaRekapPublik(doc.id, d));
+      grid.appendChild(c);
+    });
+  }catch(err){
+    box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+  }
+}
+document.getElementById('crumbKelasPublik').addEventListener('click', () => { showPublicView('viewKelasPublik'); loadKelasPublik(); });
+
+async function bukaRekapPublik(kelasId, d){
+  state.kelasPublik = {id:kelasId, ...d};
+  document.getElementById('rekapEyebrow').textContent = 'Kelas ' + d.jenjang;
+  document.getElementById('rekapTitle').textContent = d.nama;
+  showPublicView('viewRekapPublik');
+  await renderRekap(kelasId, document.getElementById('rekapTable'), false);
+}
+
+async function renderRekap(kelasId, box, isAdmin){
+  box.innerHTML = '<div class="loading">Memuat data…</div>';
+  try{
+    const [siswaSnap, pertemuanSnap, nilaiSnap] = await Promise.all([
+      db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get(),
+      db.collection('pertemuan').where('kelasId','==',kelasId).get(),
+      db.collection('nilai').where('kelasId','==',kelasId).get()
+    ]);
+    if(siswaSnap.empty){ box.innerHTML = '<div class="empty">Belum ada siswa terdaftar di kelas ini.</div>'; return; }
+
+    const siswaList = [];
+    siswaSnap.forEach(doc => siswaList.push({id:doc.id, ...doc.data()}));
+
+    const rekapHadir = {}; // siswaId -> {H,S,I,A}
+    siswaList.forEach(s => rekapHadir[s.id] = {H:0,S:0,I:0,A:0});
+    let jumlahPertemuan = 0;
+    pertemuanSnap.forEach(doc => {
+      jumlahPertemuan++;
+      const d = doc.data();
+      const keh = d.kehadiran || {};
+      siswaList.forEach(s => {
+        const st = keh[s.id] || 'H';
+        if(rekapHadir[s.id][st] !== undefined) rekapHadir[s.id][st]++;
+      });
+    });
+
+    const nilaiMap = {}; // siswaId -> {tp: nilai}
+    siswaList.forEach(s => nilaiMap[s.id] = {});
+    nilaiSnap.forEach(doc => {
+      const d = doc.data();
+      if(!nilaiMap[d.siswaId]) nilaiMap[d.siswaId] = {};
+      nilaiMap[d.siswaId][d.tp] = d.nilai;
+    });
+
+    let html = `<div class="hint" style="margin-bottom:10px;">Jumlah pertemuan tercatat: ${jumlahPertemuan}</div>`;
+    html += '<div class="table-scroll"><table><thead><tr><th>No</th><th>Nama</th><th>Hadir</th><th>S</th><th>I</th><th>A</th><th>% Hadir</th>';
+    TP_LIST.forEach(tp => html += `<th>${tp}</th>`);
+    html += '<th>Rata-rata</th></tr></thead><tbody>';
+
+    siswaList.forEach((s,i) => {
+      const r = rekapHadir[s.id];
+      const pct = jumlahPertemuan ? Math.round((r.H/jumlahPertemuan)*100) : 0;
+      html += `<tr><td>${i+1}</td><td>${escapeHtml(s.nama)}</td><td>${r.H}</td><td>${r.S}</td><td>${r.I}</td><td>${r.A}</td><td>${pct}%</td>`;
+      const nilaiSiswa = nilaiMap[s.id] || {};
+      let total=0, count=0;
+      TP_LIST.forEach(tp => {
+        const v = nilaiSiswa[tp];
+        html += `<td>${v!==undefined && v!==null ? v : '-'}</td>`;
+        if(v!==undefined && v!==null){ total+=Number(v); count++; }
+      });
+      html += `<td><b>${count ? Math.round(total/count) : '-'}</b></td>`;
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    box.innerHTML = html;
+  }catch(err){
+    box.innerHTML = `<div class="empty">Gagal memuat rekap. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+/* ---------------- ADMIN: shell ---------------- */
+document.getElementById('btnShowAdmin').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('publicApp').classList.add('hidden');
+  document.getElementById('adminApp').classList.remove('hidden');
+});
+function backToPublic(){
+  document.getElementById('adminApp').classList.add('hidden');
+  document.getElementById('publicApp').classList.remove('hidden');
+  showPublicView('viewKelasPublik');
+  loadKelasPublik();
+}
+document.getElementById('crumbAdminBack').addEventListener('click', backToPublic);
+document.getElementById('crumbAdminBack2').addEventListener('click', backToPublic);
+
+auth.onAuthStateChanged(user => {
+  if(user){
+    document.getElementById('viewLogin').classList.add('hidden');
+    document.getElementById('viewDashboard').classList.remove('hidden');
+    document.getElementById('adminWhoami').textContent = user.email;
+    loadKelasAdmin();
+    loadKelasSelects();
+  } else {
+    document.getElementById('viewLogin').classList.remove('hidden');
+    document.getElementById('viewDashboard').classList.add('hidden');
+  }
+});
+
+document.getElementById('btnLogin').addEventListener('click', async () => {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPassword').value;
+  const banner = document.getElementById('loginBanner');
+  if(CONFIG_BELUM_DIISI){ bannerErr(banner, 'Konfigurasi Firebase belum diisi di absensi.html.'); return; }
+  try{ await auth.signInWithEmailAndPassword(email, pass); }
+  catch(err){ bannerErr(banner, 'Login gagal: ' + escapeHtml(err.message)); }
+});
+document.getElementById('btnLogout').addEventListener('click', () => auth.signOut());
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['kelas','absen','nilai','rekap'].forEach(t => {
+      document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
+    });
+  });
+});
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* ---------------- ADMIN: Kelas & Siswa ---------------- */
+async function loadKelasAdmin(){
+  const box = document.getElementById('kelasAdminList');
+  box.innerHTML = '<div class="loading">Memuat…</div>';
+  try{
+    const snap = await db.collection('kelas_absensi').orderBy('jenjang').orderBy('urutan').get();
+    state.adminKelasCache = [];
+    if(snap.empty){ box.innerHTML = '<div class="empty">Belum ada kelas. Klik "+ Tambah Kelas".</div>'; return; }
+    box.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      state.adminKelasCache.push({id:doc.id, ...d});
+      const item = document.createElement('div');
+      item.className = 'list-item';
+      item.innerHTML = `
+        <div class="list-item-head">
+          <div>
+            <h4>${escapeHtml(d.nama)} <span class="badge ${d.aktif?'badge-h':'badge-a'}">${d.aktif?'Aktif':'Nonaktif'}</span></h4>
+            <div class="meta">Jenjang ${escapeHtml(d.jenjang)} · urutan ${d.urutan ?? '-'}</div>
+          </div>
+          <div>
+            <button class="icon-btn" data-act="siswa">Kelola Siswa</button>
+            <button class="icon-btn" data-act="edit">Edit</button>
+            <button class="icon-btn danger" data-act="hapus">Hapus</button>
+          </div>
+        </div>`;
+      item.querySelector('[data-act="edit"]').addEventListener('click', () => openKelasModal(doc.id, d));
+      item.querySelector('[data-act="hapus"]').addEventListener('click', () => hapusKelas(doc.id, d.nama));
+      item.querySelector('[data-act="siswa"]').addEventListener('click', () => openSiswaModal(doc.id, d));
+      box.appendChild(item);
+    });
+  }catch(err){
+    box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+document.getElementById('btnTambahKelas').addEventListener('click', () => openKelasModal(null, {}));
+
+function openKelasModal(id, d){
+  state.editKelasId = id;
+  renderModal(`
+    <h3>${id ? 'Edit' : 'Tambah'} Kelas</h3>
+    <div class="field"><label>Nama Kelas</label>
+      <input type="text" id="mKelasNama" value="${escapeHtml(d.nama||'')}" placeholder="Contoh: XII A 1.1"></div>
+    <div class="field"><label>Jenjang</label>
+      <select id="mKelasJenjang">
+        <option value="X" ${d.jenjang==='X'?'selected':''}>X</option>
+        <option value="XI" ${d.jenjang==='XI'?'selected':''}>XI</option>
+        <option value="XII" ${d.jenjang==='XII'?'selected':''}>XII</option>
+      </select></div>
+    <div class="field"><label>Urutan tampil</label>
+      <input type="number" id="mKelasUrutan" value="${d.urutan ?? 1}"></div>
+    <div class="field"><label><input type="checkbox" id="mKelasAktif" ${d.aktif!==false?'checked':''} style="width:auto;margin-right:8px;">Tampilkan ke publik (aktif)</label></div>
+    <div id="mKelasBanner"></div>
+    <div class="row">
+      <button class="btn btn-solid" id="mKelasSimpan">Simpan</button>
+      <button class="btn btn-outline" id="mCancel">Batal</button>
+    </div>`);
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('mKelasSimpan').addEventListener('click', simpanKelas);
+}
+
+async function simpanKelas(){
+  const banner = document.getElementById('mKelasBanner');
+  const nama = document.getElementById('mKelasNama').value.trim();
+  if(!nama){ bannerErr(banner, 'Nama kelas wajib diisi.'); return; }
+  const payload = {
+    nama,
+    jenjang: document.getElementById('mKelasJenjang').value,
+    urutan: Number(document.getElementById('mKelasUrutan').value) || 1,
+    aktif: document.getElementById('mKelasAktif').checked
+  };
+  try{
+    if(state.editKelasId) await db.collection('kelas_absensi').doc(state.editKelasId).update(payload);
+    else await db.collection('kelas_absensi').add(payload);
+    closeModal(); loadKelasAdmin(); loadKelasSelects();
+  }catch(err){ bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message)); }
+}
+
+async function hapusKelas(id, nama){
+  if(!confirm(`Hapus kelas "${nama}"? Data siswa/absensi/nilai terkait tidak otomatis ikut terhapus.`)) return;
+  try{ await db.collection('kelas_absensi').doc(id).delete(); loadKelasAdmin(); loadKelasSelects(); }
+  catch(err){ alert('Gagal menghapus: ' + err.message); }
+}
+
+function openSiswaModal(kelasId, kelasData){
+  renderModal(`
+    <h3>Kelola Siswa — ${escapeHtml(kelasData.nama)}</h3>
+    <div id="siswaListWrap"><div class="loading">Memuat…</div></div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
+    <p class="hint">Tambah cepat: tulis 1 nama per baris (opsional akhiri dengan koma L/P, contoh: <i>Ahmad Fauzan, L</i>).</p>
+    <div class="field"><textarea id="mSiswaBulk" placeholder="Ahmad Fauzan, L
+Siti Aisyah, P"></textarea></div>
+    <div id="mSiswaBanner"></div>
+    <div class="row">
+      <button class="btn btn-gold btn-sm" id="mSiswaTambahBulk">+ Tambahkan Daftar Ini</button>
+      <button class="btn btn-outline btn-sm" id="mCancel">Tutup</button>
+    </div>`);
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('mSiswaTambahBulk').addEventListener('click', () => tambahSiswaBulk(kelasId));
+  loadSiswaList(kelasId);
+}
+
+async function loadSiswaList(kelasId){
+  const wrap = document.getElementById('siswaListWrap');
+  try{
+    const snap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get();
+    if(snap.empty){ wrap.innerHTML = '<div class="empty">Belum ada siswa.</div>'; return; }
+    let html = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      html += `<div class="list-item" style="padding:10px 14px;">
+        <div class="list-item-head">
+          <div style="font-size:13.5px;"><b>${escapeHtml(d.nama)}</b> <span class="hint">(${escapeHtml(d.jk||'-')})</span></div>
+          <button class="icon-btn danger" data-id="${doc.id}">Hapus</button>
+        </div></div>`;
+    });
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('[data-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if(!confirm('Hapus siswa ini?')) return;
+        await db.collection('siswa').doc(btn.dataset.id).delete();
+        loadSiswaList(kelasId);
+      });
+    });
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function tambahSiswaBulk(kelasId){
+  const banner = document.getElementById('mSiswaBanner');
+  const raw = document.getElementById('mSiswaBulk').value.trim();
+  if(!raw){ bannerErr(banner, 'Tulis minimal 1 nama.'); return; }
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  try{
+    const existingSnap = await db.collection('siswa').where('kelasId','==',kelasId).get();
+    let urutan = existingSnap.size + 1;
+    const batch = db.batch();
+    lines.forEach(line => {
+      const parts = line.split(',');
+      const nama = parts[0].trim();
+      const jk = (parts[1]||'').trim().toUpperCase();
+      const ref = db.collection('siswa').doc();
+      batch.set(ref, { kelasId, nama, jk: (jk==='L'||jk==='P') ? jk : '', urutan: urutan++ });
+    });
+    await batch.commit();
+    document.getElementById('mSiswaBulk').value = '';
+    bannerOk(banner, `${lines.length} siswa ditambahkan.`);
+    loadSiswaList(kelasId);
+  }catch(err){
+    bannerErr(banner, 'Gagal menambahkan: ' + escapeHtml(err.message));
+  }
+}
+
+/* ---------------- ADMIN: shared kelas selects ---------------- */
+async function loadKelasSelects(){
+  try{
+    const snap = await db.collection('kelas_absensi').orderBy('jenjang').orderBy('urutan').get();
+    const opts = ['<option value="">— pilih kelas —</option>'];
+    snap.forEach(doc => {
+      const d = doc.data();
+      opts.push(`<option value="${doc.id}">${escapeHtml(d.jenjang)} · ${escapeHtml(d.nama)}</option>`);
+    });
+    ['selectKelasAbsen','selectKelasNilai','selectKelasRekap'].forEach(id => {
+      document.getElementById(id).innerHTML = opts.join('');
+    });
+  }catch(err){ /* silent */ }
+}
+
+/* ---------------- ADMIN: Ambil Absensi ---------------- */
+document.getElementById('tanggalAbsen').valueAsDate = new Date();
+document.getElementById('btnMuatAbsen').addEventListener('click', muatAbsen);
+
+async function muatAbsen(){
+  const kelasId = document.getElementById('selectKelasAbsen').value;
+  const tanggal = document.getElementById('tanggalAbsen').value;
+  const box = document.getElementById('absenForm');
+  const banner = document.getElementById('absenBanner');
+  banner.innerHTML = '';
+  if(!kelasId || !tanggal){ alert('Pilih kelas dan tanggal dahulu.'); return; }
+  box.innerHTML = '<div class="loading">Memuat…</div>';
+  try{
+    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get();
+    if(siswaSnap.empty){ box.innerHTML = '<div class="empty">Belum ada siswa di kelas ini. Tambahkan lewat tab "Kelas & Siswa".</div>'; return; }
+    const pertemuanId = `${kelasId}_${tanggal}`;
+    const pertemuanDoc = await db.collection('pertemuan').doc(pertemuanId).get();
+    const existing = pertemuanDoc.exists ? pertemuanDoc.data() : {kehadiran:{}, materi:''};
+
+    let html = `<div class="field"><label>Materi/Kegiatan (opsional)</label><input type="text" id="fMateri" value="${escapeHtml(existing.materi||'')}" placeholder="Contoh: Qawaid Bilangan (Adad)"></div>`;
+    siswaSnap.forEach(doc => {
+      const d = doc.data();
+      const st = (existing.kehadiran && existing.kehadiran[doc.id]) || 'H';
+      html += `<div class="attend-row" data-siswa="${doc.id}">
+        <span class="nm">${escapeHtml(d.nama)}</span>
+        <div class="seg">
+          <button data-v="H" class="${st==='H'?'active':''}">H</button>
+          <button data-v="S" class="${st==='S'?'active':''}">S</button>
+          <button data-v="I" class="${st==='I'?'active':''}">I</button>
+          <button data-v="A" class="${st==='A'?'active':''}">A</button>
+        </div>
+      </div>`;
+    });
+    html += `<button class="btn btn-solid" id="btnSimpanAbsen" style="margin-top:14px;">Simpan Absensi</button>`;
+    box.innerHTML = html;
+
+    box.querySelectorAll('.attend-row').forEach(row => {
+      row.querySelectorAll('.seg button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          row.querySelectorAll('.seg button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    });
+    document.getElementById('btnSimpanAbsen').addEventListener('click', () => simpanAbsen(kelasId, tanggal, pertemuanId));
+  }catch(err){
+    box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function simpanAbsen(kelasId, tanggal, pertemuanId){
+  const banner = document.getElementById('absenBanner');
+  const materi = document.getElementById('fMateri').value.trim();
+  const kehadiran = {};
+  document.querySelectorAll('#absenForm .attend-row').forEach(row => {
+    const siswaId = row.dataset.siswa;
+    const active = row.querySelector('.seg button.active');
+    kehadiran[siswaId] = active ? active.dataset.v : 'H';
+  });
+  try{
+    await db.collection('pertemuan').doc(pertemuanId).set({ kelasId, tanggal, materi, kehadiran }, {merge:true});
+    bannerOk(banner, 'Absensi tersimpan.');
+  }catch(err){
+    bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
+  }
+}
+
+/* ---------------- ADMIN: Input Nilai ---------------- */
+document.getElementById('btnMuatNilai').addEventListener('click', muatNilai);
+
+async function muatNilai(){
+  const kelasId = document.getElementById('selectKelasNilai').value;
+  const tp = document.getElementById('selectTP').value;
+  const box = document.getElementById('nilaiForm');
+  const banner = document.getElementById('nilaiBanner');
+  banner.innerHTML = '';
+  if(!kelasId){ alert('Pilih kelas dahulu.'); return; }
+  box.innerHTML = '<div class="loading">Memuat…</div>';
+  try{
+    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get();
+    if(siswaSnap.empty){ box.innerHTML = '<div class="empty">Belum ada siswa di kelas ini.</div>'; return; }
+    const nilaiSnap = await db.collection('nilai').where('kelasId','==',kelasId).where('tp','==',tp).get();
+    const nilaiMap = {};
+    nilaiSnap.forEach(doc => { nilaiMap[doc.data().siswaId] = doc.data().nilai; });
+
+    let html = '';
+    siswaSnap.forEach(doc => {
+      const d = doc.data();
+      const v = nilaiMap[doc.id];
+      html += `<div class="attend-row" data-siswa="${doc.id}">
+        <span class="nm">${escapeHtml(d.nama)}</span>
+        <input type="number" min="0" max="100" style="width:90px;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;" value="${v!==undefined?v:''}" placeholder="0-100">
+      </div>`;
+    });
+    html += `<button class="btn btn-solid" id="btnSimpanNilai" style="margin-top:14px;">Simpan Nilai ${tp}</button>`;
+    box.innerHTML = html;
+    document.getElementById('btnSimpanNilai').addEventListener('click', () => simpanNilaiBulk(kelasId, tp));
+  }catch(err){
+    box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function simpanNilaiBulk(kelasId, tp){
+  const banner = document.getElementById('nilaiBanner');
+  const rows = document.querySelectorAll('#nilaiForm .attend-row');
+  try{
+    const batch = db.batch();
+    const tanggal = new Date().toISOString().slice(0,10);
+    rows.forEach(row => {
+      const siswaId = row.dataset.siswa;
+      const input = row.querySelector('input');
+      const val = input.value.trim();
+      if(val === '') return;
+      const ref = db.collection('nilai').doc(`${kelasId}_${siswaId}_${tp}`);
+      batch.set(ref, { kelasId, siswaId, tp, nilai: Number(val), tanggal });
+    });
+    await batch.commit();
+    bannerOk(banner, `Nilai ${tp} tersimpan.`);
+  }catch(err){
+    bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
+  }
+}
+
+/* ---------------- ADMIN: Rekap ---------------- */
+document.getElementById('selectKelasRekap').addEventListener('change', (e) => {
+  const box = document.getElementById('rekapAdminTable');
+  if(e.target.value) renderRekap(e.target.value, box, true);
+  else box.innerHTML = '<div class="empty">Pilih kelas untuk melihat rekap.</div>';
+});
+
+/* ---------------- helpers ---------------- */
+function renderModal(inner){
+  document.getElementById('modalRoot').innerHTML = `<div class="modal-bg" id="modalBg"><div class="modal-box">${inner}</div></div>`;
+  document.getElementById('modalBg').addEventListener('click', (e) => { if(e.target.id === 'modalBg') closeModal(); });
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+
+if(CONFIG_BELUM_DIISI){
+  document.getElementById('kelasPublikList').innerHTML =
+    '<div class="empty">Konfigurasi Firebase belum diisi. Admin perlu mengisi <code>firebaseConfig</code> di absensi.html (samakan dengan ruang-ujian.html).</div>';
+} else {
+  loadKelasPublik();
+}

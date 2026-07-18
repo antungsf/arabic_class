@@ -216,6 +216,15 @@
   .drive-open .do-sub{font-size:13px;color:var(--muted);}
   .drive-note{font-size:12.5px;color:var(--gold-deep);background:#fdf3da;border:1px dashed var(--gold);padding:10px 14px;border-radius:4px;margin-bottom:16px;}
 
+  .pdf-block{margin-bottom:24px;}
+  .pdf-block:last-child{margin-bottom:0;}
+  .pdf-block-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+  .pdf-block-head h3{font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;color:var(--green-deep);margin:0;}
+  .btn-sm{padding:8px 16px;font-size:12.5px;}
+  .pdf-embed{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 2px 14px rgba(15,54,39,.06);}
+  .pdf-embed iframe{width:100%;height:600px;border:0;display:block;}
+  .pdf-embed .pdf-fallback{padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px;}
+
   .action-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
   .btn{font-weight:700;font-size:13.5px;padding:13px 26px;border-radius:4px;display:inline-block;transition:transform .15s,background .15s;letter-spacing:.01em;}
   .btn-solid{background:var(--green);color:#fff;}
@@ -399,10 +408,10 @@
   <div class="section-head">
     <span class="eyebrow-sm">02</span>
     <h2>Absensi &amp; Jurnal</h2>
-    <p>Isi kehadiran lewat Google Form, dan lihat rekap jurnal pembelajaran di folder Drive.</p>
+    <p>Rekap kehadiran &amp; nilai asesmen formatif realtime per kelas, dan jurnal pembelajaran di folder Drive.</p>
   </div>
   <div class="action-row">
-    <a class="btn btn-gold" href="https://docs.google.com/spreadsheets/d/1UwaxhC4Jqq_jjZMPU_KCPX1vqPLxjouqUwi70F7JDUQ/edit?usp=sharing" target="_blank">Lihat / Isi Absensi (Spreadsheet)</a>
+    <a class="btn btn-gold" href="absensi.html">Lihat Absensi &amp; Nilai (Realtime)</a>
   </div>
   <div class="drive-embed">
     <iframe src="https://drive.google.com/embeddedfolderview?id=1iWzl6HhldFXlE2hzh167oYBzGrMPydd8#list" loading="lazy"></iframe>
@@ -415,8 +424,25 @@
     <h2>Jadwal &amp; Kalender</h2>
     <p>Jadwal pelajaran dan kalender pendidikan tahun ajaran berjalan.</p>
   </div>
-  <div class="drive-embed">
-    <iframe src="https://drive.google.com/embeddedfolderview?id=1YD_x-BmJLmdvf5r5-K-mkJLz2pavyuYi#grid" loading="lazy"></iframe>
+
+  <div class="pdf-block">
+    <div class="pdf-block-head">
+      <h3>Jadwal Pelajaran</h3>
+      <a class="btn btn-outline btn-sm" href="files/jadwal-pelajaran.pdf" target="_blank">Buka di Tab Baru</a>
+    </div>
+    <div class="pdf-embed">
+      <iframe src="files/jadwal-pelajaran.pdf" loading="lazy" title="Jadwal Pelajaran"></iframe>
+    </div>
+  </div>
+
+  <div class="pdf-block">
+    <div class="pdf-block-head">
+      <h3>Kalender Pendidikan</h3>
+      <a class="btn btn-outline btn-sm" href="files/kalender-pendidikan.pdf" target="_blank">Buka di Tab Baru</a>
+    </div>
+    <div class="pdf-embed">
+      <iframe src="files/kalender-pendidikan.pdf" loading="lazy" title="Kalender Pendidikan"></iframe>
+    </div>
   </div>
 </section>
 
@@ -424,10 +450,10 @@
   <div class="section-head">
     <span class="eyebrow-sm">04</span>
     <h2>Asesmen</h2>
-    <p>Kisi-kisi, soal, dan bahan penilaian dalam satu folder gabungan.</p>
+    <p>Ruang ujian daring: siswa memilih kelas &amp; materi (qawaid, dsb.), lalu mengerjakan soal yang sudah disiapkan guru.</p>
   </div>
-  <div class="drive-embed">
-    <iframe src="https://drive.google.com/embeddedfolderview?id=1Gar3AdAL3ALNB_zSZIBmQ-kP74wUcpTB#grid" loading="lazy"></iframe>
+  <div class="action-row">
+    <a class="btn btn-solid" href="ruang-ujian.html">Masuk Ruang Ujian</a>
   </div>
 </section>
 
@@ -437,7 +463,6 @@
     <h2>Kolom Tugas</h2>
     <p>Daftar tugas yang diberikan, dan tautan tempat pengumpulan jawaban siswa.</p>
   </div>
-  <div class="drive-note">Catatan: untuk pengumpulan tugas siswa, disarankan pakai Google Form (upload file) daripada folder Drive publik, supaya identitas pengirim &amp; keamanan file lebih terjaga.</div>
   <div class="action-row">
     <!-- HAPUS BARIS INI kalau kelas XI sedang tidak ada tugas -->
     <a class="btn btn-outline" href="https://forms.gle/feA56NoQFti72Mhd7" target="_blank">Kumpulkan Tugas — Kelas XI</a>
