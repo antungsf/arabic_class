@@ -231,6 +231,7 @@
   .btn-solid:hover{background:var(--green-deep);transform:translateY(-1px);}
   .btn-gold{background:var(--gold);color:var(--green-deep);}
   .btn-gold:hover{background:var(--gold-deep);transform:translateY(-1px);}
+  .btn-gold.disabled{background:#c7d0cb;color:#6b7873;cursor:not-allowed;pointer-events:none;transform:none;}
   .btn-outline{border:1.5px solid var(--green);color:var(--green);}
   .btn-outline:hover{background:var(--green);color:#fff;}
 
@@ -636,6 +637,10 @@
 </script>
 
 <script>
+  // Ganti ke true kalau folder materi di Google Drive sudah siap
+  // dan sudah di-set "Siapa saja yang memiliki link" (Viewer).
+  const MATERI_READY = false;
+
   const MASTER_FOLDER = '19Rj3mowNtZdadazXvyIy5wGI-OxWukQu';
 
   const MATERI_DATA = {
@@ -687,7 +692,21 @@
       folderId = data;
       label = `Kelas ${currentClass} \u00b7 ${semLabel}`;
     }
+    if (!MATERI_READY) {
+      materiOpenBtn.removeAttribute('href');
+      materiOpenBtn.removeAttribute('target');
+      materiOpenBtn.classList.add('disabled');
+      materiOpenBtn.setAttribute('aria-disabled', 'true');
+      materiOpenBtn.textContent = 'Materi Segera Hadir';
+      materiOpenLabel.textContent = `${label} \u2014 sedang disiapkan`;
+      return;
+    }
+
+    materiOpenBtn.classList.remove('disabled');
+    materiOpenBtn.removeAttribute('aria-disabled');
+    materiOpenBtn.setAttribute('target', '_blank');
     materiOpenBtn.href = `https://drive.google.com/drive/folders/${folderId}`;
+    materiOpenBtn.textContent = 'Buka di Google Drive \u2192';
     materiOpenLabel.textContent = label;
   }
 
