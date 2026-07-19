@@ -15,7 +15,8 @@ const state = {
   kelasPublik: null,
   editKelasId: null,
   adminKelasCache: [],
-  siswaCacheByKelas: {}
+  siswaCacheByKelas: {},
+  lastRekap: null
 };
 
 function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}</div>`; }
@@ -116,10 +117,51 @@ async function renderRekap(kelasId, box, isAdmin){
     });
     html += '</tbody></table></div>';
     box.innerHTML = html;
+
+    if(isAdmin){
+      const kelasInfo = state.adminKelasCache.find(k => k.id === kelasId) || {nama:'kelas'};
+      state.lastRekap = { kelasNama: kelasInfo.nama, siswaList, rekapHadir, jumlahPertemuan, nilaiMap };
+      const btnDownload = document.getElementById('btnDownloadRekap');
+      if(btnDownload) btnDownload.disabled = false;
+    }
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat rekap. ${escapeHtml(err.message)}</div>`;
   }
 }
+
+function downloadRekapCSV(){
+  const r = state.lastRekap;
+  if(!r) return;
+  const header = ['No','Nama','Hadir','S','I','A','% Hadir', ...TP_LIST, 'Rata-rata'];
+  const rows = [header];
+  r.siswaList.forEach((s,i) => {
+    const rh = r.rekapHadir[s.id];
+    const pct = r.jumlahPertemuan ? Math.round((rh.H/r.jumlahPertemuan)*100) : 0;
+    const nilaiSiswa = r.nilaiMap[s.id] || {};
+    let total=0, count=0;
+    const nilaiCols = TP_LIST.map(tp => {
+      const v = nilaiSiswa[tp];
+      if(v!==undefined && v!==null){ total+=Number(v); count++; return v; }
+      return '';
+    });
+    const rataRata = count ? Math.round(total/count) : '';
+    rows.push([i+1, s.nama, rh.H, rh.S, rh.I, rh.A, pct, ...nilaiCols, rataRata]);
+  });
+  const csv = rows.map(row => row.map(cell => {
+    const val = String(cell ?? '');
+    return /[",\n]/.test(val) ? '"' + val.replaceAll('"','""') + '"' : val;
+  }).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `rekap-${r.kelasNama.replace(/\s+/g,'_')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('btnDownloadRekap').addEventListener('click', downloadRekapCSV);
 
 /* ---------------- ADMIN: shell ---------------- */
 document.getElementById('btnShowAdmin').addEventListener('click', (e) => {
@@ -466,8 +508,13 @@ async function simpanNilaiBulk(kelasId, tp){
 /* ---------------- ADMIN: Rekap ---------------- */
 document.getElementById('selectKelasRekap').addEventListener('change', (e) => {
   const box = document.getElementById('rekapAdminTable');
-  if(e.target.value) renderRekap(e.target.value, box, true);
-  else box.innerHTML = '<div class="empty">Pilih kelas untuk melihat rekap.</div>';
+  if(e.target.value){
+    renderRekap(e.target.value, box, true);
+  } else {
+    box.innerHTML = '<div class="empty">Pilih kelas untuk melihat rekap.</div>';
+    state.lastRekap = null;
+    document.getElementById('btnDownloadRekap').disabled = true;
+  }
 });
 
 /* ---------------- helpers ---------------- */

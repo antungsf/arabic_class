@@ -203,8 +203,11 @@
 
     <!-- Tab: Rekap -->
     <div id="tabRekap" class="hidden">
-      <div class="field" style="max-width:280px;"><label>Kelas</label><select id="selectKelasRekap"></select></div>
-      <div id="rekapAdminTable"><div class="empty">Pilih kelas untuk melihat rekap.</div></div>
+      <div class="row" style="align-items:flex-end;">
+        <div class="field" style="max-width:280px;margin-bottom:0;"><label>Kelas</label><select id="selectKelasRekap"></select></div>
+        <button class="btn btn-outline btn-sm" id="btnDownloadRekap" disabled>Download CSV</button>
+      </div>
+      <div id="rekapAdminTable" style="margin-top:16px;"><div class="empty">Pilih kelas untuk melihat rekap.</div></div>
     </div>
   </div>
 </main>
