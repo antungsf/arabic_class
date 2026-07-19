@@ -149,8 +149,8 @@ function downloadRekapCSV(){
   });
   const csv = rows.map(row => row.map(cell => {
     const val = String(cell ?? '');
-    return /[",\n]/.test(val) ? '"' + val.replaceAll('"','""') + '"' : val;
-  }).join(',')).join('\r\n');
+    return /[;"\n]/.test(val) ? '"' + val.replaceAll('"','""') + '"' : val;
+  }).join(';')).join('\r\n');
   const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -249,6 +249,38 @@ async function loadKelasAdmin(){
 }
 
 document.getElementById('btnTambahKelas').addEventListener('click', () => openKelasModal(null, {}));
+document.getElementById('btnUrutkanKelas').addEventListener('click', urutkanKelasAZ);
+
+async function urutkanKelasAZ(){
+  const btn = document.getElementById('btnUrutkanKelas');
+  btn.disabled = true; btn.textContent = 'Mengurutkan…';
+  try{
+    const snap = await db.collection('kelas_absensi').get();
+    const list = [];
+    snap.forEach(doc => list.push({id:doc.id, ...doc.data()}));
+    // urutkan alfabetis dalam masing-masing jenjang (X, XI, XII)
+    const jenjangOrder = {X:1, XI:2, XII:3};
+    list.sort((a,b) => {
+      const ja = jenjangOrder[a.jenjang] || 9;
+      const jb = jenjangOrder[b.jenjang] || 9;
+      if(ja !== jb) return ja - jb;
+      return a.nama.localeCompare(b.nama, 'id', {numeric:true, sensitivity:'base'});
+    });
+    const batch = db.batch();
+    let counter = {};
+    list.forEach(k => {
+      counter[k.jenjang] = (counter[k.jenjang] || 0) + 1;
+      batch.update(db.collection('kelas_absensi').doc(k.id), { urutan: counter[k.jenjang] });
+    });
+    await batch.commit();
+    loadKelasAdmin();
+    loadKelasSelects();
+  }catch(err){
+    alert('Gagal mengurutkan: ' + err.message);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Urutkan A-Z';
+  }
+}
 
 function openKelasModal(id, d){
   state.editKelasId = id;
@@ -302,7 +334,7 @@ function openSiswaModal(kelasId, kelasData){
     <h3>Kelola Siswa — ${escapeHtml(kelasData.nama)}</h3>
     <div id="siswaListWrap"><div class="loading">Memuat…</div></div>
     <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
-    <p class="hint">Tambah cepat: tulis 1 nama per baris (opsional akhiri dengan koma L/P, contoh: <i>Ahmad Fauzan, L</i>).</p>
+    <p class="hint">Tambah cepat: paste langsung dari Excel (kolom Nama + L/P), atau tulis 1 nama per baris (opsional akhiri dengan koma L/P, contoh: <i>Ahmad Fauzan, L</i>).</p>
     <div class="field"><textarea id="mSiswaBulk" placeholder="Ahmad Fauzan, L
 Siti Aisyah, P"></textarea></div>
     <div id="mSiswaBanner"></div>
@@ -326,20 +358,54 @@ async function loadSiswaList(kelasId){
       html += `<div class="list-item" style="padding:10px 14px;">
         <div class="list-item-head">
           <div style="font-size:13.5px;"><b>${escapeHtml(d.nama)}</b> <span class="hint">(${escapeHtml(d.jk||'-')})</span></div>
-          <button class="icon-btn danger" data-id="${doc.id}">Hapus</button>
+          <div>
+            <button class="icon-btn" data-act="edit" data-id="${doc.id}" data-nama="${escapeHtml(d.nama)}" data-jk="${escapeHtml(d.jk||'')}">Edit</button>
+            <button class="icon-btn danger" data-act="hapus" data-id="${doc.id}">Hapus</button>
+          </div>
         </div></div>`;
     });
     wrap.innerHTML = html;
-    wrap.querySelectorAll('[data-id]').forEach(btn => {
+    wrap.querySelectorAll('[data-act="hapus"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if(!confirm('Hapus siswa ini?')) return;
         await db.collection('siswa').doc(btn.dataset.id).delete();
         loadSiswaList(kelasId);
       });
     });
+    wrap.querySelectorAll('[data-act="edit"]').forEach(btn => {
+      btn.addEventListener('click', () => openEditSiswaMini(btn.dataset.id, btn.dataset.nama, btn.dataset.jk, kelasId));
+    });
   }catch(err){
     wrap.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
   }
+}
+
+function openEditSiswaMini(siswaId, nama, jk, kelasId){
+  const wrap = document.getElementById('siswaListWrap');
+  const editBox = document.createElement('div');
+  editBox.className = 'list-item';
+  editBox.style.background = 'var(--bg-alt)';
+  editBox.innerHTML = `
+    <div class="field" style="margin-bottom:8px;"><label>Nama</label><input type="text" id="editSiswaNama" value="${escapeHtml(nama)}"></div>
+    <div class="field" style="margin-bottom:8px;max-width:140px;"><label>L/P</label>
+      <select id="editSiswaJk">
+        <option value="" ${jk===''?'selected':''}>-</option>
+        <option value="L" ${jk==='L'?'selected':''}>L</option>
+        <option value="P" ${jk==='P'?'selected':''}>P</option>
+      </select></div>
+    <div class="row">
+      <button class="btn btn-solid btn-sm" id="btnSimpanEditSiswa">Simpan</button>
+      <button class="btn btn-outline btn-sm" id="btnBatalEditSiswa">Batal</button>
+    </div>`;
+  wrap.prepend(editBox);
+  document.getElementById('btnBatalEditSiswa').addEventListener('click', () => loadSiswaList(kelasId));
+  document.getElementById('btnSimpanEditSiswa').addEventListener('click', async () => {
+    const namaBaru = document.getElementById('editSiswaNama').value.trim();
+    const jkBaru = document.getElementById('editSiswaJk').value;
+    if(!namaBaru) return;
+    await db.collection('siswa').doc(siswaId).update({ nama: namaBaru, jk: jkBaru });
+    loadSiswaList(kelasId);
+  });
 }
 
 async function tambahSiswaBulk(kelasId){
@@ -352,7 +418,8 @@ async function tambahSiswaBulk(kelasId){
     let urutan = existingSnap.size + 1;
     const batch = db.batch();
     lines.forEach(line => {
-      const parts = line.split(',');
+      // dukung paste dari Excel (pemisah TAB) maupun ketik manual (pemisah koma)
+      const parts = line.includes('\t') ? line.split('\t') : line.split(',');
       const nama = parts[0].trim();
       const jk = (parts[1]||'').trim().toUpperCase();
       const ref = db.collection('siswa').doc();
