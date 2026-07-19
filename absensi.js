@@ -147,19 +147,32 @@ function downloadRekapCSV(){
     const rataRata = count ? Math.round(total/count) : '';
     rows.push([i+1, s.nama, rh.H, rh.S, rh.I, rh.A, pct, ...nilaiCols, rataRata]);
   });
-  const csv = rows.map(row => row.map(cell => {
-    const val = String(cell ?? '');
-    return /[;"\n]/.test(val) ? '"' + val.replaceAll('"','""') + '"' : val;
-  }).join(';')).join('\r\n');
-  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `rekap-${r.kelasNama.replace(/\s+/g,'_')}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  const namaFile = `rekap-${r.kelasNama.replace(/\s+/g,'_')}.xlsx`;
+
+  if(typeof XLSX === 'undefined'){
+    // fallback ke CSV kalau library Excel gagal dimuat (mis. tidak ada koneksi internet)
+    const csv = rows.map(row => row.map(cell => {
+      const val = String(cell ?? '');
+      return /[;"\n]/.test(val) ? '"' + val.replaceAll('"','""') + '"' : val;
+    }).join(';')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = namaFile.replace('.xlsx','.csv');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    {wch:4}, {wch:30}, {wch:7}, {wch:5}, {wch:5}, {wch:5}, {wch:9},
+    ...TP_LIST.map(()=>({wch:6})), {wch:10}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, r.kelasNama.substring(0,31) || 'Rekap');
+  XLSX.writeFile(wb, namaFile);
 }
 document.getElementById('btnDownloadRekap').addEventListener('click', downloadRekapCSV);
 
