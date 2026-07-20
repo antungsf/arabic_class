@@ -365,42 +365,10 @@
   <div class="section-head">
     <span class="eyebrow-sm">01</span>
     <h2>Materi Belajar</h2>
-    <p>Pilih kelas, lalu pilih semester untuk melihat bahan ajar yang sesuai.</p>
+    <p>Pilih kelas, semester, dan Maharah (Istima', Qira'ah, Kalam, Qawaid) untuk mulai belajar.</p>
   </div>
-
-  <div class="class-tabs" id="materiTabs">
-    <button class="class-tab active" data-class="X">
-      <div class="ct-eyebrow">Kelas</div>
-      <div class="ct-title">Materi Kelas X</div>
-    </button>
-    <button class="class-tab" data-class="XI">
-      <div class="ct-eyebrow">Kelas</div>
-      <div class="ct-title">Materi Kelas XI</div>
-    </button>
-    <button class="class-tab" data-class="XII">
-      <div class="ct-eyebrow">Kelas</div>
-      <div class="ct-title">Materi Kelas XII</div>
-    </button>
-  </div>
-
-  <div class="sem-tabs" id="semTabs">
-    <button class="sem-tab active" data-sem="sem1">Materi Semester 1</button>
-    <button class="sem-tab" data-sem="sem2">Materi Semester 2</button>
-  </div>
-
-  <div class="skill-tabs" id="skillTabs">
-    <button class="skill-tab active" data-skill="istima">1. Istima'</button>
-    <button class="skill-tab" data-skill="qiraah">2. Qira'ah</button>
-    <button class="skill-tab" data-skill="kalam">3. Kalam</button>
-    <button class="skill-tab" data-skill="qawaid">4. Qawaid</button>
-  </div>
-
-  <div class="drive-open" id="materiOpen">
-    <div class="drive-open-text">
-      <div class="do-title">Folder materi siap dibuka</div>
-      <div class="do-sub" id="materiOpenLabel">Kelas X &middot; Semester 1</div>
-    </div>
-    <a class="btn btn-gold" id="materiOpenBtn" href="https://drive.google.com/drive/folders/19Rj3mowNtZdadazXvyIy5wGI-OxWukQu" target="_blank" rel="noopener">Buka di Google Drive &rarr;</a>
+  <div class="action-row">
+    <a class="btn btn-gold" href="materi.html">Buka Materi Belajar</a>
   </div>
 </section>
 
@@ -634,94 +602,6 @@
     overlay.querySelector('.modal-ok').addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   });
-</script>
-
-<script>
-  const MASTER_FOLDER = '19Rj3mowNtZdadazXvyIy5wGI-OxWukQu';
-
-  const MATERI_DATA = {
-    X:   {
-      sem1: { istima: MASTER_FOLDER, qiraah: MASTER_FOLDER, kalam: MASTER_FOLDER, qawaid: MASTER_FOLDER },
-      sem2: { istima: MASTER_FOLDER, qiraah: MASTER_FOLDER, kalam: MASTER_FOLDER, qawaid: MASTER_FOLDER }
-    },
-    XI:  {
-      sem1: { istima: MASTER_FOLDER, qiraah: MASTER_FOLDER, kalam: MASTER_FOLDER, qawaid: MASTER_FOLDER },
-      sem2: { istima: MASTER_FOLDER, qiraah: MASTER_FOLDER, kalam: MASTER_FOLDER, qawaid: MASTER_FOLDER }
-    },
-    XII: {
-      sem1: { istima: MASTER_FOLDER, qiraah: MASTER_FOLDER, kalam: MASTER_FOLDER, qawaid: MASTER_FOLDER },
-      sem2: { istima: MASTER_FOLDER, qiraah: MASTER_FOLDER, kalam: MASTER_FOLDER, qawaid: MASTER_FOLDER }
-    }
-  };
-
-  const SKILL_LABELS = { istima: "Istima'", qiraah: "Qira'ah", kalam: "Kalam", qawaid: "Qawaid" };
-
-  const classTabs = document.querySelectorAll('#materiTabs .class-tab');
-  const semTabs = document.querySelectorAll('#semTabs .sem-tab');
-  const skillTabs = document.querySelectorAll('#skillTabs .skill-tab');
-  const skillTabsWrap = document.getElementById('skillTabs');
-  const materiOpenBtn = document.getElementById('materiOpenBtn');
-  const materiOpenLabel = document.getElementById('materiOpenLabel');
-  let currentClass = 'X';
-  let currentSkill = 'istima';
-
-  function currentSemData() {
-    const activeSem = document.querySelector('#semTabs .sem-tab.active').dataset.sem;
-    return MATERI_DATA[currentClass][activeSem];
-  }
-
-  function refreshSkillVisibility() {
-    const data = currentSemData();
-    const hasSkills = data && typeof data === 'object';
-    skillTabsWrap.classList.toggle('show', hasSkills);
-  }
-
-  function updateMateriLink() {
-    const activeSem = document.querySelector('#semTabs .sem-tab.active').dataset.sem;
-    const semLabel = activeSem === 'sem1' ? 'Semester 1' : 'Semester 2';
-    const data = currentSemData();
-    let folderId, label;
-    if (data && typeof data === 'object') {
-      folderId = data[currentSkill] || data.istima;
-      label = `Kelas ${currentClass} \u00b7 ${semLabel} \u00b7 ${SKILL_LABELS[currentSkill]}`;
-    } else {
-      folderId = data;
-      label = `Kelas ${currentClass} \u00b7 ${semLabel}`;
-    }
-    materiOpenBtn.href = `https://drive.google.com/drive/folders/${folderId}`;
-    materiOpenLabel.textContent = label;
-  }
-
-  classTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      classTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentClass = tab.dataset.class;
-      refreshSkillVisibility();
-      updateMateriLink();
-    });
-  });
-
-  semTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      semTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      refreshSkillVisibility();
-      updateMateriLink();
-    });
-  });
-
-  skillTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      skillTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentSkill = tab.dataset.skill;
-      updateMateriLink();
-    });
-  });
-
-  refreshSkillVisibility();
-  updateMateriLink();
 </script>
 
 <!-- Deteksi status admin (shared login dengan ruang-ujian.html / absensi.html) untuk buka link Jurnal -->
