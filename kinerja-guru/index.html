@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Kinerja Guru — Antung, S.Pd</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+
+:root{
+  --navy:#0E2A47;
+  --navy-deep:#081B30;
+  --teal:#146B5B;
+  --gold:#BF9B4E;
+  --gold-soft:#E7D6A7;
+  --paper:#F7F3EA;
+  --card:#FFFFFF;
+  --ink:#22201B;
+  --ink-soft:#5B5648;
+  --line:#E2DCC8;
+  --radius:14px;
+  --maxw:1180px;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto;}
+  *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+}
+
+body{
+  font-family:'Plus Jakarta Sans', sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.6;
+}
+
+a{color:inherit;}
+img{max-width:100%; display:block;}
+
+h1,h2,h3{
+  font-family:'Petrona', serif;
+  color:var(--navy-deep);
+  font-weight:600;
+}
+
+.eyebrow{
+  font-family:'Plus Jakarta Sans', sans-serif;
+  font-size:0.72rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--gold);
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.eyebrow::before{content:"❖"; color:var(--gold); font-size:0.9rem;}
+
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 28px;}
+
+/* ---------- NAV ---------- */
+header.site-nav{
+  position:sticky; top:0; z-index:100;
+  background:rgba(247,243,234,0.92);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.nav-inner{
+  max-width:var(--maxw); margin:0 auto; padding:14px 28px;
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+}
+.brand{display:flex; align-items:center; gap:12px; text-decoration:none;}
+.brand img{width:42px; height:42px; object-fit:contain;}
+.brand-text{line-height:1.2;}
+.brand-text .b1{font-family:'Petrona',serif; font-weight:700; font-size:1.02rem; color:var(--navy-deep);}
+.brand-text .b2{font-size:0.68rem; letter-spacing:.06em; color:var(--ink-soft); text-transform:uppercase;}
+
+nav.menu{display:flex; gap:6px; flex-wrap:wrap;}
+nav.menu a{
+  font-size:0.86rem; font-weight:600; text-decoration:none; color:var(--navy);
+  padding:9px 14px; border-radius:999px; transition:background .2s, color .2s;
+  white-space:nowrap;
+}
+nav.menu a:hover{background:var(--navy); color:#fff;}
+nav.menu a:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+
+.nav-toggle{display:none; background:none; border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:1.1rem;}
+
+@media (max-width: 900px){
+  nav.menu{
+    position:absolute; top:100%; left:0; right:0; background:var(--paper);
+    flex-direction:column; padding:10px 28px 18px; border-bottom:1px solid var(--line);
+    display:none;
+  }
+  nav.menu.open{display:flex;}
+  nav.menu a{padding:12px 8px; border-radius:8px;}
+  .nav-toggle{display:block;}
+}
+
+/* ---------- STAR PATTERN (signature motif) ---------- */
+.star-field{
+  position:absolute; inset:0; overflow:hidden; pointer-events:none;
+}
+.star-field svg{position:absolute;}
+
+/* ---------- HERO ---------- */
+.hero{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%);
+  color:#F3EFE3;
+  padding:88px 0 70px;
+}
+.hero .eyebrow{color:var(--gold-soft);}
+.hero .eyebrow::before{color:var(--gold-soft);}
+.hero h1{
+  font-size:clamp(2.1rem, 4.4vw, 3.4rem);
+  color:#FFFFFF;
+  max-width:15ch;
+  margin:18px 0 20px;
+  font-weight:600;
+  line-height:1.12;
+}
+.hero p.lede{
+  max-width:56ch; font-size:1.06rem; color:#D9D2BF; margin-bottom:36px;
+}
+.hero-actions{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:56px;}
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:12px 22px; border-radius:999px; font-weight:700; font-size:0.92rem;
+  text-decoration:none; border:1px solid transparent; cursor:pointer;
+  transition:transform .15s ease, background .15s ease, color .15s ease;
+  font-family:inherit;
+}
+.btn:focus-visible{outline:2px solid var(--gold); outline-offset:3px;}
+.btn-primary{background:var(--gold); color:var(--navy-deep);}
+.btn-primary:hover{transform:translateY(-1px); background:#D3AF62;}
+.btn-ghost{background:transparent; color:#F3EFE3; border-color:rgba(243,239,227,0.4);}
+.btn-ghost:hover{background:rgba(243,239,227,0.1);}
+
+.stat-plaque{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:0;
+  border:1px solid rgba(243,239,227,0.18); border-radius:var(--radius);
+  overflow:hidden;
+}
+.stat-plaque .stat{
+  padding:22px 20px; border-right:1px solid rgba(243,239,227,0.18);
+  background:rgba(255,255,255,0.03);
+}
+.stat-plaque .stat:last-child{border-right:none;}
+.stat .num{font-family:'Petrona',serif; font-size:1.9rem; font-weight:700; color:var(--gold-soft);}
+.stat .lbl{font-size:0.78rem; color:#C7BFA9; margin-top:4px;}
+@media (max-width:760px){
+  .stat-plaque{grid-template-columns:repeat(2,1fr);}
+  .stat-plaque .stat:nth-child(2){border-right:none;}
+}
+
+/* ---------- SECTIONS ---------- */
+section{padding:72px 0;}
+section.alt{background:var(--card); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+.section-head{max-width:66ch; margin-bottom:40px;}
+.section-head h2{font-size:clamp(1.6rem,2.6vw,2.1rem); margin-top:14px;}
+.section-head p{color:var(--ink-soft); margin-top:12px; font-size:1rem;}
+
+/* ---------- PROGRAM UNGGULAN CARD ---------- */
+.feature-card{
+  background:var(--navy-deep); color:#F3EFE3; border-radius:20px;
+  padding:34px; margin-bottom:44px; position:relative; overflow:hidden;
+}
+.feature-card .tag{
+  display:inline-block; background:var(--gold); color:var(--navy-deep);
+  font-weight:800; font-size:0.7rem; letter-spacing:.08em; text-transform:uppercase;
+  padding:5px 12px; border-radius:999px; margin-bottom:16px;
+}
+.feature-card h3{color:#fff; font-size:1.5rem; margin-bottom:10px;}
+.feature-card p{color:#CFC7B0; max-width:70ch; font-size:0.98rem;}
+
+.timeline{
+  display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-top:28px;
+}
+@media (max-width:900px){ .timeline{grid-template-columns:1fr 1fr;} }
+@media (max-width:560px){ .timeline{grid-template-columns:1fr;} }
+.tl-step{
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+  border-radius:12px; padding:16px;
+}
+.tl-step .tl-time{font-size:0.72rem; color:var(--gold-soft); font-weight:700; text-transform:uppercase; letter-spacing:.04em;}
+.tl-step h4{font-family:'Petrona',serif; font-size:1rem; color:#fff; margin:8px 0 6px; font-weight:600;}
+.tl-step p{font-size:0.82rem; color:#C7BFA9; line-height:1.5;}
+
+/* ---------- PROGRAM LIST ---------- */
+.prog-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+@media (max-width:960px){.prog-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:640px){.prog-grid{grid-template-columns:1fr;}}
+.prog-card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px;
+}
+.prog-card .idx{font-family:'Petrona',serif; font-size:0.8rem; color:var(--gold); font-weight:700;}
+.prog-card h4{font-size:1rem; margin:8px 0 10px; font-weight:600; color:var(--navy-deep);}
+.prog-meta{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+.chip{
+  font-size:0.72rem; background:var(--paper); border:1px solid var(--line);
+  color:var(--ink-soft); padding:4px 10px; border-radius:999px;
+}
+
+/* ---------- DOKUMEN VIEWER ---------- */
+.doc-card{
+  margin-top:32px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:24px 26px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+}
+.doc-card .doc-info{display:flex; align-items:center; gap:16px;}
+.doc-icon{
+  width:46px; height:46px; border-radius:10px; background:var(--navy-deep); color:var(--gold-soft);
+  display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex:none;
+}
+.doc-info h4{font-size:1rem; color:var(--navy-deep); margin-bottom:3px;}
+.doc-info p{font-size:0.82rem; color:var(--ink-soft);}
+.doc-actions{display:flex; gap:10px; flex-wrap:wrap;}
+.btn-outline{background:transparent; border:1px solid var(--navy); color:var(--navy);}
+.btn-outline:hover{background:var(--navy); color:#fff;}
+.doc-frame-wrap{
+  margin-top:18px; border:1px solid var(--line); border-radius:var(--radius);
+  overflow:hidden; display:none; background:var(--paper);
+}
+.doc-frame-wrap.open{display:block;}
+.doc-frame-wrap iframe{width:100%; height:640px; border:0; display:block;}
+@media (max-width:640px){.doc-frame-wrap iframe{height:420px;}}
+
+/* ---------- LAPORAN ---------- */
+.report-grid{display:grid; grid-template-columns:1.2fr 1fr; gap:36px;}
+@media (max-width:900px){.report-grid{grid-template-columns:1fr;}}
+.ledger{list-style:none;}
+.ledger li{
+  display:flex; gap:14px; padding:14px 0; border-bottom:1px solid var(--line);
+}
+.ledger li:last-child{border-bottom:none;}
+.ledger .lg-time{
+  font-family:'Petrona',serif; font-weight:600; color:var(--teal); font-size:0.85rem;
+  min-width:96px;
+}
+.ledger .lg-text b{color:var(--navy-deep); font-weight:600;}
+.ledger .lg-text span{display:block; font-size:0.86rem; color:var(--ink-soft); margin-top:2px;}
+
+.side-block{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:22px; margin-bottom:18px;}
+.side-block h4{font-size:0.95rem; margin-bottom:10px; color:var(--navy-deep);}
+.side-block ul{padding-left:18px; font-size:0.88rem; color:var(--ink-soft);}
+.side-block li{margin-bottom:6px;}
+
+/* ---------- ORG CHART ---------- */
+.org{display:flex; flex-direction:column; align-items:center; gap:0;}
+.org-node{
+  background:var(--navy-deep); color:#fff; padding:14px 24px; border-radius:12px;
+  text-align:center; font-weight:600; font-size:0.95rem; box-shadow:0 6px 18px rgba(14,42,71,0.15);
+}
+.org-node small{display:block; font-weight:500; font-size:0.75rem; color:var(--gold-soft); margin-top:2px;}
+.org-connector{width:2px; height:28px; background:var(--line);}
+.org-row{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px; width:100%; margin-top:0;
+}
+@media (max-width:640px){.org-row{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:420px){.org-row{grid-template-columns:1fr;}}
+.org-leaf{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:16px; text-align:center; font-size:0.9rem; color:var(--navy-deep);
+  font-family:'Petrona',serif; font-weight:600;
+}
+.org-branch{position:relative; padding-top:28px;}
+.org-branch::before{
+  content:""; position:absolute; top:0; left:50%; width:1px; height:28px; background:var(--line);
+}
+
+/* ---------- GALERI ---------- */
+.tabs{display:flex; gap:10px; margin-bottom:26px;}
+.tab-btn{
+  font-family:inherit; font-weight:700; font-size:0.86rem; padding:10px 20px; border-radius:999px;
+  border:1px solid var(--line); background:var(--card); color:var(--ink-soft); cursor:pointer;
+}
+.tab-btn[aria-selected="true"]{background:var(--navy-deep); color:#fff; border-color:var(--navy-deep);}
+.tab-btn:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+.gallery-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+@media (max-width:960px){.gallery-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:560px){.gallery-grid{grid-template-columns:1fr 1fr;}}
+.g-item{border-radius:12px; overflow:hidden; border:1px solid var(--line); background:var(--card);}
+.g-thumb{
+  aspect-ratio:4/3; display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:1.6rem; position:relative;
+}
+.g-cap{padding:10px 12px; font-size:0.78rem; color:var(--ink-soft);}
+.g-cap b{display:block; color:var(--navy-deep); font-size:0.84rem; font-weight:600; margin-bottom:2px;}
+.gallery-pane{display:none;}
+.gallery-pane.active{display:grid;}
+
+/* ---------- FOOTER ---------- */
+footer{background:var(--navy-deep); color:#D9D2BF; padding:56px 0 0;}
+.footer-grid{display:grid; grid-template-columns:1.1fr 1fr 1fr; gap:40px; padding-bottom:44px; border-bottom:1px solid rgba(255,255,255,0.1);}
+@media (max-width:860px){.footer-grid{grid-template-columns:1fr; gap:32px;}}
+footer h5{font-family:'Petrona',serif; color:#fff; font-size:1.05rem; margin-bottom:16px; font-weight:600;}
+.addr-block{margin-bottom:16px;}
+.addr-block b{display:block; color:#F3EFE3; font-size:0.9rem; margin-bottom:3px;}
+.addr-block span{font-size:0.86rem; color:#B7AF97;}
+.contact-list{list-style:none; font-size:0.9rem;}
+.contact-list li{margin-bottom:10px; display:flex; gap:10px;}
+
+.saran-form{display:flex; flex-direction:column; gap:10px;}
+.saran-form input, .saran-form textarea{
+  font-family:inherit; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18);
+  color:#F3EFE3; padding:11px 14px; border-radius:10px; font-size:0.88rem; resize:none;
+}
+.saran-form input::placeholder, .saran-form textarea::placeholder{color:#8E866F;}
+.saran-form input:focus-visible, .saran-form textarea:focus-visible{outline:2px solid var(--gold);}
+.saran-form button{
+  align-self:flex-start; margin-top:4px;
+}
+.form-note{font-size:0.76rem; color:#8E866F; margin-top:2px;}
+
+.bottom-bar{
+  max-width:var(--maxw); margin:0 auto; padding:20px 28px 26px;
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  font-size:0.78rem; color:#8E866F;
+}
+.toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--navy-deep); color:#fff; padding:13px 22px; border-radius:999px;
+  font-size:0.86rem; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+  box-shadow:0 10px 30px rgba(0,0,0,0.25); z-index:200; border:1px solid var(--gold);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+
+/* ---------- MENU CARD (khusus portal index) ---------- */
+.menu-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:36px;}
+@media (max-width:760px){.menu-grid{grid-template-columns:1fr;}}
+.menu-card{
+  background:var(--card); border:1px solid var(--line); border-radius:20px;
+  padding:32px; text-decoration:none; display:block; position:relative;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.menu-card:hover{transform:translateY(-3px); box-shadow:0 16px 36px rgba(14,42,71,0.12);}
+.menu-card .mc-icon{
+  width:52px; height:52px; border-radius:12px; background:var(--navy-deep); color:var(--gold-soft);
+  display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin-bottom:18px;
+}
+.menu-card h3{font-size:1.25rem; color:var(--navy-deep); margin-bottom:8px;}
+.menu-card p{color:var(--ink-soft); font-size:0.92rem; margin-bottom:16px;}
+.menu-card .mc-go{
+  font-size:0.82rem; font-weight:700; color:var(--teal); display:inline-flex; align-items:center; gap:6px;
+}
+
+/* ---------- OPTIONAL / LAINNYA ---------- */
+details.optional{
+  margin-top:40px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:6px 22px;
+}
+details.optional summary{
+  cursor:pointer; padding:14px 0; font-weight:700; color:var(--navy-deep); font-size:0.95rem;
+  list-style:none; display:flex; align-items:center; justify-content:space-between;
+}
+details.optional summary::-webkit-details-marker{display:none;}
+details.optional summary::after{content:"+"; font-size:1.2rem; color:var(--gold); font-weight:700;}
+details.optional[open] summary::after{content:"–";}
+.optional-list{padding:4px 0 20px; display:flex; flex-direction:column; gap:4px;}
+.optional-list a{
+  font-size:0.88rem; color:var(--ink-soft); text-decoration:none; padding:8px 4px; border-radius:8px;
+}
+.optional-list a:hover{background:var(--paper); color:var(--navy-deep);}
+.optional-note{font-size:0.78rem; color:#8E866F; padding:0 4px 6px;}
+
+.profile-strip{
+  display:flex; align-items:center; gap:16px; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--radius); padding:20px 24px; margin-top:-30px; margin-bottom:44px;
+  position:relative; z-index:2; box-shadow:0 10px 26px rgba(14,42,71,0.08);
+}
+.profile-strip .p-avatar{
+  width:54px; height:54px; border-radius:50%; background:var(--navy-deep); color:var(--gold-soft);
+  display:flex; align-items:center; justify-content:center; font-family:'Petrona',serif; font-weight:700; font-size:1.2rem; flex:none;
+}
+.profile-strip .p-name{font-family:'Petrona',serif; font-weight:600; color:var(--navy-deep); font-size:1.02rem;}
+.profile-strip .p-role{font-size:0.82rem; color:var(--ink-soft);}
+@media (max-width:640px){.profile-strip{flex-wrap:wrap; margin-top:-18px;}}
+</style>
+</head>
+<body>
+
+<header class="site-nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-text">
+        <span class="b1">Portal Kinerja Guru</span>
+        <span class="b2">MAN Balikpapan</span>
+      </span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mainMenu" aria-label="Buka menu">☰</button>
+    <nav class="menu" id="mainMenu">
+      <a href="../index.html">Ruang Belajar (Siswa)</a>
+      <a href="perangkat-pembelajaran.html">Perangkat Pembelajaran</a>
+      <a href="waka-humas.html">Waka Humas</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Profil &amp; Kinerja Guru</p>
+    <h1>Ruang Kerja Antung, S.Pd</h1>
+    <p class="lede">Portal pendukung tugas pokok dan fungsi guru: perangkat pembelajaran yang tersupervisi, serta peran sebagai Wakil Kepala Madrasah Bidang Hubungan Masyarakat.</p>
+    <p style="color:#D9D2BF; font-size:0.95rem; max-width:60ch;">
+      Assalamu'alaikum Warahmatullahi Wabarakatuh. Portal ini disusun sebagai bentuk laporan kinerja yang tertata, transparan, dan mudah ditelusuri oleh pihak yang berkepentingan.
+    </p>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="profile-strip">
+    <div class="p-avatar">A</div>
+    <div>
+      <div class="p-name">Antung, S.Pd</div>
+      <div class="p-role">Guru Bahasa Arab · Wakil Kepala Madrasah Bidang Humas — MAN Balikpapan</div>
+    </div>
+  </div>
+</div>
+
+<section class="alt">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Menu Utama</p>
+      <h2>Dua Ruang Kerja</h2>
+      <p>Pilih ruang kerja yang ingin dibuka. Dokumen di dalamnya bersumber dari Google Drive dan diperbarui secara berkala.</p>
+    </div>
+    <div class="menu-grid">
+      <a href="perangkat-pembelajaran.html" class="menu-card">
+        <div class="mc-icon">📘</div>
+        <h3>Perangkat Pembelajaran</h3>
+        <p>Dokumen RPP, Prota, Prosem, dan perangkat lain yang telah disahkan dan disupervisi atasan, lengkap dengan status pengesahan.</p>
+        <span class="mc-go">Buka ruang kerja →</span>
+      </a>
+      <a href="waka-humas.html" class="menu-card">
+        <div class="mc-icon">📣</div>
+        <h3>Waka Humas</h3>
+        <p>Program kerja, laporan, struktur tim, dan galeri kegiatan kehumasan madrasah tahun berjalan.</p>
+        <span class="mc-go">Buka ruang kerja →</span>
+      </a>
+    </div>
+
+    <details class="optional">
+      <summary>Lainnya (opsional)</summary>
+      <div class="optional-list">
+        <a href="#">Dokumen Kegiatan &amp; Arsip Lap Sieka — belum disiapkan</a>
+        <a href="#">Kumpulan Soal — belum disiapkan</a>
+      </div>
+      <p class="optional-note">Menu di bagian ini bersifat opsional dan akan ditautkan menyusul bila dokumennya sudah siap.</p>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h5>Portal Kinerja Guru</h5>
+        <div class="addr-block">
+          <b>MAN Balikpapan</b>
+          <span>Kalimantan Timur</span>
+        </div>
+      </div>
+      <div>
+        <h5>Navigasi</h5>
+        <ul class="contact-list">
+          <li><a href="perangkat-pembelajaran.html">Perangkat Pembelajaran</a></li>
+          <li><a href="waka-humas.html">Waka Humas</a></li>
+          <li><a href="../index.html">Ruang Belajar Siswa</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Tautan</h5>
+        <ul class="contact-list">
+          <li><a href="../index.html">Arabic Class — Portal Siswa</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <span>© 2026 Portal Kinerja Guru — Antung, S.Pd</span>
+      <span>antung.sf@madrasah.id</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const mainMenu = document.getElementById('mainMenu');
+  if (navToggle && mainMenu){
+    navToggle.addEventListener('click', () => {
+      const open = mainMenu.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+</script>
+</body>
+</html>
