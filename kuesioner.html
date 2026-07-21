@@ -289,8 +289,14 @@
   .thankyou .ar{ font-family:'Amiri',serif; font-size:1.6rem; color:var(--color-accent); display:block; margin-bottom:8px;}
   .thankyou h3{ margin:0 0 8px; color:var(--color-primary); }
   .thankyou p{ color:var(--color-ink-soft); font-size:0.92rem; }
+  .thankyou .auto-reset-note{ font-size:0.82rem; margin-top:16px; color:var(--color-ink-soft); }
+  .thankyou .auto-reset-note strong{ color:var(--color-accent); }
   .form-body.hidden{ display:none; }
-  #mapForm.hidden{ display:none; }
+
+  /* elemen khusus guru — disembunyikan dari siswa secara default */
+  .guru-only{ display:none; }
+  body.is-admin .guru-only{ display:block; }
+  body.is-admin .thankyou #resetBtn{ display:inline-flex; }
 </style>
 </head>
 <body>
@@ -303,22 +309,14 @@
     <h1>Pemetaan Pembelajaran Bahasa Arab</h1>
     <p>Kuesioner untuk mengetahui tingkat pemahaman, ketertarikan, dan kesulitan siswa kelas X, XI &amp; XII dalam belajar Bahasa Arab.</p>
     <span class="madrasah">MAN Balikpapan · Kelas X, XI &amp; XII</span>
+    <div style="margin-top:16px;">
+      <a href="index.html" style="color:#F4EFDF;font-size:0.85rem;text-decoration:underline;text-underline-offset:3px;">&larr; Kembali ke Beranda</a>
+    </div>
   </div>
 </header>
 <div class="star-divider dense"></div>
 
 <main>
-  <div id="statusChecking" class="card" style="text-align:center; color:var(--color-ink-soft);">
-    Memeriksa status kuisioner...
-  </div>
-
-  <div id="closedCard" class="card" style="display:none; text-align:center;">
-    <span class="ar" style="font-family:'Amiri',serif; font-size:1.6rem; color:var(--color-accent); display:block; margin-bottom:8px;">مغلق مؤقتًا</span>
-    <h2 style="color:var(--color-primary); margin:0 0 10px;">Kuisioner Sedang Ditutup</h2>
-    <p style="color:var(--color-ink-soft);">Pengisian sedang tidak dibuka oleh guru saat ini. Silakan hubungi guru Bahasa Arab Ananda atau coba lagi nanti.</p>
-  </div>
-
-  <div id="formArea" style="display:none;">
   <section class="card intro">
     <p><strong>Assalamu'alaikum, Ananda.</strong> Isian ini digunakan guru untuk memetakan kondisi belajar Bahasa Arab di kelas Ananda — bukan penilaian/ujian, jadi jawablah sesuai kondisi sebenarnya.</p>
     <ul>
@@ -529,11 +527,12 @@
       <div class="thankyou" id="thankyou">
         <span class="ar">شكرًا لك</span>
         <h3>Terima kasih, jawaban tersimpan!</h3>
-        <p>Jawaban Ananda telah tercatat. Ananda boleh menutup halaman ini atau mengisi ulang untuk siswa berikutnya.</p>
-        <button type="button" class="btn btn-ghost" id="resetBtn" style="margin-top:14px;">Isi Jawaban Baru</button>
+        <p>Jawaban Ananda telah tercatat. Ananda boleh menutup halaman ini sekarang.</p>
+        <p class="auto-reset-note" id="autoResetNote">Formulir akan otomatis kembali ke awal dalam <strong id="autoResetCounter">5</strong> detik untuk siswa berikutnya…</p>
+        <button type="button" class="btn btn-ghost guru-only" id="resetBtn" style="margin-top:14px;">Isi Jawaban Baru</button>
       </div>
 
-      <div style="margin-top:26px;">
+      <div style="margin-top:26px;" class="guru-only">
         <details class="storage-info">
           <summary>Untuk guru — cara menghubungkan ke Google Sheets/Drive (opsional)</summary>
           <p>Secara bawaan, jawaban siswa hanya tersimpan sementara di sesi browser masing-masing. Agar <strong>semua jawaban dari semua siswa otomatis terkumpul di satu Google Spreadsheet</strong>, dengan kolom yang sudah tersusun rapi sesuai urutan pertanyaan, ikuti langkah berikut:</p>
@@ -549,61 +548,74 @@
             <li>Di spreadsheet tadi, klik menu <strong>Extensions &gt; Apps Script</strong>.</li>
             <li>Hapus semua kode bawaan di editor, lalu tempel kode berikut (kode ini otomatis membuat baris judul kolom sesuai urutan pertanyaan pada formulir, sehingga admin tinggal mengoreksi baris demi baris tanpa perlu menyusun ulang):</li>
           </ol>
-          <pre><code>// Ganti kode admin di bawah ini agar sama dengan kode admin di file index.html
-var ADMIN_KEY = 'guru123';
+          <pre><code>var HEADERS = [
+  'Waktu Pengisian','Nama','NISN','Kelas','Tingkat','Program Peminatan','Jenis Kelamin',
+  'Pemahaman - Membaca (Qira\'ah)','Pemahaman - Menulis (Kitabah)',
+  'Pemahaman - Mendengar (Istima\')','Pemahaman - Berbicara (Kalam)',
+  'Pemahaman - Kosakata (Mufradat)','Pemahaman - Tata Bahasa (Nahwu-Sharaf)',
+  'Minat Umum (1-5)','Cara Belajar Favorit','Motivasi Utama',
+  'Kesulitan yang Dirasakan','Kesulitan Lain','Saran'
+];
 
 function doPost(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var d = JSON.parse(e.postData.contents);
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
-  // aksi khusus: buka/tutup kuisioner (dipakai oleh panel admin)
-  if (d.action === 'setStatus') {
-    if (d.adminKey !== ADMIN_KEY) {
-      return ContentService.createTextOutput(JSON.stringify({status:'error', message:'Kode admin salah'}))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    var configSheet = ss.getSheetByName('Config') || ss.insertSheet('Config');
-    configSheet.getRange('A1').setValue(d.value === 'CLOSED' ? 'CLOSED' : 'OPEN');
-    return ContentService.createTextOutput(JSON.stringify({status:'ok', value:d.value}))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  // default: simpan jawaban siswa
-  var sheet = ss.getSheets()[0];
-  var headers = [
-    'Waktu Pengisian','Nama','NISN','Kelas','Tingkat','Program Peminatan','Jenis Kelamin',
-    'Pemahaman - Membaca (Qira\'ah)','Pemahaman - Menulis (Kitabah)',
-    'Pemahaman - Mendengar (Istima\')','Pemahaman - Berbicara (Kalam)',
-    'Pemahaman - Kosakata (Mufradat)','Pemahaman - Tata Bahasa (Nahwu-Sharaf)',
-    'Minat Umum (1-5)','Cara Belajar Favorit','Motivasi Utama',
-    'Kesulitan yang Dirasakan','Kesulitan Lain','Saran'
-  ];
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
-    sheet.setFrozenRows(1);
+    sheet.appendRow(HEADERS);
+    formatHeader(sheet, HEADERS.length);
   }
+
+  var d = JSON.parse(e.postData.contents);
   sheet.appendRow([
     new Date(), d.nama, d.nisn, d.kelas, d.tingkat, d.jurusan, d.jenis_kelamin,
     d.p_membaca, d.p_menulis, d.p_mendengar, d.p_berbicara, d.p_kosakata, d.p_tatabahasa,
     d.minat_umum, d.metode, d.motivasi,
     d.kesulitan, d.kesulitan_lain, d.saran
   ]);
+
+  var lastRow = sheet.getLastRow();
+  formatDataRow(sheet, lastRow, HEADERS.length);
+  sheet.autoResizeColumns(1, HEADERS.length);
+
   return ContentService.createTextOutput(JSON.stringify({status:'ok'}))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// endpoint ini yang dibaca form untuk tahu kuisioner sedang buka/tutup
-function doGet(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var configSheet = ss.getSheetByName('Config');
-  var status = 'OPEN';
-  if (configSheet) {
-    var val = configSheet.getRange('A1').getValue();
-    if (String(val).toUpperCase() === 'CLOSED') status = 'CLOSED';
+// merapikan baris judul: tebal, latar hijau tua, teks putih, rata tengah
+function formatHeader(sheet, numCols) {
+  var headerRange = sheet.getRange(1, 1, 1, numCols);
+  headerRange.setFontWeight('bold')
+    .setBackground('#1B4B43')
+    .setFontColor('#FFFFFF')
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle')
+    .setBorder(true, true, true, true, true, true, '#0F2E28', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.setFrozenRows(1);
+  sheet.setRowHeight(1, 34);
+}
+
+// merapikan tiap baris data: border, teks rata atas, wrap, warna selang-seling
+function formatDataRow(sheet, row, numCols) {
+  var range = sheet.getRange(row, 1, 1, numCols);
+  range.setBorder(true, true, true, true, true, true, '#D9CFB2', SpreadsheetApp.BorderStyle.SOLID);
+  range.setVerticalAlignment('top');
+  range.setWrap(true);
+  range.setBackground(row % 2 === 0 ? '#F6F1E4' : '#FFFFFF');
+  sheet.getRange(row, 1).setNumberFormat('yyyy-mm-dd hh:mm:ss');
+}
+
+// Jalankan fungsi ini SATU KALI secara manual (pilih "formatSemuaData" dari
+// dropdown fungsi di toolbar Apps Script, lalu klik Run/Jalankan) untuk
+// merapikan jawaban yang sudah pernah masuk sebelum skrip ini dipasang.
+function formatSemuaData() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) return;
+  formatHeader(sheet, HEADERS.length);
+  for (var r = 2; r <= lastRow; r++) {
+    formatDataRow(sheet, r, HEADERS.length);
   }
-  return ContentService.createTextOutput(JSON.stringify({status: status}))
-    .setMimeType(ContentService.MimeType.JSON);
+  sheet.autoResizeColumns(1, HEADERS.length);
 }</code></pre>
           <ol start="3">
             <li>Klik ikon <strong>disket/Save</strong> (atau Ctrl+S) untuk menyimpan skrip. Beri nama proyek bebas, misalnya "Penerima Kuisioner".</li>
@@ -618,20 +630,18 @@ function doGet(e) {
             <li>Setelah selesai, salin <strong>Web app URL</strong> yang muncul (formatnya <code>https://script.google.com/macros/s/xxxxx/exec</code>).</li>
           </ol>
 
-          <p><strong>Langkah 4 — Hubungkan ke formulir ini (penting!)</strong></p>
+          <p><strong>Langkah 4 — Hubungkan ke formulir ini</strong></p>
           <ol>
             <li>Tempel URL tadi ke kolom "URL Google Apps Script" di bawah ini, lalu klik <strong>Tes Koneksi</strong> untuk memastikan berhasil (akan muncul 1 baris data uji coba di spreadsheet — boleh dihapus setelah tes berhasil).</li>
-            <li>Kolom di bawah ini hanya berlaku untuk browser Anda sendiri. Agar jawaban <strong>semua siswa</strong> otomatis masuk ke spreadsheet yang sama, URL tersebut harus ditempel langsung ke dalam file <code>index.html</code> sebelum dibagikan/di-upload ke Netlify — cari baris <code>SCRIPT_URL: ''</code> di bagian paling atas kode, lalu isi di antara tanda kutip: <code>SCRIPT_URL: 'https://script.google.com/macros/s/xxxxx/exec'</code>. Setelah itu, semua siswa yang membuka link otomatis terhubung tanpa perlu mengatur apa pun.</li>
+            <li>Setelah URL ini juga ditempelkan ke file <code>index.html</code> yang dibagikan ke siswa, semua jawaban baru akan otomatis masuk ke spreadsheet dengan kolom sudah tersusun rapi — spreadsheet ini otomatis tersimpan di Google Drive akun Anda.</li>
           </ol>
           <p style="margin-top:10px;"><em>Catatan:</em> jika suatu saat kode skrip diedit lagi, gunakan <strong>Deploy &gt; Manage deployments &gt; ikon pensil &gt; New version &gt; Deploy</strong> agar URL yang sama tetap berlaku dengan kode terbaru.</p>
-
-          <p><strong>Langkah 5 — Menutup/membuka kuisioner</strong></p>
-          <p>Setelah Langkah 4 selesai (URL sudah ditanam ke file), panel admin di bawah akan menampilkan tombol <strong>"Tutup Kuisioner"</strong> dan <strong>"Buka Kuisioner"</strong>. Menutup kuisioner akan langsung menyembunyikan formulir dari semua siswa di semua perangkat sampai dibuka kembali — cocok dipakai saat periode pengisian sudah selesai.</p>
+          <p style="margin-top:6px;"><em>Sudah punya data sebelumnya?</em> Setelah menempel kode terbaru, pilih fungsi <strong>formatSemuaData</strong> dari dropdown fungsi di toolbar Apps Script lalu klik <strong>Run</strong> satu kali — ini akan merapikan (header tebal, border, baris selang-seling) seluruh jawaban yang sudah tercatat sebelumnya, tidak hanya jawaban baru.</p>
 
           <div class="field" style="margin-top:14px;">
             <label class="field-label" for="scriptUrl">URL Google Apps Script (Web App)</label>
-            <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
-            <small class="hint">Kolom ini otomatis terisi jika <code>CONFIG.SCRIPT_URL</code> sudah diisi di dalam file. Kosongkan/ubah di sini hanya untuk pengujian sementara di browser ini.</small>
+            <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec" value="https://script.google.com/macros/s/AKfycbwCE7XJCOzsJdsxqhx9KyOUVp2VM3W9q-I6NxCjOYLSST6yvV9EfREVTL8UQ4veO9WpAQ/exec">
+            <small class="hint">URL ini sudah tertanam permanen di file dan aktif untuk semua siswa. Ubah/hapus di sini hanya berlaku sementara selama halaman ini terbuka — untuk mengganti secara permanen, edit atribut <code>value</code> pada input ini di kode <code>index.html</code>.</small>
           </div>
           <div class="btn-row" style="margin-top:4px;">
             <button type="button" class="btn btn-ghost" id="testConnBtn">Tes Koneksi</button>
@@ -646,7 +656,7 @@ function doGet(e) {
             <div class="field" style="margin-bottom:10px;">
               <label class="field-label" for="adminCode">Kode admin</label>
               <input type="text" id="adminCode" placeholder="Masukkan kode admin" autocomplete="off">
-              <small class="hint">Kode bawaan: <code>guru123</code>. Guru dapat mengganti kode ini di bagian atas file, cari <code>ADMIN_CODE</code> di dalam objek <code>CONFIG</code>.</small>
+              <small class="hint">Kode bawaan: <code>guru123</code>. Guru dapat mengganti kode ini langsung di file (cari variabel <code>ADMIN_CODE</code>).</small>
             </div>
             <button type="button" class="btn btn-ghost" id="adminUnlockBtn">Buka Panel Admin</button>
           </div>
@@ -655,73 +665,25 @@ function doGet(e) {
             <div class="btn-row">
               <button type="button" class="btn btn-primary" id="downloadAllBtn">Unduh Rekap Sesi Ini (CSV)</button>
             </div>
-            <hr style="border:none; border-top:1px dashed var(--color-line); margin:18px 0;">
-            <p style="margin-top:0;"><strong>Buka/Tutup Kuisioner.</strong> Menutup kuisioner akan menyembunyikan formulir dari semua siswa (di semua perangkat) sampai dibuka kembali. Butuh URL Google Apps Script di atas agar berlaku untuk semua orang, bukan hanya browser ini.</p>
-            <p id="currentStatusLabel" style="font-size:0.85rem; color:var(--color-ink-soft);">Status saat ini: memeriksa...</p>
-            <div class="btn-row">
-              <button type="button" class="btn btn-ghost" id="openFormBtn">Buka Kuisioner</button>
-              <button type="button" class="btn btn-ghost" id="closeFormBtn" style="color:var(--color-error); border-color:var(--color-error);">Tutup Kuisioner</button>
-            </div>
-            <div class="status-msg" id="toggleStatusMsg"></div>
           </div>
         </details>
       </div>
     </section>
   </form>
-  </div>
 
   <footer>
     <span class="ar">بارك الله فيكم</span>
     Pemetaan Pembelajaran Bahasa Arab · MAN Balikpapan · Kelas X, XI &amp; XII
+    <div style="margin-top:10px;"><a href="index.html" style="color:var(--color-primary);text-decoration:underline;">&larr; Kembali ke Beranda</a></div>
   </footer>
 </main>
 
 <script>
 (function(){
-  // ====== KONFIGURASI GURU ======
-  // Tempel URL Google Apps Script di sini SEBELUM file ini dibagikan ke siswa,
-  // supaya semua siswa otomatis terhubung ke spreadsheet & fitur buka/tutup
-  // berlaku untuk semua orang (lihat panduan "Untuk guru" di bagian bawah form).
-  var CONFIG = {
-    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyBig-RryjBtV0H9QDRpXLD7sjKHkuqIBW6fIPDoU9uT-WuM4VfndCJC4c-cvrTs1_X8Q/exec', // contoh: 'https://script.google.com/macros/s/xxxxx/exec'
-    ADMIN_CODE: 'guru123'
-  };
-  // ================================
-
-  var formArea = document.getElementById('formArea');
-  var statusChecking = document.getElementById('statusChecking');
-  var closedCard = document.getElementById('closedCard');
-  var formIsClosed = false;
-
-  // prefill the admin script-url field so it works out of the box on this device too
-  var scriptUrlInput = document.getElementById('scriptUrl');
-  if (CONFIG.SCRIPT_URL) scriptUrlInput.value = CONFIG.SCRIPT_URL;
-
-  function revealForm(){
-    statusChecking.style.display = 'none';
-    formArea.style.display = 'block';
-  }
-  function revealClosed(){
-    statusChecking.style.display = 'none';
-    closedCard.style.display = 'block';
-    formIsClosed = true;
-  }
-
-  if (!CONFIG.SCRIPT_URL) {
-    // no shared backend configured yet — nothing to check status against, stay open
-    revealForm();
-  } else {
-    fetch(CONFIG.SCRIPT_URL)
-      .then(function(res){ return res.json(); })
-      .then(function(json){
-        if (json && json.status === 'CLOSED') revealClosed();
-        else revealForm();
-      })
-      .catch(function(){
-        // if the status check fails (e.g. network issue), fail open rather than
-        // blocking every student from filling the form
-        revealForm();
-      });
+  // tampilkan elemen khusus guru hanya jika dibuka dengan ?admin=1 di URL
+  // contoh: https://kuisioner-arabic.netlify.app/?admin=1
+  if(new URLSearchParams(window.location.search).get('admin') === '1'){
+    document.body.classList.add('is-admin');
   }
 
   // build 1-5 rating scales
@@ -750,6 +712,8 @@ function doGet(e) {
   var statusMsg = document.getElementById('statusMsg');
   var thankyou = document.getElementById('thankyou');
   var sessionRows = []; // in-memory accumulation for this browser session only
+  var AUTO_RESET_SECONDS = 5;
+  var autoResetInterval = null;
 
   var RATING_FIELDS = ['p_membaca','p_menulis','p_mendengar','p_berbicara','p_kosakata','p_tatabahasa'];
   var CSV_HEADERS = ['timestamp','nama','nisn','kelas','tingkat','jurusan','jenis_kelamin',
@@ -893,16 +857,36 @@ function doGet(e) {
     form.classList.add('hidden');
     thankyou.classList.add('show');
     thankyou.scrollIntoView({behavior:'smooth', block:'center'});
+    startAutoReset();
   });
 
-  document.getElementById('resetBtn').addEventListener('click', function(){
+  function doReset(){
+    if(autoResetInterval){ clearInterval(autoResetInterval); autoResetInterval = null; }
     form.reset();
     form.classList.remove('hidden');
     thankyou.classList.remove('show');
     statusMsg.className = 'status-msg';
     clearErrors();
     window.scrollTo({top:0, behavior:'smooth'});
-  });
+  }
+
+  function startAutoReset(){
+    var seconds = AUTO_RESET_SECONDS;
+    var counterEl = document.getElementById('autoResetCounter');
+    if(counterEl) counterEl.textContent = seconds;
+    if(autoResetInterval) clearInterval(autoResetInterval);
+    autoResetInterval = setInterval(function(){
+      seconds -= 1;
+      if(counterEl) counterEl.textContent = Math.max(seconds, 0);
+      if(seconds <= 0){
+        clearInterval(autoResetInterval);
+        autoResetInterval = null;
+        doReset();
+      }
+    }, 1000);
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', doReset);
 
   // --- test connection to Google Sheets ---
   document.getElementById('testConnBtn').addEventListener('click', function(){
@@ -935,12 +919,12 @@ function doGet(e) {
   });
 
   // --- admin-only panel: simple client-side code gate ---
+  var ADMIN_CODE = 'guru123'; // guru dapat mengganti kode ini
   document.getElementById('adminUnlockBtn').addEventListener('click', function(){
     var input = document.getElementById('adminCode').value.trim();
-    if(input === CONFIG.ADMIN_CODE){
+    if(input === ADMIN_CODE){
       document.getElementById('adminGate').style.display = 'none';
       document.getElementById('adminPanel').style.display = 'block';
-      refreshStatusLabel();
     } else {
       showStatus('err', 'Kode admin salah.');
     }
@@ -954,55 +938,6 @@ function doGet(e) {
     downloadCsv(rowsToCsv(sessionRows), 'rekap-pemetaan-bahasa-arab-' + new Date().toISOString().slice(0,10) + '.csv');
     showStatus('ok', 'Rekap ' + sessionRows.length + ' jawaban pada sesi ini berhasil diunduh.');
   });
-
-  // --- open / close the questionnaire (requires CONFIG.SCRIPT_URL / scriptUrl field) ---
-  var statusLabel = document.getElementById('currentStatusLabel');
-  var toggleMsg = document.getElementById('toggleStatusMsg');
-
-  function refreshStatusLabel(){
-    var url = document.getElementById('scriptUrl').value.trim();
-    if(!url){
-      statusLabel.textContent = 'Status saat ini: fitur ini butuh URL Google Apps Script terlebih dulu.';
-      return;
-    }
-    statusLabel.textContent = 'Status saat ini: memeriksa...';
-    fetch(url).then(function(res){ return res.json(); }).then(function(json){
-      statusLabel.textContent = 'Status saat ini: ' + (json.status === 'CLOSED' ? 'DITUTUP' : 'DIBUKA');
-    }).catch(function(){
-      statusLabel.textContent = 'Status saat ini: gagal memeriksa (periksa URL).';
-    });
-  }
-
-  function setFormStatus(value){
-    var url = document.getElementById('scriptUrl').value.trim();
-    if(!url){
-      toggleMsg.className = 'status-msg show err';
-      toggleMsg.textContent = 'Isi dulu URL Google Apps Script di atas.';
-      return;
-    }
-    toggleMsg.className = 'status-msg show pending';
-    toggleMsg.textContent = 'Menyimpan perubahan status...';
-    fetch(url, {
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({action:'setStatus', value:value, adminKey:CONFIG.ADMIN_CODE})
-    }).then(function(res){ return res.json(); }).then(function(json){
-      if(json.status === 'error'){
-        toggleMsg.className = 'status-msg show err';
-        toggleMsg.textContent = json.message || 'Gagal mengubah status.';
-        return;
-      }
-      toggleMsg.className = 'status-msg show ok';
-      toggleMsg.textContent = value === 'CLOSED' ? 'Kuisioner sekarang ditutup untuk siswa.' : 'Kuisioner sekarang dibuka untuk siswa.';
-      refreshStatusLabel();
-    }).catch(function(){
-      toggleMsg.className = 'status-msg show err';
-      toggleMsg.textContent = 'Gagal mengubah status. Periksa kembali URL Web App.';
-    });
-  }
-
-  document.getElementById('openFormBtn').addEventListener('click', function(){ setFormStatus('OPEN'); });
-  document.getElementById('closeFormBtn').addEventListener('click', function(){ setFormStatus('CLOSED'); });
 })();
 </script>
 </body>
