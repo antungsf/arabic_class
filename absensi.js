@@ -821,9 +821,22 @@ function kosongkanFormJurnal(){
   document.getElementById('jFormTitle').textContent = 'Tambah Entri Baru';
   document.getElementById('btnSimpanJurnal').textContent = 'Simpan Entri';
   document.getElementById('btnBatalEditJurnal').style.display = 'none';
+  document.getElementById('btnHapusJurnal').style.display = 'none';
   document.getElementById('jBanner').innerHTML = '';
 }
 document.getElementById('btnBatalEditJurnal').addEventListener('click', kosongkanFormJurnal);
+
+document.getElementById('btnHapusJurnal').addEventListener('click', async () => {
+  if(!state.editJurnalId) return;
+  if(!confirm('Hapus entri jurnal ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  try{
+    await db.collection('jurnal_guru').doc(state.editJurnalId).delete();
+    kosongkanFormJurnal();
+    loadJurnalBulan();
+  }catch(err){
+    alert('Gagal menghapus: ' + err.message);
+  }
+});
 
 function muatEntriKeForm(id, d){
   state.editJurnalId = id;
@@ -844,6 +857,7 @@ function muatEntriKeForm(id, d){
   document.getElementById('jFormTitle').textContent = 'Edit Entri (' + d.tanggal + ')';
   document.getElementById('btnSimpanJurnal').textContent = 'Update Entri';
   document.getElementById('btnBatalEditJurnal').style.display = 'inline-block';
+  document.getElementById('btnHapusJurnal').style.display = 'inline-block';
   document.getElementById('jBanner').innerHTML = '';
   window.scrollTo({top: document.getElementById('jTanggal').getBoundingClientRect().top + window.scrollY - 100, behavior:'smooth'});
 }
