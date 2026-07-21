@@ -219,7 +219,7 @@
       <p class="lead" style="margin:0 0 16px;">Agenda &amp; jurnal kegiatan guru harian — khusus admin, tidak tampil ke publik.</p>
 
       <div class="list-item" style="margin-bottom:20px;">
-        <h4 style="margin-bottom:12px;">Tambah / Edit Entri Hari Ini</h4>
+        <h4 style="margin-bottom:12px;" id="jFormTitle">Tambah Entri Baru</h4>
         <div class="row">
           <div class="field" style="max-width:170px;"><label>Tanggal</label><input type="date" id="jTanggal"></div>
           <div class="field" style="max-width:170px;"><label>Pukul</label><input type="text" id="jPukul" value="07:00 - 15:30"></div>
@@ -242,6 +242,7 @@
         <div class="field"><label>Keterangan / Output Kegiatan</label><textarea id="jKeterangan" placeholder="Contoh: KBM lancar, siswa aktif berlatih dialog"></textarea></div>
         <div id="jBanner"></div>
         <button class="btn btn-solid" id="btnSimpanJurnal">Simpan Entri</button>
+        <button class="btn btn-outline btn-sm" id="btnBatalEditJurnal" style="display:none;margin-left:8px;">Batal Edit / Entri Baru</button>
       </div>
 
       <div class="row-between">

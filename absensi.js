@@ -17,7 +17,8 @@ const state = {
   adminKelasCache: [],
   siswaCacheByKelas: {},
   lastRekap: null,
-  lastJurnal: null
+  lastJurnal: null,
+  editJurnalId: null
 };
 
 function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}</div>`; }
@@ -289,7 +290,7 @@ auth.onAuthStateChanged(user => {
     document.getElementById('adminWhoami').textContent = user.email;
     loadKelasAdmin();
     loadKelasSelects();
-    muatEntriJurnalTanggal();
+    kosongkanFormJurnal();
   } else {
     document.getElementById('viewLogin').classList.remove('hidden');
     document.getElementById('viewDashboard').classList.add('hidden');
@@ -755,8 +756,7 @@ function tahunAjaranUntukBulan(bulanNum){
 }
 
 document.getElementById('jTanggal').valueAsDate = new Date();
-document.getElementById('jTanggal').addEventListener('change', async () => {
-  await muatEntriJurnalTanggal();
+document.getElementById('jTanggal').addEventListener('change', () => {
   if(document.getElementById('jKelasSumber').value) tarikDataAbsensiKeJurnal();
 });
 document.getElementById('jKelasSumber').addEventListener('change', tarikDataAbsensiKeJurnal);
@@ -802,26 +802,50 @@ async function tarikDataAbsensiKeJurnal(){
   }
 }
 
-async function muatEntriJurnalTanggal(){
-  const tanggal = document.getElementById('jTanggal').value;
-  if(!tanggal) return;
-  try{
-    const doc = await db.collection('jurnal_guru').doc(tanggal).get();
-    const d = doc.exists ? doc.data() : {};
-    document.getElementById('jPukul').value = d.pukul || '07:00 - 15:30';
-    document.getElementById('jTempat').value = d.tempat || 'MANBPN';
-    document.getElementById('jKegiatan').value = d.kegiatan || '';
-    document.getElementById('jMateri').value = d.materi || '';
-    document.getElementById('jIndikator').value = d.indikator || '';
-    document.getElementById('jSiswaTidakHadir').value = d.siswaTidakHadir || '';
-    document.getElementById('jS').value = d.s ?? 0;
-    document.getElementById('jI').value = d.i ?? 0;
-    document.getElementById('jA').value = d.a ?? 0;
-    document.getElementById('jKeterangan').value = d.keterangan || '';
-    document.getElementById('jKelasSumber').value = d.kelasSumberId || '';
-    document.getElementById('jOtomatisBadge').style.display = d.kelasSumberId ? 'inline' : 'none';
-    document.getElementById('jKelasHint').textContent = '';
-  }catch(err){ /* silent */ }
+function kosongkanFormJurnal(){
+  state.editJurnalId = null;
+  document.getElementById('jTanggal').valueAsDate = new Date();
+  document.getElementById('jPukul').value = '07:00 - 15:30';
+  document.getElementById('jTempat').value = 'MANBPN';
+  document.getElementById('jKegiatan').value = '';
+  document.getElementById('jMateri').value = '';
+  document.getElementById('jIndikator').value = '';
+  document.getElementById('jSiswaTidakHadir').value = '';
+  document.getElementById('jS').value = 0;
+  document.getElementById('jI').value = 0;
+  document.getElementById('jA').value = 0;
+  document.getElementById('jKeterangan').value = '';
+  document.getElementById('jKelasSumber').value = '';
+  document.getElementById('jOtomatisBadge').style.display = 'none';
+  document.getElementById('jKelasHint').textContent = '';
+  document.getElementById('jFormTitle').textContent = 'Tambah Entri Baru';
+  document.getElementById('btnSimpanJurnal').textContent = 'Simpan Entri';
+  document.getElementById('btnBatalEditJurnal').style.display = 'none';
+  document.getElementById('jBanner').innerHTML = '';
+}
+document.getElementById('btnBatalEditJurnal').addEventListener('click', kosongkanFormJurnal);
+
+function muatEntriKeForm(id, d){
+  state.editJurnalId = id;
+  document.getElementById('jTanggal').value = d.tanggal;
+  document.getElementById('jPukul').value = d.pukul || '';
+  document.getElementById('jTempat').value = d.tempat || '';
+  document.getElementById('jKegiatan').value = d.kegiatan || '';
+  document.getElementById('jMateri').value = d.materi || '';
+  document.getElementById('jIndikator').value = d.indikator || '';
+  document.getElementById('jSiswaTidakHadir').value = d.siswaTidakHadir || '';
+  document.getElementById('jS').value = d.s ?? 0;
+  document.getElementById('jI').value = d.i ?? 0;
+  document.getElementById('jA').value = d.a ?? 0;
+  document.getElementById('jKeterangan').value = d.keterangan || '';
+  document.getElementById('jKelasSumber').value = d.kelasSumberId || '';
+  document.getElementById('jOtomatisBadge').style.display = d.kelasSumberId ? 'inline' : 'none';
+  document.getElementById('jKelasHint').textContent = '';
+  document.getElementById('jFormTitle').textContent = 'Edit Entri (' + d.tanggal + ')';
+  document.getElementById('btnSimpanJurnal').textContent = 'Update Entri';
+  document.getElementById('btnBatalEditJurnal').style.display = 'inline-block';
+  document.getElementById('jBanner').innerHTML = '';
+  window.scrollTo({top: document.getElementById('jTanggal').getBoundingClientRect().top + window.scrollY - 100, behavior:'smooth'});
 }
 
 document.getElementById('btnSimpanJurnal').addEventListener('click', async () => {
@@ -843,8 +867,15 @@ document.getElementById('btnSimpanJurnal').addEventListener('click', async () =>
     kelasSumberId: document.getElementById('jKelasSumber').value || null
   };
   try{
-    await db.collection('jurnal_guru').doc(tanggal).set(payload, {merge:true});
-    bannerOk(banner, 'Entri jurnal tersimpan.');
+    if(state.editJurnalId){
+      await db.collection('jurnal_guru').doc(state.editJurnalId).update(payload);
+      bannerOk(banner, 'Entri jurnal berhasil diperbarui.');
+    } else {
+      await db.collection('jurnal_guru').add(payload);
+      bannerOk(banner, 'Entri jurnal baru tersimpan. Form dikosongkan untuk entri berikutnya.');
+    }
+    kosongkanFormJurnal();
+    bannerOk(document.getElementById('jBanner'), 'Tersimpan.');
     loadJurnalBulan();
   }catch(err){
     bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
@@ -873,15 +904,21 @@ async function loadJurnalBulan(){
       .orderBy('tanggal','asc').get();
     if(snap.empty){ box.innerHTML = '<div class="empty">Belum ada entri jurnal bulan ini.</div>'; state.lastJurnal = null; return; }
     const rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
+    snap.forEach(doc => rows.push({id:doc.id, ...doc.data()}));
     state.lastJurnal = { bulanNum, tahun, rows };
 
-    let html = '<div class="table-scroll"><table><thead><tr><th>Tgl</th><th>Pukul</th><th>Kelas/Tempat</th><th>Kegiatan Guru</th><th>No.KD/Materi</th><th>Indikator</th><th>Tdk Hadir</th><th>S</th><th>I</th><th>A</th><th>Keterangan</th></tr></thead><tbody>';
+    let html = '<p class="hint" style="margin-bottom:8px;">Klik salah satu baris untuk mengedit entri itu.</p><div class="table-scroll"><table><thead><tr><th>Tgl</th><th>Pukul</th><th>Kelas/Tempat</th><th>Kegiatan Guru</th><th>No.KD/Materi</th><th>Indikator</th><th>Tdk Hadir</th><th>S</th><th>I</th><th>A</th><th>Keterangan</th></tr></thead><tbody>';
     rows.forEach(r => {
-      html += `<tr><td>${escapeHtml(r.tanggal)}</td><td>${escapeHtml(r.pukul||'')}</td><td>${escapeHtml(r.tempat||'')}</td><td>${escapeHtml(r.kegiatan||'')}</td><td>${escapeHtml(r.materi||'')}</td><td>${escapeHtml(r.indikator||'')}</td><td>${escapeHtml(r.siswaTidakHadir||'')}</td><td>${r.s||0}</td><td>${r.i||0}</td><td>${r.a||0}</td><td>${escapeHtml(r.keterangan||'')}</td></tr>`;
+      html += `<tr class="clickable" data-id="${r.id}"><td>${escapeHtml(r.tanggal)}</td><td>${escapeHtml(r.pukul||'')}</td><td>${escapeHtml(r.tempat||'')}</td><td>${escapeHtml(r.kegiatan||'')}</td><td>${escapeHtml(r.materi||'')}</td><td>${escapeHtml(r.indikator||'')}</td><td>${escapeHtml(r.siswaTidakHadir||'')}</td><td>${r.s||0}</td><td>${r.i||0}</td><td>${r.a||0}</td><td>${escapeHtml(r.keterangan||'')}</td></tr>`;
     });
     html += '</tbody></table></div>';
     box.innerHTML = html;
+    box.querySelectorAll('tr.clickable').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const r = rows.find(x => x.id === tr.dataset.id);
+        muatEntriKeForm(r.id, r);
+      });
+    });
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
   }
