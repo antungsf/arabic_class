@@ -72,11 +72,10 @@ header.site-nav{
   max-width:var(--maxw); margin:0 auto; padding:14px 28px;
   display:flex; align-items:center; justify-content:space-between; gap:20px;
 }
-.brand{display:flex; align-items:center; gap:12px; text-decoration:none;}
+.brand{display:flex; align-items:center; gap:12px; text-decoration:none; min-width:0;}
 .brand img{width:42px; height:42px; object-fit:contain;}
-.brand-text{line-height:1.2;}
-.brand-text .b1{font-family:'Petrona',serif; font-weight:700; font-size:1.02rem; color:var(--navy-deep);}
-.brand-text .b2{font-size:0.68rem; letter-spacing:.06em; color:var(--ink-soft); text-transform:uppercase;}
+.brand-text{line-height:1.2; min-width:0;}
+.brand-text .b1{font-family:'Petrona',serif; font-weight:700; font-size:1.02rem; color:var(--navy-deep); display:block; white-space:nowrap;}
 
 nav.menu{display:flex; gap:6px; flex-wrap:wrap;}
 nav.menu a{
@@ -124,7 +123,18 @@ nav.menu a:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
   line-height:1.12;
 }
 .hero p.lede{
-  max-width:56ch; font-size:1.06rem; color:#D9D2BF; margin-bottom:36px;
+  max-width:56ch; font-size:1.02rem; color:#D9D2BF; margin-bottom:0;
+}
+.hero-profile{display:flex; align-items:center; gap:14px; margin:18px 0 16px;}
+.hero-profile img{
+  width:52px; height:52px; border-radius:50%; object-fit:cover; object-position:center 30%;
+  border:2px solid var(--gold-soft); flex:none;
+}
+.hero-profile .hp-name{font-family:'Petrona',serif; font-weight:700; font-size:1.2rem; color:#fff;}
+@media (max-width:640px){
+  .hero{padding:56px 0 46px;}
+  .hero-profile img{width:44px; height:44px;}
+  .hero-profile .hp-name{font-size:1.05rem;}
 }
 .hero-actions{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:56px;}
 .btn{
@@ -373,9 +383,9 @@ details.optional[open] summary::after{content:"–";}
   position:relative; z-index:2; box-shadow:0 10px 26px rgba(14,42,71,0.08);
 }
 .profile-strip .p-avatar{
-  width:54px; height:54px; border-radius:50%; background:var(--navy-deep); color:var(--gold-soft);
-  display:flex; align-items:center; justify-content:center; font-family:'Petrona',serif; font-weight:700; font-size:1.2rem; flex:none;
+  width:54px; height:54px; border-radius:50%; flex:none; overflow:hidden;
 }
+.profile-strip .p-avatar img{width:100%; height:100%; object-fit:cover; object-position:center 30%;}
 .profile-strip .p-name{font-family:'Petrona',serif; font-weight:600; color:var(--navy-deep); font-size:1.02rem;}
 .profile-strip .p-role{font-size:0.82rem; color:var(--ink-soft);}
 @media (max-width:640px){.profile-strip{flex-wrap:wrap; margin-top:-18px;}}
@@ -388,7 +398,6 @@ details.optional[open] summary::after{content:"–";}
     <a href="index.html" class="brand">
       <span class="brand-text">
         <span class="b1">Portal Kinerja Guru</span>
-        <span class="b2">MAN Balikpapan</span>
       </span>
     </a>
     <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mainMenu" aria-label="Buka menu">☰</button>
@@ -403,17 +412,17 @@ details.optional[open] summary::after{content:"–";}
 <section class="hero">
   <div class="wrap">
     <p class="eyebrow">Profil &amp; Kinerja Guru</p>
-    <h1>Ruang Kerja Antung Sobri Fattah, S.Ag</h1>
-    <p class="lede">Portal pendukung tugas pokok dan fungsi guru: perangkat pembelajaran yang tersupervisi, serta peran sebagai Wakil Kepala Madrasah Bidang Hubungan Masyarakat.</p>
-    <p style="color:#D9D2BF; font-size:0.95rem; max-width:60ch;">
-      Assalamu'alaikum Warahmatullahi Wabarakatuh. Portal ini disusun sebagai bentuk laporan kinerja yang tertata, transparan, dan mudah ditelusuri oleh pihak yang berkepentingan.
-    </p>
+    <div class="hero-profile">
+      <img src="foto-antung-sf.jpg" alt="Antung Sobri Fattah, S.Ag">
+      <span class="hp-name">Antung SF</span>
+    </div>
+    <p class="lede">Perangkat pembelajaran tersupervisi &amp; peran sebagai Wakil Kepala Madrasah Bidang Hubungan Masyarakat.</p>
   </div>
 </section>
 
 <div class="wrap">
   <div class="profile-strip">
-    <div class="p-avatar">A</div>
+    <div class="p-avatar"><img src="foto-antung-sf.jpg" alt="Antung Sobri Fattah, S.Ag"></div>
     <div>
       <div class="p-name">Antung Sobri Fattah, S.Ag</div>
       <div class="p-role">Guru Bahasa Arab · Wakil Kepala Madrasah Bidang Humas — MAN Balikpapan</div>
