@@ -1033,13 +1033,13 @@ document.getElementById('btnDownloadJurnal').addEventListener('click', () => {
   // "Balikpapan, [tanggal cetak]" — rata kolom terakhir
   rows.push(['', '', '', '', '', '', '', '', '', '', tanggalIndonesiaHariIni(state.pengaturanSekolah.kota)]);
   rows.push([]);
-  rows.push(['Guru Mata Pelajaran,', '', '', '', '', '', '', '', '', '', 'Mengetahui,']);
-  rows.push(['', '', '', '', '', '', '', '', '', '', 'Kepala Madrasah']);
+  rows.push(['Mengetahui,', '', '', '', '', '', '', '', '', '', 'Guru Mata Pelajaran,']);
+  rows.push(['Kepala Madrasah', '', '', '', '', '', '', '', '', '', '']);
   rows.push([]);
   rows.push([]);
   rows.push([]);
-  rows.push([state.pengaturanGuru.namaGuru || '', '', '', '', '', '', '', '', '', '', state.pengaturanSekolah.namaKamad || '']);
-  rows.push([state.pengaturanGuru.nipGuru || '', '', '', '', '', '', '', '', '', '', state.pengaturanSekolah.nipKamad || '']);
+  rows.push([state.pengaturanSekolah.namaKamad || '', '', '', '', '', '', '', '', '', '', state.pengaturanGuru.namaGuru || '']);
+  rows.push([state.pengaturanSekolah.nipKamad || '', '', '', '', '', '', '', '', '', '', state.pengaturanGuru.nipGuru || '']);
 
   const namaFile = `jurnal-guru-${BULAN_NAMA[j.bulanNum]}-${j.tahun}.xlsx`;
   const ws = XLSX.utils.aoa_to_sheet(rows);
