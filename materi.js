@@ -57,6 +57,21 @@ document.querySelectorAll('#viewSkill .card').forEach(card => {
 });
 document.getElementById('crumbSkill').addEventListener('click', () => showPublicView('viewSkill'));
 
+function ambilYoutubeId(url){
+  if(!url) return null;
+  const patterns = [
+    /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/watch\?v=([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/
+  ];
+  for(const re of patterns){
+    const m = url.match(re);
+    if(m) return m[1];
+  }
+  return null;
+}
+
 async function loadMateriSiswa(){
   const box = document.getElementById('materiList');
   box.innerHTML = '<div class="loading">Memuat materi…</div>';
@@ -71,18 +86,52 @@ async function loadMateriSiswa(){
     box.innerHTML = '';
     snap.forEach(doc => {
       const d = doc.data();
-      const item = document.createElement('a');
-      item.className = 'materi-item';
-      item.href = d.link;
-      item.target = '_blank';
-      item.rel = 'noopener';
-      item.innerHTML = `
-        <div class="materi-icon ${d.tipe}">${TIPE_ICON[d.tipe] || '&#128196;'}</div>
-        <div class="materi-info">
-          <h4>${escapeHtml(d.judul)}</h4>
-          <span class="tipe-label">${TIPE_LABEL[d.tipe] || d.tipe}</span>
-        </div>`;
-      box.appendChild(item);
+      const ytId = d.tipe === 'video' ? ambilYoutubeId(d.link) : null;
+
+      if(ytId){
+        // video YouTube: tampilkan tombol Putar, embed player tertanam (tanpa buka tab/situs YouTube)
+        const wrap = document.createElement('div');
+        wrap.className = 'materi-item';
+        wrap.style.cursor = 'pointer';
+        wrap.style.flexDirection = 'column';
+        wrap.style.alignItems = 'stretch';
+        wrap.innerHTML = `
+          <div class="yt-header" style="display:flex;align-items:center;gap:14px;">
+            <div class="materi-icon video">${TIPE_ICON.video}</div>
+            <div class="materi-info">
+              <h4>${escapeHtml(d.judul)}</h4>
+              <span class="tipe-label">Video &middot; klik untuk putar</span>
+            </div>
+          </div>
+          <div class="yt-embed-wrap hidden" style="margin-top:12px;position:relative;padding-top:56.25%;border-radius:8px;overflow:hidden;"></div>`;
+        const embedWrap = wrap.querySelector('.yt-embed-wrap');
+        const infoRow = wrap.querySelector('.materi-info span');
+        wrap.querySelector('.yt-header').addEventListener('click', () => {
+          if(embedWrap.classList.contains('hidden')){
+            embedWrap.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${ytId}?rel=0" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+            embedWrap.classList.remove('hidden');
+            infoRow.textContent = 'Video · klik untuk tutup';
+          } else {
+            embedWrap.innerHTML = '';
+            embedWrap.classList.add('hidden');
+            infoRow.textContent = 'Video · klik untuk putar';
+          }
+        });
+        box.appendChild(wrap);
+      } else {
+        const item = document.createElement('a');
+        item.className = 'materi-item';
+        item.href = d.link;
+        item.target = '_blank';
+        item.rel = 'noopener';
+        item.innerHTML = `
+          <div class="materi-icon ${d.tipe}">${TIPE_ICON[d.tipe] || '&#128196;'}</div>
+          <div class="materi-info">
+            <h4>${escapeHtml(d.judul)}</h4>
+            <span class="tipe-label">${TIPE_LABEL[d.tipe] || d.tipe}</span>
+          </div>`;
+        box.appendChild(item);
+      }
     });
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat materi. ${escapeHtml(err.message)}</div>`;
