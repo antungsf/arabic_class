@@ -992,6 +992,18 @@ async function loadJurnalBulan(){
     if(snap.empty){ box.innerHTML = '<div class="empty">Belum ada entri jurnal bulan ini.</div>'; state.lastJurnal = null; return; }
     const rows = [];
     snap.forEach(doc => rows.push({id:doc.id, ...doc.data()}));
+
+    // urutkan berdasarkan tanggal, lalu jam mulai (dari kolom "Pukul", format "HH:MM - HH:MM")
+    function menitMulai(pukul){
+      const m = String(pukul||'').match(/(\d{1,2})[.:](\d{2})/);
+      if(!m) return 99999; // tanpa jam valid ditaruh di akhir
+      return Number(m[1]) * 60 + Number(m[2]);
+    }
+    rows.sort((a, b) => {
+      if(a.tanggal !== b.tanggal) return a.tanggal < b.tanggal ? -1 : 1;
+      return menitMulai(a.pukul) - menitMulai(b.pukul);
+    });
+
     state.lastJurnal = { bulanNum, tahun, rows };
 
     let html = '<p class="hint" style="margin-bottom:8px;">Klik salah satu baris untuk mengedit entri itu.</p><div class="table-scroll"><table><thead><tr><th>Tgl</th><th>Pukul</th><th>Kelas/Tempat</th><th>Kegiatan Guru</th><th>No.KD/Materi</th><th>Indikator</th><th>Tdk Hadir</th><th>S</th><th>I</th><th>A</th><th>Keterangan</th></tr></thead><tbody>';
