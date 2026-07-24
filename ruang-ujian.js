@@ -121,7 +121,7 @@ async function loadSoalSiswa(topikId){
       block.className = 'soal-block';
       let inner = `<div class="soal-no">Soal ${no}</div><p class="soal-text">${escapeHtml(d.pertanyaan)}</p>`;
       if(d.tipe === 'pilihan_ganda'){
-        ['A','B','C','D'].forEach(k => {
+        ['A','B','C','D','E'].forEach(k => {
           if(d.pilihan && d.pilihan[k]){
             inner += `
               <label class="opsi" data-key="${k}" data-soal="${doc.id}">
@@ -405,6 +405,81 @@ document.getElementById('btnTambahSoal').addEventListener('click', () => {
   openSoalModal(null, {}, topikId);
 });
 
+document.getElementById('btnTambahCepatSoal').addEventListener('click', () => {
+  const topikId = document.getElementById('selectTopikSoal').value;
+  if(!topikId){ alert('Pilih materi dahulu di dropdown atas.'); return; }
+  openBulkSoalModal(topikId);
+});
+
+function openBulkSoalModal(topikId){
+  renderModal(`
+    <h3>Tambah Cepat — Banyak Soal Sekaligus</h3>
+    <p class="hint" style="margin-bottom:10px;">
+      Siapkan tabel di Excel dengan kolom urut: <b>Pertanyaan | A | B | C | D | E | Kunci</b> (Kolom E &amp; Kunci boleh dikosongkan).
+      Lalu <b>select semua baris</b> di Excel (tanpa header), <b>copy</b>, dan <b>paste</b> ke kotak di bawah ini — satu soal otomatis jadi satu baris.
+    </p>
+    <div class="field">
+      <textarea id="bulkSoalText" style="min-height:180px;font-family:monospace;font-size:12.5px;" placeholder="Apa arti كتاب?	Pena	Buku	Meja	Kursi	Pintu	B
+Apa arti باب?	Pintu	Buku	Meja	Kursi	Pena	A"></textarea>
+    </div>
+    <p class="hint">Untuk soal Esai (tanpa pilihan), cukup isi kolom Pertanyaan saja per baris, sisanya kosongkan.</p>
+    <div id="bulkSoalBanner"></div>
+    <div class="row">
+      <button class="btn btn-solid" id="bulkSoalSimpan">Tambahkan Semua</button>
+      <button class="btn btn-outline" id="mCancel">Batal</button>
+    </div>
+  `);
+  document.getElementById('mCancel').addEventListener('click', closeModal);
+  document.getElementById('bulkSoalSimpan').addEventListener('click', () => simpanBulkSoal(topikId));
+}
+
+async function simpanBulkSoal(topikId){
+  const banner = document.getElementById('bulkSoalBanner');
+  const raw = document.getElementById('bulkSoalText').value;
+  const baris = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if(!baris.length){ bannerErr(banner, 'Belum ada data yang ditempel.'); return; }
+
+  try{
+    const existingSnap = await db.collection('soal').where('topikId','==',topikId).get();
+    let urutan = existingSnap.size + 1;
+    const batch = db.batch();
+    let jumlah = 0;
+
+    baris.forEach(line => {
+      const kolom = line.split('\t');
+      const pertanyaan = (kolom[0] || '').trim();
+      if(!pertanyaan) return;
+      const A = (kolom[1] || '').trim();
+      const B = (kolom[2] || '').trim();
+      const C = (kolom[3] || '').trim();
+      const D = (kolom[4] || '').trim();
+      const E = (kolom[5] || '').trim();
+      const kunci = (kolom[6] || '').trim().toUpperCase();
+      const adaOpsi = A || B || C || D || E;
+
+      const ref = db.collection('soal').doc();
+      if(adaOpsi){
+        batch.set(ref, {
+          topikId, tipe:'pilihan_ganda', pertanyaan,
+          pilihan:{A,B,C,D,E},
+          jawabanBenar: ['A','B','C','D','E'].includes(kunci) ? kunci : null,
+          urutan: urutan++
+        });
+      } else {
+        batch.set(ref, { topikId, tipe:'esai', pertanyaan, pilihan:null, jawabanBenar:null, urutan: urutan++ });
+      }
+      jumlah++;
+    });
+
+    if(!jumlah){ bannerErr(banner, 'Tidak ada baris valid untuk ditambahkan.'); return; }
+    await batch.commit();
+    closeModal();
+    loadSoalAdmin(topikId);
+  }catch(err){
+    bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
+  }
+}
+
 function openSoalModal(id, d, topikId){
   state.editSoalId = id;
   const tipe = d.tipe || 'pilihan_ganda';
@@ -424,6 +499,7 @@ function openSoalModal(id, d, topikId){
       <div class="field"><label>Pilihan B</label><input type="text" id="mOpsiB" value="${escapeHtml(p.B||'')}"></div>
       <div class="field"><label>Pilihan C</label><input type="text" id="mOpsiC" value="${escapeHtml(p.C||'')}"></div>
       <div class="field"><label>Pilihan D</label><input type="text" id="mOpsiD" value="${escapeHtml(p.D||'')}"></div>
+      <div class="field"><label>Pilihan E <span class="hint">(opsional)</span></label><input type="text" id="mOpsiE" value="${escapeHtml(p.E||'')}"></div>
       <div class="field"><label>Jawaban Benar (referensi guru saja, tidak auto-koreksi)</label>
         <select id="mJawabanBenar">
           <option value="">—</option>
@@ -431,6 +507,7 @@ function openSoalModal(id, d, topikId){
           <option value="B" ${d.jawabanBenar==='B'?'selected':''}>B</option>
           <option value="C" ${d.jawabanBenar==='C'?'selected':''}>C</option>
           <option value="D" ${d.jawabanBenar==='D'?'selected':''}>D</option>
+          <option value="E" ${d.jawabanBenar==='E'?'selected':''}>E</option>
         </select>
       </div>
     </div>
@@ -465,7 +542,8 @@ async function simpanSoal(topikId){
       A: document.getElementById('mOpsiA').value.trim(),
       B: document.getElementById('mOpsiB').value.trim(),
       C: document.getElementById('mOpsiC').value.trim(),
-      D: document.getElementById('mOpsiD').value.trim()
+      D: document.getElementById('mOpsiD').value.trim(),
+      E: document.getElementById('mOpsiE').value.trim()
     };
     payload.jawabanBenar = document.getElementById('mJawabanBenar').value || null;
   } else {
