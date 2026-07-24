@@ -17,6 +17,12 @@ function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}
 function bannerErr(el, msg){ el.innerHTML = `<div class="banner banner-error">${msg}</div>`; }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function nowHM(){ const d = new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function pastikanUrlLengkap(url){
+  const u = String(url||'').trim();
+  if(!u) return u;
+  if(/^https?:\/\//i.test(u)) return u;
+  return 'https://' + u;
+}
 
 function showPublicView(id){
   document.querySelectorAll('#publicApp > div').forEach(el => el.classList.add('hidden'));
@@ -71,7 +77,7 @@ async function cekStatusKelas(kelasId, d){
           <span class="live-badge"><span class="live-dot"></span> Sedang Berlangsung</span>
           <h3>${escapeHtml(aktif.topik || 'Kelas Live')}</h3>
           <p>${escapeHtml(aktif.jamMulai)} &ndash; ${escapeHtml(aktif.jamSelesai)}</p>
-          <a class="btn btn-gold" href="${aktif.link}" target="_blank" rel="noopener">Gabung Kelas Live &rarr;</a>
+          <a class="btn btn-gold" href="${pastikanUrlLengkap(aktif.link)}" target="_blank" rel="noopener">Gabung Kelas Live &rarr;</a>
         </div>`;
     } else {
       html += '<div class="empty">Belum ada kelas live yang sedang berlangsung untuk kelas ini saat ini.</div>';
@@ -183,7 +189,7 @@ document.getElementById('btnSimpanJadwal').addEventListener('click', async () =>
   const jamMulai = document.getElementById('fJamMulai').value;
   const jamSelesai = document.getElementById('fJamSelesai').value;
   const topik = document.getElementById('fTopik').value.trim();
-  const link = document.getElementById('fLink').value.trim();
+  const link = pastikanUrlLengkap(document.getElementById('fLink').value.trim());
 
   if(!kelasId){ bannerErr(banner, 'Pilih kelas dahulu.'); return; }
   if(!tanggal || !jamMulai || !jamSelesai){ bannerErr(banner, 'Tanggal, jam mulai, dan jam selesai wajib diisi.'); return; }
