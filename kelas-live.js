@@ -241,17 +241,31 @@ async function loadJadwalAdmin(){
       const isActiveNow = isToday && nowHM() >= r.jamMulai && nowHM() <= r.jamSelesai;
       const item = document.createElement('div');
       item.className = 'list-item';
-      item.style.cursor = 'pointer';
       item.innerHTML = `
         <div class="list-item-head">
-          <div>
+          <div style="cursor:pointer;" class="klik-edit">
             <h4 style="margin:0 0 4px;font-size:14px;font-family:'Poppins',sans-serif;color:var(--green-deep);">
               ${escapeHtml(r.kelasNama)} ${isActiveNow ? '<span class="badge badge-live">Live Sekarang</span>' : ''}
             </h4>
             <div class="hint">${escapeHtml(r.tanggal)} &middot; ${escapeHtml(r.jamMulai)}-${escapeHtml(r.jamSelesai)} &middot; ${escapeHtml(r.topik||'(tanpa topik)')}</div>
           </div>
+          <div>
+            <button class="icon-btn" data-act="edit">Edit</button>
+            <button class="icon-btn danger" data-act="hapus">Hapus</button>
+          </div>
         </div>`;
-      item.addEventListener('click', () => muatKeForm(r.id, r));
+      item.querySelector('.klik-edit').addEventListener('click', () => muatKeForm(r.id, r));
+      item.querySelector('[data-act="edit"]').addEventListener('click', () => muatKeForm(r.id, r));
+      item.querySelector('[data-act="hapus"]').addEventListener('click', async () => {
+        if(!confirm(`Hapus jadwal ${r.kelasNama} (${r.tanggal} ${r.jamMulai}-${r.jamSelesai})?`)) return;
+        try{
+          await db.collection('kelas_live').doc(r.id).delete();
+          if(state.editId === r.id) kosongkanForm();
+          loadJadwalAdmin();
+        }catch(err){
+          alert('Gagal menghapus: ' + err.message);
+        }
+      });
       box.appendChild(item);
     });
   }catch(err){
