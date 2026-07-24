@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kelas Live — Bahasa Arab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-deep:#0f3627; --green:#175c41; --gold:#eab628; --gold-deep:#c9960a;
+    --ink:#1c2624; --muted:#5c6b66; --line:rgba(15,54,39,.12); --bg-alt:#f2f7f4;
+    --red:#b3311f; --red-bg:#fbeae7;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:#ffffff;color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;}
+  a{color:inherit;text-decoration:none;}
+  .hidden{display:none !important;}
+
+  header{position:sticky;top:0;z-index:60;background:var(--green-deep);}
+  .nav-wrap{max-width:900px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .brand-text{font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;color:#fff;}
+  .brand-text span{color:var(--gold);}
+  .back-home{font-size:12.5px;font-weight:600;color:#dce9e2;opacity:.9;}
+  .back-home:hover{color:var(--gold);opacity:1;}
+  .admin-link{font-size:11.5px;font-weight:600;color:#9db8ab;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;}
+  .admin-link:hover{color:#fff;border-color:var(--gold);}
+
+  main{max-width:800px;margin:0 auto;padding:48px 24px 80px;}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);font-weight:700;margin-bottom:8px;display:block;}
+  h1{font-family:'Poppins',sans-serif;font-weight:800;font-size:26px;margin:0 0 8px;color:var(--green-deep);}
+  .lead{color:var(--muted);font-size:14.5px;margin:0 0 28px;max-width:600px;}
+  .crumb{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--green);margin-bottom:20px;cursor:pointer;}
+  .crumb:hover{color:var(--green-deep);text-decoration:underline;}
+
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 18px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left;}
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,54,39,.1);border-color:var(--green);}
+  .card .k{font-family:'Poppins',sans-serif;font-weight:800;font-size:17px;color:var(--green-deep);margin:0 0 4px;}
+  .card .d{font-size:12px;color:var(--muted);margin:0;}
+
+  .btn{font-weight:700;font-size:13.5px;padding:12px 24px;border-radius:4px;display:inline-block;border:none;cursor:pointer;transition:transform .15s,background .15s;font-family:'Inter',sans-serif;}
+  .btn-solid{background:var(--green);color:#fff;} .btn-solid:hover{background:var(--green-deep);transform:translateY(-1px);}
+  .btn-gold{background:var(--gold);color:var(--green-deep);} .btn-gold:hover{background:var(--gold-deep);}
+  .btn-outline{border:1.5px solid var(--green);color:var(--green);background:#fff;} .btn-outline:hover{background:var(--green);color:#fff;}
+  .btn-sm{padding:8px 16px;font-size:12.5px;}
+  .btn-danger{background:var(--red);color:#fff;} .btn-danger:hover{background:#8f2718;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+
+  .empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px;background:var(--bg-alt);border-radius:10px;border:1px dashed var(--line);}
+  .loading{padding:60px 20px;text-align:center;color:var(--muted);font-size:13.5px;}
+
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--green-deep);margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:#fff;}
+  .field input:focus, .field select:focus{outline:none;border-color:var(--green);}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .row-between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+
+  .banner{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:18px;}
+  .banner-error{background:var(--red-bg);color:var(--red);border:1px solid rgba(179,49,31,.25);}
+  .banner-ok{background:#eaf5ee;color:var(--green-deep);border:1px solid rgba(23,92,65,.2);}
+
+  .live-card{background:linear-gradient(135deg,var(--green-deep),var(--green));color:#fff;border-radius:12px;padding:26px 24px;text-align:center;}
+  .live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:14px;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:#ff5b5b;animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .live-card h3{font-family:'Poppins',sans-serif;font-size:19px;margin:0 0 6px;}
+  .live-card p{color:#dce9e2;font-size:13px;margin:0 0 18px;}
+
+  .list-item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:8px;}
+  .list-item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .icon-btn{background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--green);padding:4px 8px;}
+  .icon-btn.danger{color:var(--red);}
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;}
+  .badge-live{background:#fdeceb;color:var(--red);}
+  .badge-upcoming{background:#fdf3da;color:var(--gold-deep);}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(15,54,39,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100;}
+  .modal-box{background:#fff;border-radius:10px;padding:28px;max-width:480px;width:100%;max-height:88vh;overflow:auto;}
+  .modal-box h3{margin:0 0 18px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
+
+  footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;font-size:12px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav-wrap">
+    <span class="brand-text">Kelas <span>Live</span> — Bahasa Arab</span>
+    <div class="row">
+      <a class="back-home" href="index.html">&larr; Beranda</a>
+      <a class="admin-link" href="#" id="btnShowAdmin">Admin</a>
+    </div>
+  </div>
+</header>
+
+<!-- =============== PUBLIC / STUDENT =============== -->
+<main id="publicApp">
+  <div id="viewKelas">
+    <span class="eyebrow">Kelas Live</span>
+    <h1>Pilih kelas kamu</h1>
+    <p class="lead">Pilih kelas untuk cek apakah sedang ada sesi kelas live berlangsung.</p>
+    <div id="kelasPublikList"><div class="loading">Memuat daftar kelas…</div></div>
+  </div>
+
+  <div id="viewStatus" class="hidden">
+    <span class="crumb" id="crumbKelas">&larr; Ganti kelas</span>
+    <span class="eyebrow" id="statusEyebrow">Kelas</span>
+    <h1 id="statusTitle">Status Kelas Live</h1>
+    <div id="statusBox"><div class="loading">Mengecek jadwal…</div></div>
+  </div>
+</main>
+
+<!-- =============== ADMIN =============== -->
+<main id="adminApp" class="hidden">
+
+  <div id="viewLogin">
+    <span class="crumb" id="crumbAdminBack">&larr; Kembali ke tampilan siswa</span>
+    <span class="eyebrow">Panel Admin</span>
+    <h1>Masuk sebagai Guru/Admin</h1>
+    <p class="lead">Login untuk menjadwalkan sesi kelas live.</p>
+    <div id="loginBanner"></div>
+    <div class="field" style="max-width:360px;"><label>Email</label><input type="email" id="adminEmail" placeholder="guru@sekolah.sch.id"></div>
+    <div class="field" style="max-width:360px;"><label>Kata Sandi</label><input type="password" id="adminPassword" placeholder="••••••••"></div>
+    <button class="btn btn-solid" id="btnLogin">Masuk</button>
+    <p class="hint" style="margin-top:16px;">Gunakan akun admin yang sama seperti di Ruang Ujian, Absensi &amp; Materi Belajar.</p>
+  </div>
+
+  <div id="viewDashboard" class="hidden">
+    <div class="row-between">
+      <div>
+        <span class="crumb" id="crumbAdminBack2">&larr; Kembali ke tampilan siswa</span>
+        <span class="eyebrow">Panel Admin</span>
+        <h1 style="margin-bottom:0;">Jadwalkan Kelas Live</h1>
+      </div>
+      <div class="row">
+        <span id="adminWhoami" class="hint" style="margin:0;"></span>
+        <button class="btn btn-outline btn-sm" id="btnLogout">Keluar</button>
+      </div>
+    </div>
+
+    <div class="list-item" style="margin-bottom:20px;">
+      <h4 id="formTitle" style="margin-bottom:12px;">Tambah Jadwal Baru</h4>
+      <div class="row">
+        <div class="field" style="max-width:200px;"><label>Kelas</label><select id="fKelas"></select></div>
+        <div class="field" style="max-width:160px;"><label>Tanggal</label><input type="date" id="fTanggal"></div>
+      </div>
+      <div class="row">
+        <div class="field" style="max-width:140px;"><label>Jam Mulai</label><input type="time" id="fJamMulai"></div>
+        <div class="field" style="max-width:140px;"><label>Jam Selesai</label><input type="time" id="fJamSelesai"></div>
+      </div>
+      <div class="field"><label>Topik / Judul Sesi</label><input type="text" id="fTopik" placeholder="Contoh: Latihan Kalam - Percakapan Sehari-hari"></div>
+      <div class="field"><label>Link Google Meet</label><input type="text" id="fLink" placeholder="https://meet.google.com/xxx-xxxx-xxx"></div>
+      <div id="formBanner"></div>
+      <div class="row">
+        <button class="btn btn-solid" id="btnSimpanJadwal">Simpan Jadwal</button>
+        <button class="btn btn-outline btn-sm" id="btnBatalEdit" style="display:none;">Batal Edit / Baru</button>
+        <button class="btn btn-danger btn-sm" id="btnHapusJadwal" style="display:none;">Hapus Jadwal Ini</button>
+      </div>
+    </div>
+
+    <div class="row-between">
+      <p class="lead" style="margin:0;">Daftar jadwal kelas live (klik untuk edit).</p>
+    </div>
+    <div id="adminJadwalList"><div class="loading">Memuat…</div></div>
+  </div>
+</main>
+
+<div id="modalRoot"></div>
+
+<footer>Kelas Live · MAN Balikpapan · Bahasa Arab &middot; <a href="index.html" style="text-decoration:underline;">Kembali ke Beranda</a></footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDDi8odiYL0h2xCsghfNr1EdGd8wXVfidY",
+  authDomain: "arabic-class-manbpn.firebaseapp.com",
+  projectId: "arabic-class-manbpn",
+  storageBucket: "arabic-class-manbpn.firebasestorage.app",
+  messagingSenderId: "82009627923",
+  appId: "1:82009627923:web:143877e1c45fcd861c4ee6"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+</script>
+<script src="kelas-live.js"></script>
+</body>
+</html>
