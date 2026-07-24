@@ -519,6 +519,7 @@
     <div class="footer-bottom">
       <span>&copy; 2026 Arabic Class</span>
       <span>&copy; antungsf</span>
+      <span id="visitorCounter" style="opacity:.85;"></span>
     </div>
   </div>
 </footer>
@@ -677,9 +678,10 @@
   });
 </script>
 
-<!-- Deteksi status admin (shared login dengan ruang-ujian.html / absensi.html) untuk buka link Jurnal -->
+<!-- Deteksi status admin (shared login dengan ruang-ujian.html / absensi.html) untuk buka link Jurnal, dan penghitung pengunjung -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
 (function(){
   const firebaseConfig = {
@@ -699,6 +701,30 @@
         wrap.innerHTML = '<a class="btn btn-outline" href="https://drive.google.com/drive/folders/1iWzl6HhldFXlE2hzh167oYBzGrMPydd8" target="_blank">Lihat Jurnal Pembelajaran (Folder Drive)</a>';
       }
     });
+
+    // Penghitung pengunjung: hitung 1x per sesi browser, tampilkan totalnya di footer
+    const db = firebase.firestore();
+    const counterEl = document.getElementById('visitorCounter');
+    const statRef = db.collection('statistik').doc('pengunjung');
+    const sudahDihitung = sessionStorage.getItem('sudahDihitungKunjungan');
+
+    function tampilkanTotal(n){
+      if(counterEl) counterEl.textContent = `\u{1F441} ${Number(n).toLocaleString('id-ID')} pengunjung`;
+    }
+
+    if(!sudahDihitung){
+      statRef.set({ total: firebase.firestore.FieldValue.increment(1) }, { merge:true })
+        .then(function(){
+          sessionStorage.setItem('sudahDihitungKunjungan', '1');
+          return statRef.get();
+        })
+        .then(function(doc){ if(doc.exists) tampilkanTotal(doc.data().total || 0); })
+        .catch(function(){ if(counterEl) counterEl.textContent = ''; });
+    } else {
+      statRef.get()
+        .then(function(doc){ if(doc.exists) tampilkanTotal(doc.data().total || 0); })
+        .catch(function(){ if(counterEl) counterEl.textContent = ''; });
+    }
   }catch(e){ /* biarkan tampilan default (terkunci) kalau Firebase gagal dimuat */ }
 })();
 </script>
