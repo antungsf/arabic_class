@@ -23,7 +23,12 @@ const state = {
   // integritas ujian
   hasilUjianId: null,
   jumlahPelanggaran: 0,
-  ujianSelesai: false
+  ujianSelesai: false,
+  // verifikasi identitas siswa
+  siswaTerpilihId: null,
+  kelasAbsensiId: null,
+  kelasAbsensiNama: null,
+  daftarSiswaUjian: []
 };
 const BATAS_PELANGGARAN = 3;
 
@@ -89,14 +94,89 @@ function bukaTopik(id, d){
   state.topik = {id, nama:d.nama, kelas:d.kelas};
   document.getElementById('namaEyebrow').textContent = 'Kelas ' + d.kelas + ' · ' + d.nama;
   document.getElementById('namaTitle').textContent = 'Mulai: ' + d.nama;
-  document.getElementById('inputNamaSiswa').value = '';
+  resetLangkahNama();
   showView('viewNama');
+  muatKelasAbsensiUntukUjian(d.kelas);
 }
 
+function resetLangkahNama(){
+  state.namaSiswa = '';
+  state.siswaTerpilihId = null;
+  state.kelasAbsensiId = null;
+  state.kelasAbsensiNama = null;
+  state.daftarSiswaUjian = [];
+  document.getElementById('inputNamaSiswa').value = '';
+  document.getElementById('inputNamaSiswa').disabled = true;
+  document.getElementById('hasilCariNamaUjian').innerHTML = '';
+  document.getElementById('namaTerpilihInfo').textContent = '';
+  document.getElementById('btnMulaiUjian').disabled = true;
+}
+
+async function muatKelasAbsensiUntukUjian(jenjang){
+  const sel = document.getElementById('selectKelasAbsensiUjian');
+  sel.innerHTML = '<option value="">Memuat kelas…</option>';
+  try{
+    const snap = await db.collection('kelas_absensi')
+      .where('jenjang','==',jenjang).where('aktif','==',true)
+      .orderBy('urutan','asc').get();
+    if(snap.empty){ sel.innerHTML = '<option value="">Belum ada data kelas terdaftar</option>'; return; }
+    let opts = '<option value="">— pilih kelas —</option>';
+    snap.forEach(doc => { opts += `<option value="${doc.id}">${escapeHtml(doc.data().nama)}</option>`; });
+    sel.innerHTML = opts;
+  }catch(err){
+    sel.innerHTML = '<option value="">Gagal memuat kelas</option>';
+  }
+}
+
+document.getElementById('selectKelasAbsensiUjian').addEventListener('change', async (e) => {
+  const kelasAbsensiId = e.target.value;
+  const inputNama = document.getElementById('inputNamaSiswa');
+  const hasilCari = document.getElementById('hasilCariNamaUjian');
+  document.getElementById('namaTerpilihInfo').textContent = '';
+  document.getElementById('btnMulaiUjian').disabled = true;
+  state.siswaTerpilihId = null;
+  inputNama.value = '';
+  hasilCari.innerHTML = '';
+
+  if(!kelasAbsensiId){ inputNama.disabled = true; return; }
+  state.kelasAbsensiId = kelasAbsensiId;
+  state.kelasAbsensiNama = e.target.selectedOptions[0].textContent;
+  inputNama.disabled = false;
+  inputNama.placeholder = 'Ketik minimal 2 huruf…';
+
+  try{
+    const snap = await db.collection('siswa').where('kelasId','==',kelasAbsensiId).orderBy('urutan').get();
+    state.daftarSiswaUjian = [];
+    snap.forEach(doc => state.daftarSiswaUjian.push({id:doc.id, nama:doc.data().nama}));
+  }catch(err){
+    state.daftarSiswaUjian = [];
+  }
+});
+
+document.getElementById('inputNamaSiswa').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const hasilCari = document.getElementById('hasilCariNamaUjian');
+  document.getElementById('namaTerpilihInfo').textContent = '';
+  document.getElementById('btnMulaiUjian').disabled = true;
+  state.siswaTerpilihId = null;
+  if(q.length < 2){ hasilCari.innerHTML = ''; return; }
+  const cocok = state.daftarSiswaUjian.filter(s => s.nama.toLowerCase().includes(q)).slice(0,6);
+  if(!cocok.length){ hasilCari.innerHTML = '<div class="empty">Nama tidak ditemukan di kelas ini.</div>'; return; }
+  hasilCari.innerHTML = cocok.map(s => `<div class="list-item" data-id="${s.id}" data-nama="${escapeHtml(s.nama)}" style="cursor:pointer;padding:10px 14px;">${escapeHtml(s.nama)}</div>`).join('');
+  hasilCari.querySelectorAll('[data-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      state.siswaTerpilihId = el.dataset.id;
+      state.namaSiswa = el.dataset.nama;
+      document.getElementById('inputNamaSiswa').value = el.dataset.nama;
+      hasilCari.innerHTML = '';
+      document.getElementById('namaTerpilihInfo').textContent = `✓ Terpilih: ${el.dataset.nama} (${state.kelasAbsensiNama})`;
+      document.getElementById('btnMulaiUjian').disabled = false;
+    });
+  });
+});
+
 document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
-  const nama = document.getElementById('inputNamaSiswa').value.trim();
-  if(!nama){ alert('Isi nama lengkap dulu ya.'); return; }
-  state.namaSiswa = nama;
+  if(!state.siswaTerpilihId || !state.namaSiswa){ alert('Pilih namamu dari daftar pencarian dulu ya.'); return; }
   document.getElementById('ujianEyebrow').textContent = 'Kelas ' + state.topik.kelas + ' · ' + state.topik.nama;
   document.getElementById('ujianTitle').textContent = state.topik.nama;
   showView('viewUjian');
@@ -110,6 +190,9 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
       topikNama: state.topik.nama,
       kelas: state.topik.kelas,
       namaSiswa: state.namaSiswa,
+      siswaId: state.siswaTerpilihId,
+      kelasAbsensiId: state.kelasAbsensiId,
+      kelasAbsensiNama: state.kelasAbsensiNama,
       jawaban: [],
       waktuMulai: firebase.firestore.FieldValue.serverTimestamp(),
       waktuSubmit: null,
@@ -906,7 +989,7 @@ async function loadHasilAdmin(){
       const pelanggaran = r.pelanggaran || 0;
       html += `<tr class="clickable" data-id="${r.id}">
         <td>${escapeHtml(r.namaSiswa)}</td>
-        <td>${escapeHtml(r.kelas)}</td>
+        <td>${escapeHtml(r.kelas)}${r.kelasAbsensiNama ? ' · '+escapeHtml(r.kelasAbsensiNama) : ''}</td>
         <td>${escapeHtml(r.topikNama)}</td>
         <td>${waktu}</td>
         <td><span class="badge ${statusInfo.cls}">${statusInfo.label}</span></td>
