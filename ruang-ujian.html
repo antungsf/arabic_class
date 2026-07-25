@@ -105,6 +105,7 @@
   .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;}
   .badge-wait{background:#fdf3da;color:var(--gold-deep);}
   .badge-done{background:#eaf5ee;color:var(--green-deep);}
+  .badge-danger{background:var(--red-bg);color:var(--red);}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .row-between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
@@ -176,10 +177,20 @@
   <div id="viewUjian" class="hidden">
     <span class="eyebrow" id="ujianEyebrow">Materi</span>
     <h1 id="ujianTitle">Soal</h1>
-    <p class="lead">Jawab semua soal di bawah ini, lalu klik kumpulkan.</p>
+    <p class="lead">Jawab semua soal di bawah ini, lalu klik kumpulkan. <b>Jangan tinggalkan halaman ini</b> — sistem mendeteksi kalau kamu pindah tab/app selama ujian berlangsung.</p>
+    <div id="pelanggaranBanner"></div>
     <div id="banner"></div>
     <div id="soalList"><div class="loading">Memuat soal…</div></div>
     <button class="btn btn-gold" id="btnKumpulkan">Kumpulkan Jawaban</button>
+  </div>
+
+  <!-- View: didiskualifikasi -->
+  <div id="viewDiskualifikasi" class="hidden">
+    <div class="empty" style="background:var(--red-bg);border-color:rgba(179,49,31,.3);">
+      <h1 style="margin-bottom:8px;color:var(--red);">Ujian Dihentikan</h1>
+      <p style="margin:0 0 20px;color:var(--red);">Kamu terdeteksi meninggalkan halaman ujian berkali-kali (lebih dari batas yang diizinkan). Jawaban yang sudah sempat diisi telah otomatis dikumpulkan dan ditandai untuk ditinjau guru.</p>
+      <a class="btn btn-solid" href="ruang-ujian.html">Kembali ke Ruang Ujian</a>
+    </div>
   </div>
 
   <!-- View: selesai -->
@@ -285,8 +296,10 @@
         <label>Filter Status</label>
         <select id="filterStatusHasil">
           <option value="semua">Semua</option>
+          <option value="berlangsung">Sedang Berlangsung</option>
           <option value="belum_dinilai">Belum Dinilai</option>
           <option value="sudah_dinilai">Sudah Dinilai</option>
+          <option value="didiskualifikasi">Didiskualifikasi</option>
         </select>
       </div>
       <div id="hasilAdminList"><div class="loading">Memuat…</div></div>

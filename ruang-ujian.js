@@ -19,8 +19,13 @@ const state = {
   editTopikId: null,
   editSoalId: null,
   hasilOpenId: null,
-  adminTopikCache: []
+  adminTopikCache: [],
+  // integritas ujian
+  hasilUjianId: null,
+  jumlahPelanggaran: 0,
+  ujianSelesai: false
 };
+const BATAS_PELANGGARAN = 3;
 
 function showView(id){
   document.querySelectorAll('#studentApp > div').forEach(el => el.classList.add('hidden'));
@@ -95,8 +100,42 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
   document.getElementById('ujianEyebrow').textContent = 'Kelas ' + state.topik.kelas + ' · ' + state.topik.nama;
   document.getElementById('ujianTitle').textContent = state.topik.nama;
   showView('viewUjian');
+
+  // buat entri hasil_ujian di awal (status: berlangsung), supaya pelanggaran bisa dicatat realtime
+  state.jumlahPelanggaran = 0;
+  state.ujianSelesai = false;
+  try{
+    const docRef = await db.collection('hasil_ujian').add({
+      topikId: state.topik.id,
+      topikNama: state.topik.nama,
+      kelas: state.topik.kelas,
+      namaSiswa: state.namaSiswa,
+      jawaban: [],
+      waktuMulai: firebase.firestore.FieldValue.serverTimestamp(),
+      waktuSubmit: null,
+      status: 'berlangsung',
+      pelanggaran: 0,
+      nilai: null,
+      catatanGuru: null
+    });
+    state.hasilUjianId = docRef.id;
+  }catch(err){
+    state.hasilUjianId = null;
+  }
+
+  mintaFullscreen();
+  aktifkanPengawasanUjian();
   await loadSoalSiswa(state.topik.id);
 });
+
+function acakArray(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 async function loadSoalSiswa(topikId){
   const box = document.getElementById('soalList');
@@ -104,9 +143,13 @@ async function loadSoalSiswa(topikId){
   document.getElementById('banner').innerHTML = '';
   try{
     const snap = await db.collection('soal').where('topikId','==',topikId).orderBy('urutan','asc').get();
-    state.soalList = [];
+    let daftarSoal = [];
+    snap.forEach(doc => daftarSoal.push({id:doc.id, ...doc.data()}));
+    daftarSoal = acakArray(daftarSoal); // urutan soal diacak per siswa
+
+    state.soalList = daftarSoal;
     state.jawaban = {};
-    if(snap.empty){
+    if(!daftarSoal.length){
       box.innerHTML = '<div class="empty">Belum ada soal untuk materi ini.</div>';
       document.getElementById('btnKumpulkan').disabled = true;
       return;
@@ -114,24 +157,22 @@ async function loadSoalSiswa(topikId){
     document.getElementById('btnKumpulkan').disabled = false;
     box.innerHTML = '';
     let no = 1;
-    snap.forEach(doc => {
-      const d = doc.data();
-      state.soalList.push({id:doc.id, ...d});
+    daftarSoal.forEach(d => {
       const block = document.createElement('div');
       block.className = 'soal-block';
       let inner = `<div class="soal-no">Soal ${no}</div><p class="soal-text">${escapeHtml(d.pertanyaan)}</p>`;
       if(d.tipe === 'pilihan_ganda'){
-        ['A','B','C','D','E'].forEach(k => {
-          if(d.pilihan && d.pilihan[k]){
-            inner += `
-              <label class="opsi" data-key="${k}" data-soal="${doc.id}">
-                <input type="radio" name="soal_${doc.id}" value="${k}">
-                <span><b>${k}.</b> ${escapeHtml(d.pilihan[k])}</span>
-              </label>`;
-          }
+        const kunciTersedia = ['A','B','C','D','E'].filter(k => d.pilihan && d.pilihan[k]);
+        const kunciAcak = acakArray(kunciTersedia); // urutan pilihan A-E diacak per siswa, jawaban tetap merujuk kunci asli
+        kunciAcak.forEach(k => {
+          inner += `
+            <label class="opsi" data-key="${k}" data-soal="${d.id}">
+              <input type="radio" name="soal_${d.id}" value="${k}">
+              <span>${escapeHtml(d.pilihan[k])}</span>
+            </label>`;
         });
       } else {
-        inner += `<textarea class="soal-esai" data-soal="${doc.id}" placeholder="Tulis jawaban kamu di sini…"></textarea>`;
+        inner += `<textarea class="soal-esai" data-soal="${d.id}" placeholder="Tulis jawaban kamu di sini…"></textarea>`;
       }
       block.innerHTML = inner;
       box.appendChild(block);
@@ -155,6 +196,74 @@ async function loadSoalSiswa(topikId){
   }
 }
 
+/* ---------------- Integritas Ujian: fullscreen + deteksi pindah tab/app ---------------- */
+function mintaFullscreen(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if(req){ req.call(el).catch(() => { /* browser boleh menolak, tetap lanjut tanpa fullscreen */ }); }
+}
+function keluarFullscreen(){
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+  if(exit && (document.fullscreenElement || document.webkitFullscreenElement)){
+    exit.call(document).catch(() => {});
+  }
+}
+
+let pengawasanAktif = false;
+function aktifkanPengawasanUjian(){
+  if(pengawasanAktif) return;
+  pengawasanAktif = true;
+  document.addEventListener('visibilitychange', handlePelanggaran);
+  window.addEventListener('blur', handlePelanggaran);
+}
+function nonaktifkanPengawasanUjian(){
+  pengawasanAktif = false;
+  document.removeEventListener('visibilitychange', handlePelanggaran);
+  window.removeEventListener('blur', handlePelanggaran);
+}
+
+let waktuPelanggaranTerakhir = 0;
+async function handlePelanggaran(){
+  if(state.ujianSelesai) return;
+  if(document.visibilityState === 'visible') return; // cuma proses saat benar-benar meninggalkan/blur
+  const sekarang = Date.now();
+  if(sekarang - waktuPelanggaranTerakhir < 1500) return; // hindari hitung ganda dari 2 event sekaligus
+  waktuPelanggaranTerakhir = sekarang;
+
+  state.jumlahPelanggaran++;
+  const banner = document.getElementById('pelanggaranBanner');
+  if(state.hasilUjianId){
+    db.collection('hasil_ujian').doc(state.hasilUjianId).update({ pelanggaran: state.jumlahPelanggaran }).catch(() => {});
+  }
+
+  if(state.jumlahPelanggaran >= BATAS_PELANGGARAN){
+    await diskualifikasiSiswa();
+  } else if(banner){
+    bannerErr(banner, `⚠️ Terdeteksi keluar dari halaman ujian (pelanggaran ke-${state.jumlahPelanggaran} dari ${BATAS_PELANGGARAN}). Ujian akan otomatis dihentikan kalau ini terjadi ${BATAS_PELANGGARAN - state.jumlahPelanggaran} kali lagi.`);
+  }
+}
+
+async function diskualifikasiSiswa(){
+  if(state.ujianSelesai) return;
+  state.ujianSelesai = true;
+  nonaktifkanPengawasanUjian();
+  keluarFullscreen();
+  try{
+    if(state.hasilUjianId){
+      const jawabanArr = state.soalList.map(s => ({
+        soalId: s.id, pertanyaan: s.pertanyaan, tipe: s.tipe, jawabanSiswa: state.jawaban[s.id] || null
+      }));
+      await db.collection('hasil_ujian').doc(state.hasilUjianId).update({
+        jawaban: jawabanArr,
+        waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
+        status: 'didiskualifikasi',
+        pelanggaran: state.jumlahPelanggaran
+      });
+    }
+  }catch(err){ /* tetap tampilkan layar diskualifikasi walau update gagal */ }
+  showView('viewDiskualifikasi');
+}
+
 document.getElementById('btnKumpulkan').addEventListener('click', async () => {
   const banner = document.getElementById('banner');
   const belumDijawab = state.soalList.filter(s => !state.jawaban[s.id] || String(state.jawaban[s.id]).trim()==='');
@@ -171,17 +280,24 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
       tipe: s.tipe,
       jawabanSiswa: state.jawaban[s.id]
     }));
-    await db.collection('hasil_ujian').add({
-      topikId: state.topik.id,
-      topikNama: state.topik.nama,
-      kelas: state.topik.kelas,
-      namaSiswa: state.namaSiswa,
+    const payload = {
       jawaban: jawabanArr,
       waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
       status: 'belum_dinilai',
-      nilai: null,
-      catatanGuru: null
-    });
+      pelanggaran: state.jumlahPelanggaran
+    };
+    if(state.hasilUjianId){
+      await db.collection('hasil_ujian').doc(state.hasilUjianId).update(payload);
+    } else {
+      // fallback kalau entri awal gagal dibuat tadi
+      await db.collection('hasil_ujian').add({
+        topikId: state.topik.id, topikNama: state.topik.nama, kelas: state.topik.kelas,
+        namaSiswa: state.namaSiswa, nilai:null, catatanGuru:null, ...payload
+      });
+    }
+    state.ujianSelesai = true;
+    nonaktifkanPengawasanUjian();
+    keluarFullscreen();
     showView('viewSelesai');
   }catch(err){
     bannerErr(banner, 'Gagal mengirim jawaban: ' + escapeHtml(err.message));
@@ -777,16 +893,24 @@ async function loadHasilAdmin(){
     if(!rows.length){ box.innerHTML = '<div class="empty">Belum ada data.</div>'; return; }
 
     let html = `<table><thead><tr>
-      <th>Nama</th><th>Kelas</th><th>Materi</th><th>Waktu</th><th>Status</th><th>Nilai</th>
+      <th>Nama</th><th>Kelas</th><th>Materi</th><th>Waktu</th><th>Status</th><th>Pelanggaran</th><th>Nilai</th>
       </tr></thead><tbody>`;
     rows.forEach(r => {
-      const waktu = r.waktuSubmit && r.waktuSubmit.toDate ? r.waktuSubmit.toDate().toLocaleString('id-ID') : '-';
+      const waktu = r.waktuSubmit && r.waktuSubmit.toDate ? r.waktuSubmit.toDate().toLocaleString('id-ID') : (r.status==='berlangsung' ? 'Sedang mengerjakan…' : '-');
+      const statusInfo = {
+        berlangsung: {label:'Sedang Berlangsung', cls:'badge-wait'},
+        belum_dinilai: {label:'Belum Dinilai', cls:'badge-wait'},
+        sudah_dinilai: {label:'Sudah Dinilai', cls:'badge-done'},
+        didiskualifikasi: {label:'Didiskualifikasi', cls:'badge-danger'}
+      }[r.status] || {label:r.status, cls:'badge-wait'};
+      const pelanggaran = r.pelanggaran || 0;
       html += `<tr class="clickable" data-id="${r.id}">
         <td>${escapeHtml(r.namaSiswa)}</td>
         <td>${escapeHtml(r.kelas)}</td>
         <td>${escapeHtml(r.topikNama)}</td>
         <td>${waktu}</td>
-        <td><span class="badge ${r.status==='sudah_dinilai'?'badge-done':'badge-wait'}">${r.status==='sudah_dinilai'?'Sudah Dinilai':'Belum Dinilai'}</span></td>
+        <td><span class="badge ${statusInfo.cls}">${statusInfo.label}</span></td>
+        <td>${pelanggaran > 0 ? `<span style="color:var(--red);font-weight:700;">${pelanggaran}x</span>` : '-'}</td>
         <td>${r.nilai ?? '-'}</td>
       </tr>`;
     });
@@ -813,6 +937,7 @@ function bukaHasilDetail(id, r){
   renderModal(`
     <h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3>
     <p class="hint">Kelas ${escapeHtml(r.kelas)} · ${escapeHtml(r.topikNama)}</p>
+    ${r.status === 'didiskualifikasi' ? `<div class="banner banner-error">⚠️ Siswa ini <b>didiskualifikasi</b> otomatis oleh sistem karena terdeteksi meninggalkan halaman ujian ${r.pelanggaran||0}x.</div>` : (r.pelanggaran ? `<div class="banner banner-error">Terdeteksi ${r.pelanggaran}x meninggalkan halaman ujian (di bawah batas diskualifikasi).</div>` : '')}
     <div style="max-height:280px;overflow:auto;margin-bottom:16px;">${jawabanHtml}</div>
     <div class="field"><label>Nilai</label>
       <input type="number" id="mNilai" min="0" max="100" value="${r.nilai ?? ''}"></div>
