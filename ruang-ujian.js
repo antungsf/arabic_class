@@ -237,7 +237,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['topik','soal','hasil'].forEach(t => {
+    ['topik','soal','bank','hasil'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
     });
   });
@@ -404,6 +404,195 @@ document.getElementById('btnTambahSoal').addEventListener('click', () => {
   if(!topikId){ alert('Pilih materi dahulu di dropdown atas.'); return; }
   openSoalModal(null, {}, topikId);
 });
+
+document.getElementById('btnCetakPdfSoal').addEventListener('click', () => {
+  const sel = document.getElementById('selectTopikSoal');
+  const topikId = sel.value;
+  if(!topikId){ alert('Pilih materi dahulu di dropdown atas.'); return; }
+  const topikLabel = sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : 'Bank Soal';
+  cetakSoalPDF(topikId, topikLabel);
+});
+
+async function cetakSoalPDF(topikId, topikLabel){
+  try{
+    const snap = await db.collection('soal').where('topikId','==',topikId).orderBy('urutan','asc').get();
+    if(snap.empty){ alert('Belum ada soal untuk materi ini.'); return; }
+    const soalList = [];
+    snap.forEach(doc => soalList.push(doc.data()));
+
+    const sertakanKunci = confirm('Sertakan kunci jawaban di halaman terakhir?\n\nOK = sertakan kunci\nBatal = tanpa kunci (versi bersih untuk siswa)');
+
+    let html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>${escapeHtml(topikLabel)}</title>
+    <style>
+      body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#1c2624;padding:32px;max-width:800px;margin:0 auto;line-height:1.6;}
+      h1{font-size:18px;margin:0 0 4px;}
+      .sub{font-size:12.5px;color:#5c6b66;margin-bottom:24px;}
+      .soal{margin-bottom:18px;page-break-inside:avoid;}
+      .soal .no{font-weight:700;}
+      .opsi{margin:4px 0 0 22px;font-size:14px;}
+      .arab{font-size:16px;}
+      .kunci-page{page-break-before:always;}
+      .kunci-page h2{font-size:15px;}
+      .kunci-list{columns:3;font-size:13.5px;}
+      @media print{ body{padding:0;} }
+    </style></head><body>
+    <h1>Bank Soal — ${escapeHtml(topikLabel)}</h1>
+    <div class="sub">Dicetak: ${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} &middot; Jumlah soal: ${soalList.length}</div>`;
+
+    soalList.forEach((s, i) => {
+      html += `<div class="soal"><div><span class="no">${i+1}.</span> <span class="arab">${escapeHtml(s.pertanyaan)}</span></div>`;
+      if(s.tipe === 'pilihan_ganda' && s.pilihan){
+        ['A','B','C','D','E'].forEach(k => {
+          if(s.pilihan[k]) html += `<div class="opsi">${k}. <span class="arab">${escapeHtml(s.pilihan[k])}</span></div>`;
+        });
+      } else {
+        html += `<div class="opsi" style="color:#5c6b66;">(Esai — jawaban singkat/uraian)</div>`;
+      }
+      html += `</div>`;
+    });
+
+    if(sertakanKunci){
+      html += `<div class="kunci-page"><h2>Kunci Jawaban</h2><div class="kunci-list">`;
+      soalList.forEach((s, i) => {
+        html += `<div>${i+1}. ${s.jawabanBenar || '-'}</div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    html += `</body></html>`;
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
+  }catch(err){
+    alert('Gagal membuat PDF: ' + err.message);
+  }
+}
+
+/* ---------------- ADMIN: Bank Soal (lihat semua soal lintas materi) ---------------- */
+document.getElementById('btnMuatBank').addEventListener('click', loadBankSoal);
+document.getElementById('btnCetakPdfBank').addEventListener('click', cetakBankPDF);
+
+async function ambilBankSoalTerfilter(){
+  const kelasFilter = document.getElementById('bankFilterKelas').value;
+  const kataKunci = document.getElementById('bankCari').value.trim().toLowerCase();
+
+  const topikSnap = await db.collection('topik').get();
+  const topikMap = {};
+  topikSnap.forEach(doc => { topikMap[doc.id] = doc.data(); });
+
+  const soalSnap = await db.collection('soal').get();
+  const grup = {}; // key: "Kelas · Materi" -> { kelas, materi, urutanMateri, soal:[...] }
+
+  soalSnap.forEach(doc => {
+    const s = { id: doc.id, ...doc.data() };
+    const t = topikMap[s.topikId];
+    if(!t) return; // materi sudah dihapus
+    if(kelasFilter && t.kelas !== kelasFilter) return;
+    if(kataKunci && !s.pertanyaan.toLowerCase().includes(kataKunci)) return;
+    const key = `${t.kelas}||${t.nama}`;
+    if(!grup[key]) grup[key] = { kelas:t.kelas, materi:t.nama, topikId:s.topikId, soal:[] };
+    grup[key].soal.push(s);
+  });
+
+  Object.values(grup).forEach(g => g.soal.sort((a,b) => (a.urutan||0) - (b.urutan||0)));
+  return Object.values(grup).sort((a,b) => (a.kelas+a.materi).localeCompare(b.kelas+b.materi));
+}
+
+async function loadBankSoal(){
+  const box = document.getElementById('bankSoalList');
+  box.innerHTML = '<div class="loading">Memuat…</div>';
+  try{
+    const groups = await ambilBankSoalTerfilter();
+    if(!groups.length){ box.innerHTML = '<div class="empty">Tidak ada soal yang cocok.</div>'; return; }
+    let html = '';
+    groups.forEach(g => {
+      html += `<h4 style="margin:18px 0 8px;font-family:'Poppins',sans-serif;color:var(--green-deep);">${escapeHtml(g.kelas)} &middot; ${escapeHtml(g.materi)} <span class="hint">(${g.soal.length} soal)</span></h4>`;
+      g.soal.forEach(s => {
+        html += `<div class="list-item" style="cursor:pointer;" data-id="${s.id}" data-topik="${s.topikId}">
+          <div class="meta">${s.tipe==='pilihan_ganda'?'Pilihan Ganda':'Esai'} &middot; urutan ${s.urutan ?? '-'}</div>
+          <div style="font-size:13.5px;">${escapeHtml(s.pertanyaan)}</div>
+        </div>`;
+      });
+    });
+    box.innerHTML = html;
+    box.querySelectorAll('[data-id]').forEach(el => {
+      el.addEventListener('click', async () => {
+        const doc = await db.collection('soal').doc(el.dataset.id).get();
+        if(doc.exists) openSoalModal(doc.id, doc.data(), el.dataset.topik);
+      });
+    });
+  }catch(err){
+    box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function cetakBankPDF(){
+  try{
+    const groups = await ambilBankSoalTerfilter();
+    if(!groups.length){ alert('Tidak ada soal untuk dicetak.'); return; }
+    const sertakanKunci = confirm('Sertakan kunci jawaban di halaman terakhir?\n\nOK = sertakan kunci\nBatal = tanpa kunci (versi bersih untuk siswa)');
+
+    let html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Bank Soal</title>
+    <style>
+      body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#1c2624;padding:32px;max-width:800px;margin:0 auto;line-height:1.6;}
+      h1{font-size:18px;margin:0 0 4px;}
+      h2.grp{font-size:15px;margin:26px 0 10px;padding-top:14px;border-top:2px solid #175c41;}
+      .sub{font-size:12.5px;color:#5c6b66;margin-bottom:24px;}
+      .soal{margin-bottom:18px;page-break-inside:avoid;}
+      .soal .no{font-weight:700;}
+      .opsi{margin:4px 0 0 22px;font-size:14px;}
+      .arab{font-size:16px;}
+      .kunci-page{page-break-before:always;}
+      .kunci-page h2{font-size:15px;}
+      .kunci-grp{margin-bottom:14px;}
+      .kunci-grp b{font-size:13px;}
+      .kunci-list{columns:3;font-size:13.5px;}
+      @media print{ body{padding:0;} }
+    </style></head><body>
+    <h1>Bank Soal — Seluruh Materi</h1>
+    <div class="sub">Dicetak: ${new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} &middot; Jumlah materi: ${groups.length}</div>`;
+
+    let nomorGlobal = 1;
+    groups.forEach(g => {
+      html += `<h2 class="grp">${escapeHtml(g.kelas)} &middot; ${escapeHtml(g.materi)}</h2>`;
+      g.soal.forEach(s => {
+        html += `<div class="soal"><div><span class="no">${nomorGlobal}.</span> <span class="arab">${escapeHtml(s.pertanyaan)}</span></div>`;
+        if(s.tipe === 'pilihan_ganda' && s.pilihan){
+          ['A','B','C','D','E'].forEach(k => {
+            if(s.pilihan[k]) html += `<div class="opsi">${k}. <span class="arab">${escapeHtml(s.pilihan[k])}</span></div>`;
+          });
+        } else {
+          html += `<div class="opsi" style="color:#5c6b66;">(Esai — jawaban singkat/uraian)</div>`;
+        }
+        html += `</div>`;
+        s._nomorCetak = nomorGlobal;
+        nomorGlobal++;
+      });
+    });
+
+    if(sertakanKunci){
+      html += `<div class="kunci-page"><h2>Kunci Jawaban</h2>`;
+      groups.forEach(g => {
+        html += `<div class="kunci-grp"><b>${escapeHtml(g.kelas)} &middot; ${escapeHtml(g.materi)}</b><div class="kunci-list">`;
+        g.soal.forEach(s => {
+          html += `<div>${s._nomorCetak}. ${s.jawabanBenar || '-'}</div>`;
+        });
+        html += `</div></div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</body></html>`;
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
+  }catch(err){
+    alert('Gagal membuat PDF: ' + err.message);
+  }
+}
 
 document.getElementById('btnTambahCepatSoal').addEventListener('click', () => {
   const topikId = document.getElementById('selectTopikSoal').value;

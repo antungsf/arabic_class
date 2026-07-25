@@ -229,6 +229,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="topik">Materi / Topik</button>
       <button class="tab-btn" data-tab="soal">Soal</button>
+      <button class="tab-btn" data-tab="bank">Bank Soal</button>
       <button class="tab-btn" data-tab="hasil">Hasil Ujian</button>
     </div>
 
@@ -250,11 +251,32 @@
       <div class="row-between">
         <p class="lead" style="margin:0;">Soal untuk materi yang dipilih di atas.</p>
         <div class="row">
+          <button class="btn btn-outline btn-sm" id="btnCetakPdfSoal">Download PDF</button>
           <button class="btn btn-outline btn-sm" id="btnTambahCepatSoal">Tambah Cepat (Banyak Sekaligus)</button>
           <button class="btn btn-gold btn-sm" id="btnTambahSoal">+ Tambah Soal</button>
         </div>
       </div>
       <div id="soalAdminList"><div class="loading">Pilih materi dahulu…</div></div>
+    </div>
+
+    <!-- Tab: Bank Soal -->
+    <div id="tabBank" class="hidden">
+      <p class="lead" style="margin:0 0 16px;">Lihat &amp; cari semua soal dari seluruh materi/kelas sekaligus. Klik soal untuk mengedit.</p>
+      <div class="row" style="align-items:flex-end;">
+        <div class="field" style="max-width:220px;"><label>Filter Kelas</label>
+          <select id="bankFilterKelas">
+            <option value="">Semua Kelas</option>
+            <option value="X">X</option>
+            <option value="XI">XI</option>
+            <option value="XII">XII</option>
+          </select>
+        </div>
+        <div class="field" style="max-width:280px;flex:1;"><label>Cari kata kunci</label>
+          <input type="text" id="bankCari" placeholder="Cari di teks pertanyaan…"></div>
+        <button class="btn btn-outline btn-sm" id="btnMuatBank">Muat</button>
+        <button class="btn btn-outline btn-sm" id="btnCetakPdfBank">Download PDF (Semua)</button>
+      </div>
+      <div id="bankSoalList"><div class="empty">Klik "Muat" untuk menampilkan bank soal.</div></div>
     </div>
 
     <!-- Tab: Hasil -->
