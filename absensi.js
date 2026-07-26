@@ -314,7 +314,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['kelas','absen','nilai','rekap','jurnal','pengaturan'].forEach(t => {
+    ['kelas','absen','nilai','rekap','jurnal','pengaturan','backup'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
     });
     if(btn.dataset.tab === 'jurnal') loadJurnalBulan();
@@ -1071,9 +1071,130 @@ function renderModal(inner){
 }
 function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 
+/* ---------------- ADMIN: Backup / Export ---------------- */
+const KOLEKSI_BACKUP = [
+  'topik','soal','hasil_ujian',
+  'kelas_absensi','siswa','pertemuan','nilai',
+  'jurnal_guru','materi_item',
+  'pengaturan_guru','pengaturan_sekolah'
+];
+
+function bersihkanNilaiUntukExport(val){
+  // ubah Firestore Timestamp jadi string ISO yang aman dibaca/ditulis ulang
+  if(val && typeof val === 'object' && typeof val.toDate === 'function'){
+    return val.toDate().toISOString();
+  }
+  if(Array.isArray(val)) return val.map(bersihkanNilaiUntukExport);
+  if(val && typeof val === 'object'){
+    const out = {};
+    Object.keys(val).forEach(k => { out[k] = bersihkanNilaiUntukExport(val[k]); });
+    return out;
+  }
+  return val;
+}
+
+async function ambilSemuaDataBackup(onProgress){
+  const hasil = {};
+  for(const nama of KOLEKSI_BACKUP){
+    if(onProgress) onProgress(nama);
+    const snap = await db.collection(nama).get();
+    hasil[nama] = [];
+    snap.forEach(doc => {
+      hasil[nama].push({ id: doc.id, ...bersihkanNilaiUntukExport(doc.data()) });
+    });
+  }
+  return hasil;
+}
+
+function unduhBlob(blob, namaFile){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = namaFile;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnBackupJson').addEventListener('click', async () => {
+  const banner = document.getElementById('backupBanner');
+  const btn = document.getElementById('btnBackupJson');
+  btn.disabled = true;
+  try{
+    const data = await ambilSemuaDataBackup((nama) => { btn.textContent = `Mengambil ${nama}…`; });
+    const paket = { dibuatPada: new Date().toISOString(), data };
+    const blob = new Blob([JSON.stringify(paket, null, 2)], {type:'application/json'});
+    const tgl = new Date().toISOString().slice(0,10);
+    unduhBlob(blob, `backup-arabic-class-${tgl}.json`);
+    bannerOk(banner, 'Backup JSON berhasil didownload.');
+  }catch(err){
+    bannerErr(banner, 'Gagal membuat backup: ' + escapeHtml(err.message));
+  }finally{
+    btn.disabled = false; btn.textContent = 'Download Backup (JSON)';
+  }
+});
+
+document.getElementById('btnBackupExcel').addEventListener('click', async () => {
+  const banner = document.getElementById('backupBanner');
+  const btn = document.getElementById('btnBackupExcel');
+  if(typeof XLSX === 'undefined'){ bannerErr(banner, 'Modul Excel gagal dimuat, coba lagi saat koneksi stabil.'); return; }
+  btn.disabled = true;
+  try{
+    const data = await ambilSemuaDataBackup((nama) => { btn.textContent = `Mengambil ${nama}…`; });
+    const wb = XLSX.utils.book_new();
+    KOLEKSI_BACKUP.forEach(nama => {
+      const rows = data[nama];
+      const ws = rows.length
+        ? XLSX.utils.json_to_sheet(rows.map(r => {
+            const flat = {};
+            Object.keys(r).forEach(k => {
+              const v = r[k];
+              flat[k] = (v && typeof v === 'object') ? JSON.stringify(v) : v;
+            });
+            return flat;
+          }))
+        : XLSX.utils.aoa_to_sheet([['(kosong)']]);
+      XLSX.utils.book_append_sheet(wb, ws, nama.substring(0,31));
+    });
+    const tgl = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `backup-arabic-class-${tgl}.xlsx`);
+    bannerOk(banner, 'Backup Excel berhasil didownload.');
+  }catch(err){
+    bannerErr(banner, 'Gagal membuat backup: ' + escapeHtml(err.message));
+  }finally{
+    btn.disabled = false; btn.textContent = 'Download Backup (Excel)';
+  }
+});
+
 if(CONFIG_BELUM_DIISI){
   document.getElementById('kelasPublikList').innerHTML =
     '<div class="empty">Konfigurasi Firebase belum diisi. Admin perlu mengisi <code>firebaseConfig</code> di absensi.html (samakan dengan ruang-ujian.html).</div>';
 } else {
   loadKelasPublik();
 }
+
+/* ---------------- Akses Admin Tersembunyi ---------------- */
+(function(){
+  const btn = document.getElementById("btnShowAdmin");
+  const logo = document.getElementById("brandLogoTap");
+  if(!btn) return;
+
+  function tampilkanTombolAdmin(){ btn.classList.add("tampak"); }
+
+  // cara 1: buka lewat URL ...#admin (bisa di-bookmark)
+  if(window.location.hash === "#admin") tampilkanTombolAdmin();
+
+  // cara 2: tap/klik logo header 5x berturut-turut dalam 3 detik
+  if(logo){
+    let jumlahTap = 0, timerReset = null;
+    logo.style.cursor = "default";
+    logo.addEventListener("click", function(){
+      jumlahTap++;
+      clearTimeout(timerReset);
+      timerReset = setTimeout(function(){ jumlahTap = 0; }, 3000);
+      if(jumlahTap >= 5){
+        tampilkanTombolAdmin();
+        jumlahTap = 0;
+      }
+    });
+  }
+})();
+

@@ -32,7 +32,8 @@
   .brand-text span{color:var(--gold);}
   .back-home{font-size:12.5px;font-weight:600;color:#dce9e2;opacity:.9;}
   .back-home:hover{color:var(--gold);opacity:1;}
-  .admin-link{font-size:11.5px;font-weight:600;color:#9db8ab;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;}
+  .admin-link{display:none;font-size:11.5px;font-weight:600;color:#9db8ab;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;}
+  .admin-link.tampak{display:inline-block;}
   .admin-link:hover{color:#fff;border-color:var(--gold);}
 
   main{max-width:840px;margin:0 auto;padding:48px 24px 80px;}
@@ -130,7 +131,7 @@
 
 <header>
   <div class="nav-wrap">
-    <span class="brand-text">Ruang <span>Ujian</span> — Bahasa Arab</span>
+    <span class="brand-text" id="brandLogoTap">Ruang <span>Ujian</span> — Bahasa Arab</span>
     <div class="row">
       <a class="back-home" href="index.html">&larr; Beranda</a>
       <a class="admin-link" href="#" id="btnShowAdmin">Admin</a>

@@ -1075,3 +1075,31 @@ if(CONFIG_BELUM_DIISI){
   document.getElementById('topikList').innerHTML =
     '<div class="empty">Konfigurasi Firebase belum diisi. Admin perlu mengisi <code>firebaseConfig</code> di ruang-ujian.html.</div>';
 }
+
+/* ---------------- Akses Admin Tersembunyi ---------------- */
+(function(){
+  const btn = document.getElementById("btnShowAdmin");
+  const logo = document.getElementById("brandLogoTap");
+  if(!btn) return;
+
+  function tampilkanTombolAdmin(){ btn.classList.add("tampak"); }
+
+  // cara 1: buka lewat URL ...#admin (bisa di-bookmark)
+  if(window.location.hash === "#admin") tampilkanTombolAdmin();
+
+  // cara 2: tap/klik logo header 5x berturut-turut dalam 3 detik
+  if(logo){
+    let jumlahTap = 0, timerReset = null;
+    logo.style.cursor = "default";
+    logo.addEventListener("click", function(){
+      jumlahTap++;
+      clearTimeout(timerReset);
+      timerReset = setTimeout(function(){ jumlahTap = 0; }, 3000);
+      if(jumlahTap >= 5){
+        tampilkanTombolAdmin();
+        jumlahTap = 0;
+      }
+    });
+  }
+})();
+

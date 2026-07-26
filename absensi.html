@@ -24,7 +24,8 @@
   .brand-text span{color:var(--gold);}
   .back-home{font-size:12.5px;font-weight:600;color:#dce9e2;opacity:.9;}
   .back-home:hover{color:var(--gold);opacity:1;}
-  .admin-link{font-size:11.5px;font-weight:600;color:#9db8ab;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;}
+  .admin-link{display:none;font-size:11.5px;font-weight:600;color:#9db8ab;letter-spacing:.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;}
+  .admin-link.tampak{display:inline-block;}
   .admin-link:hover{color:#fff;border-color:var(--gold);}
 
   main{max-width:980px;margin:0 auto;padding:48px 24px 80px;}
@@ -104,7 +105,7 @@
 
 <header>
   <div class="nav-wrap">
-    <span class="brand-text">Absensi <span>&amp; Nilai</span> — Bahasa Arab</span>
+    <span class="brand-text" id="brandLogoTap">Absensi <span>&amp; Nilai</span> — Bahasa Arab</span>
     <div class="row">
       <a class="back-home" href="index.html">&larr; Beranda</a>
       <a class="admin-link" href="#" id="btnShowAdmin">Admin</a>
@@ -165,6 +166,7 @@
       <button class="tab-btn" data-tab="rekap">Rekap</button>
       <button class="tab-btn" data-tab="jurnal">Jurnal Guru</button>
       <button class="tab-btn" data-tab="pengaturan">Pengaturan</button>
+      <button class="tab-btn" data-tab="backup">Backup</button>
     </div>
 
     <!-- Tab: Kelas & Siswa -->
@@ -295,6 +297,22 @@
         <div class="field"><label>Kota (untuk "Kota, tanggal" di tanda tangan)</label><input type="text" id="pgKota" placeholder="Contoh: Balikpapan"></div>
         <div id="pgSekolahBanner"></div>
         <button class="btn btn-solid btn-sm" id="btnSimpanPengaturanSekolah">Simpan Data Madrasah</button>
+      </div>
+    </div>
+
+    <!-- Tab: Backup -->
+    <div id="tabBackup" class="hidden">
+      <p class="lead" style="margin:0 0 20px;">Cadangkan seluruh data sistem (Ruang Ujian, Absensi, Nilai, Jurnal, Materi) sewaktu-waktu Anda mau — untuk jaga-jaga kalau suatu saat ada masalah.</p>
+
+      <div class="list-item">
+        <h4 style="margin-bottom:8px;">Download Backup Lengkap</h4>
+        <p class="hint" style="margin-bottom:16px;">Berisi seluruh data mentah dari semua menu (siswa, kelas, absensi, nilai, soal ujian, hasil ujian, jurnal guru, materi belajar, pengaturan). File JSON untuk cadangan teknis, file Excel untuk dibaca manusia.</p>
+        <div id="backupBanner"></div>
+        <div class="row">
+          <button class="btn btn-solid" id="btnBackupJson">Download Backup (JSON)</button>
+          <button class="btn btn-outline" id="btnBackupExcel">Download Backup (Excel)</button>
+        </div>
+        <p class="hint" style="margin-top:16px;">Disarankan: download backup ini secara rutin (misal tiap akhir bulan), simpan di Google Drive atau laptop, terpisah dari sistem ini.</p>
       </div>
     </div>
   </div>
