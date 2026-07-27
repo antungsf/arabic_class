@@ -28,7 +28,11 @@ const state = {
   siswaTerpilihId: null,
   kelasAbsensiId: null,
   kelasAbsensiNama: null,
-  daftarSiswaUjian: []
+  daftarSiswaUjian: [],
+  // Jadwal Ujian (admin)
+  jwEditId: null,
+  jwTargetSiswaTerpilih: [], // [{id, nama, kelasNama}]
+  semuaSiswaCache: null
 };
 const BATAS_PELANGGARAN = 3;
 
@@ -169,14 +173,71 @@ document.getElementById('inputNamaSiswa').addEventListener('input', (e) => {
       state.namaSiswa = el.dataset.nama;
       document.getElementById('inputNamaSiswa').value = el.dataset.nama;
       hasilCari.innerHTML = '';
-      document.getElementById('namaTerpilihInfo').textContent = `✓ Terpilih: ${el.dataset.nama} (${state.kelasAbsensiNama})`;
-      document.getElementById('btnMulaiUjian').disabled = false;
+      cekEligibilitasUjian();
     });
   });
 });
 
+async function eligibilitasSekarang(){
+  const snap = await db.collection('jadwal_ujian').where('topikId','==',state.topik.id).get();
+  const now = new Date();
+  const tanggalSekarang = now.toISOString().slice(0,10);
+  const jamSekarang = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  let cocokTarget = null;
+  let aktifSekarang = false;
+  snap.forEach(doc => {
+    const d = doc.data();
+    const masuk = (d.targetKelasIds||[]).includes(state.kelasAbsensiId) || (d.targetSiswaIds||[]).includes(state.siswaTerpilihId);
+    if(!masuk) return;
+    if(!cocokTarget || d.tanggal < cocokTarget.tanggal) cocokTarget = d;
+    if(d.tanggal === tanggalSekarang && jamSekarang >= d.jamMulai && jamSekarang <= d.jamSelesai) aktifSekarang = true;
+  });
+  return { aktifSekarang, cocokTarget, adaJadwal: !snap.empty };
+}
+
+async function cekEligibilitasUjian(){
+  const infoEl = document.getElementById('namaTerpilihInfo');
+  const btn = document.getElementById('btnMulaiUjian');
+  btn.disabled = true;
+  infoEl.innerHTML = `Terpilih: ${escapeHtml(state.namaSiswa)} (${escapeHtml(state.kelasAbsensiNama)}) — mengecek jadwal…`;
+  try{
+    const { aktifSekarang, cocokTarget, adaJadwal } = await eligibilitasSekarang();
+    if(!adaJadwal){
+      infoEl.innerHTML = `<span style="color:var(--red);">Materi ini belum dijadwalkan oleh guru. Hubungi guru kalau ini seharusnya sudah bisa diakses.</span>`;
+    } else if(aktifSekarang){
+      infoEl.innerHTML = `<span style="color:var(--green-deep);">✓ Terpilih: ${escapeHtml(state.namaSiswa)} (${escapeHtml(state.kelasAbsensiNama)}) — jadwal ujian sedang berlangsung, silakan mulai.</span>`;
+      btn.disabled = false;
+    } else if(cocokTarget){
+      infoEl.innerHTML = `<span style="color:var(--red);">Kamu termasuk peserta, tapi belum waktunya.<br>Jadwal kamu: ${escapeHtml(cocokTarget.tanggal)} jam ${escapeHtml(cocokTarget.jamMulai)}-${escapeHtml(cocokTarget.jamSelesai)}${cocokTarget.namaSesi ? ' ('+escapeHtml(cocokTarget.namaSesi)+')' : ''}.</span>`;
+    } else {
+      infoEl.innerHTML = `<span style="color:var(--red);">Kamu tidak termasuk peserta ujian ini. Hubungi guru kalau menurutmu ini keliru.</span>`;
+    }
+  }catch(err){
+    infoEl.innerHTML = `<span style="color:var(--red);">Gagal mengecek jadwal: ${escapeHtml(err.message)}</span>`;
+  }
+}
+
 document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
   if(!state.siswaTerpilihId || !state.namaSiswa){ alert('Pilih namamu dari daftar pencarian dulu ya.'); return; }
+
+  // pengecekan akhir (jaga-jaga kalau waktu berubah sejak pengecekan pertama)
+  const btn = document.getElementById('btnMulaiUjian');
+  btn.disabled = true; btn.textContent = 'Memeriksa jadwal…';
+  try{
+    const { aktifSekarang } = await eligibilitasSekarang();
+    if(!aktifSekarang){
+      alert('Jadwal ujian untuk kamu sudah tidak aktif (mungkin waktu habis atau belum mulai). Halaman akan dimuat ulang.');
+      btn.textContent = 'Mulai Mengerjakan';
+      cekEligibilitasUjian();
+      return;
+    }
+  }catch(err){
+    btn.disabled = false; btn.textContent = 'Mulai Mengerjakan';
+    alert('Gagal memeriksa jadwal: ' + err.message);
+    return;
+  }
+  btn.textContent = 'Mulai Mengerjakan';
+
   document.getElementById('ujianEyebrow').textContent = 'Kelas ' + state.topik.kelas + ' · ' + state.topik.nama;
   document.getElementById('ujianTitle').textContent = state.topik.nama;
   showView('viewUjian');
@@ -436,7 +497,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['topik','soal','bank','hasil'].forEach(t => {
+    ['topik','soal','bank','jadwal','hasil'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
     });
   });
@@ -1075,6 +1136,237 @@ if(CONFIG_BELUM_DIISI){
   document.getElementById('topikList').innerHTML =
     '<div class="empty">Konfigurasi Firebase belum diisi. Admin perlu mengisi <code>firebaseConfig</code> di ruang-ujian.html.</div>';
 }
+
+/* ================= ADMIN: Jadwal Ujian ================= */
+async function loadJwTopikOptions(){
+  const sel = document.getElementById('jwTopik');
+  try{
+    const snap = await db.collection('topik').orderBy('kelas').orderBy('urutan').get();
+    let opts = '<option value="">— pilih materi —</option>';
+    snap.forEach(doc => {
+      const d = doc.data();
+      opts += `<option value="${doc.id}" data-kelas="${escapeHtml(d.kelas)}" data-nama="${escapeHtml(d.nama)}">${escapeHtml(d.kelas)} · ${escapeHtml(d.nama)}</option>`;
+    });
+    sel.innerHTML = opts;
+  }catch(err){ sel.innerHTML = '<option value="">Gagal memuat</option>'; }
+}
+
+async function loadJwKelasCheckboxes(){
+  const box = document.getElementById('jwDaftarKelas');
+  try{
+    const snap = await db.collection('kelas_absensi').orderBy('jenjang').orderBy('urutan').get();
+    if(snap.empty){ box.innerHTML = '<div class="hint">Belum ada data kelas. Tambahkan dulu di menu Absensi.</div>'; return; }
+    let html = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    snap.forEach(doc => {
+      const d = doc.data();
+      html += `<label style="display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" class="jwKelasChk" value="${doc.id}" data-nama="${escapeHtml(d.nama)}"> ${escapeHtml(d.jenjang)} · ${escapeHtml(d.nama)}
+      </label>`;
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }catch(err){
+    box.innerHTML = `<div class="hint">Gagal memuat kelas: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function muatSemuaSiswaUntukJadwal(){
+  if(state.semuaSiswaCache) return state.semuaSiswaCache;
+  try{
+    const [siswaSnap, kelasSnap] = await Promise.all([
+      db.collection('siswa').get(),
+      db.collection('kelas_absensi').get()
+    ]);
+    const kelasMap = {};
+    kelasSnap.forEach(doc => { kelasMap[doc.id] = doc.data().nama; });
+    const daftar = [];
+    siswaSnap.forEach(doc => {
+      const d = doc.data();
+      daftar.push({ id: doc.id, nama: d.nama, kelasAbsensiId: d.kelasId, kelasNama: kelasMap[d.kelasId] || '?' });
+    });
+    state.semuaSiswaCache = daftar;
+    return daftar;
+  }catch(err){
+    state.semuaSiswaCache = [];
+    return [];
+  }
+}
+
+document.getElementById('jwCariSiswa').addEventListener('input', async (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const hasilBox = document.getElementById('jwHasilCariSiswa');
+  if(q.length < 2){ hasilBox.innerHTML = ''; return; }
+  const semua = await muatSemuaSiswaUntukJadwal();
+  const sudahDipilih = new Set(state.jwTargetSiswaTerpilih.map(s => s.id));
+  const cocok = semua.filter(s => !sudahDipilih.has(s.id) && s.nama.toLowerCase().includes(q)).slice(0,8);
+  if(!cocok.length){ hasilBox.innerHTML = '<div class="empty">Tidak ditemukan.</div>'; return; }
+  hasilBox.innerHTML = cocok.map(s => `<div class="list-item" data-id="${s.id}" style="cursor:pointer;padding:9px 12px;">${escapeHtml(s.nama)} <span class="hint">(${escapeHtml(s.kelasNama)})</span></div>`).join('');
+  hasilBox.querySelectorAll('[data-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const s = semua.find(x => x.id === el.dataset.id);
+      state.jwTargetSiswaTerpilih.push(s);
+      renderDaftarSiswaTerpilih();
+      hasilBox.innerHTML = '';
+      document.getElementById('jwCariSiswa').value = '';
+    });
+  });
+});
+
+function renderDaftarSiswaTerpilih(){
+  const box = document.getElementById('jwDaftarSiswaTerpilih');
+  if(!state.jwTargetSiswaTerpilih.length){ box.innerHTML = ''; return; }
+  box.innerHTML = state.jwTargetSiswaTerpilih.map((s,i) => `
+    <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-alt);border-radius:20px;padding:5px 6px 5px 12px;font-size:12.5px;margin:0 6px 6px 0;">
+      ${escapeHtml(s.nama)} (${escapeHtml(s.kelasNama)})
+      <button type="button" data-i="${i}" class="icon-btn danger" style="padding:2px 6px;">&times;</button>
+    </span>`).join('');
+  box.querySelectorAll('button[data-i]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.jwTargetSiswaTerpilih.splice(Number(btn.dataset.i), 1);
+      renderDaftarSiswaTerpilih();
+    });
+  });
+}
+
+function kosongkanFormJadwal(){
+  state.jwEditId = null;
+  state.jwTargetSiswaTerpilih = [];
+  document.getElementById('jwTopik').value = '';
+  document.getElementById('jwTanggal').value = new Date().toISOString().slice(0,10);
+  document.getElementById('jwJamMulai').value = '';
+  document.getElementById('jwJamSelesai').value = '';
+  document.getElementById('jwNamaSesi').value = '';
+  document.querySelectorAll('.jwKelasChk').forEach(c => c.checked = false);
+  renderDaftarSiswaTerpilih();
+  document.getElementById('jwHasilCariSiswa').innerHTML = '';
+  document.getElementById('jwFormTitle').textContent = 'Buat Jadwal Baru';
+  document.getElementById('btnSimpanJadwal').textContent = 'Simpan Jadwal';
+  document.getElementById('btnBatalEditJadwal').style.display = 'none';
+  document.getElementById('btnHapusJadwal').style.display = 'none';
+  document.getElementById('jwBanner').innerHTML = '';
+}
+document.getElementById('btnBatalEditJadwal').addEventListener('click', kosongkanFormJadwal);
+
+document.getElementById('btnSimpanJadwal').addEventListener('click', async () => {
+  const banner = document.getElementById('jwBanner');
+  const topikSel = document.getElementById('jwTopik');
+  const topikId = topikSel.value;
+  if(!topikId){ bannerErr(banner, 'Pilih materi dahulu.'); return; }
+  const tanggal = document.getElementById('jwTanggal').value;
+  const jamMulai = document.getElementById('jwJamMulai').value;
+  const jamSelesai = document.getElementById('jwJamSelesai').value;
+  if(!tanggal || !jamMulai || !jamSelesai){ bannerErr(banner, 'Tanggal, jam mulai, dan jam selesai wajib diisi.'); return; }
+  if(jamSelesai <= jamMulai){ bannerErr(banner, 'Jam selesai harus setelah jam mulai.'); return; }
+
+  const targetKelasIds = Array.from(document.querySelectorAll('.jwKelasChk:checked')).map(c => c.value);
+  const targetSiswaIds = state.jwTargetSiswaTerpilih.map(s => s.id);
+  if(!targetKelasIds.length && !targetSiswaIds.length){
+    bannerErr(banner, 'Pilih minimal 1 kelas ATAU 1 siswa sebagai target peserta.');
+    return;
+  }
+
+  const opt = topikSel.selectedOptions[0];
+  const payload = {
+    topikId,
+    topikNama: opt.dataset.nama,
+    kelasJenjang: opt.dataset.kelas,
+    tanggal, jamMulai, jamSelesai,
+    namaSesi: document.getElementById('jwNamaSesi').value.trim(),
+    targetKelasIds,
+    targetSiswaIds,
+    targetSiswaDetail: state.jwTargetSiswaTerpilih // untuk tampilan ringkasan tanpa perlu join ulang
+  };
+
+  try{
+    if(state.jwEditId){
+      await db.collection('jadwal_ujian').doc(state.jwEditId).update(payload);
+      bannerOk(banner, 'Jadwal berhasil diperbarui.');
+    } else {
+      await db.collection('jadwal_ujian').add(payload);
+      bannerOk(banner, 'Jadwal baru tersimpan.');
+    }
+    kosongkanFormJadwal();
+    loadDaftarJadwal();
+  }catch(err){
+    bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
+  }
+});
+
+document.getElementById('btnHapusJadwal').addEventListener('click', async () => {
+  if(!state.jwEditId) return;
+  if(!confirm('Hapus jadwal ini?')) return;
+  try{
+    await db.collection('jadwal_ujian').doc(state.jwEditId).delete();
+    kosongkanFormJadwal();
+    loadDaftarJadwal();
+  }catch(err){ alert('Gagal menghapus: ' + err.message); }
+});
+
+async function muatJadwalKeForm(id, d){
+  state.jwEditId = id;
+  document.getElementById('jwTopik').value = d.topikId;
+  document.getElementById('jwTanggal').value = d.tanggal;
+  document.getElementById('jwJamMulai').value = d.jamMulai;
+  document.getElementById('jwJamSelesai').value = d.jamSelesai;
+  document.getElementById('jwNamaSesi').value = d.namaSesi || '';
+  document.querySelectorAll('.jwKelasChk').forEach(c => { c.checked = (d.targetKelasIds||[]).includes(c.value); });
+  state.jwTargetSiswaTerpilih = d.targetSiswaDetail ? [...d.targetSiswaDetail] : [];
+  renderDaftarSiswaTerpilih();
+  document.getElementById('jwFormTitle').textContent = 'Edit Jadwal';
+  document.getElementById('btnSimpanJadwal').textContent = 'Update Jadwal';
+  document.getElementById('btnBatalEditJadwal').style.display = 'inline-block';
+  document.getElementById('btnHapusJadwal').style.display = 'inline-block';
+  document.getElementById('jwBanner').innerHTML = '';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+async function loadDaftarJadwal(){
+  const box = document.getElementById('jwDaftarJadwal');
+  box.innerHTML = '<div class="loading">Memuat…</div>';
+  try{
+    const snap = await db.collection('jadwal_ujian').orderBy('tanggal','desc').get();
+    if(snap.empty){ box.innerHTML = '<div class="empty">Belum ada jadwal ujian. Buat dulu di atas.</div>'; return; }
+    let html = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const jmlKelas = (d.targetKelasIds||[]).length;
+      const jmlSiswa = (d.targetSiswaIds||[]).length;
+      const ringkasan = [
+        jmlKelas ? `${jmlKelas} kelas` : null,
+        jmlSiswa ? `${jmlSiswa} siswa individu` : null
+      ].filter(Boolean).join(' + ') || 'belum ada target';
+      html += `<div class="list-item" style="cursor:pointer;" data-id="${doc.id}">
+        <div class="list-item-head">
+          <div>
+            <h4 style="margin:0 0 4px;font-size:14px;font-family:'Poppins',sans-serif;color:var(--green-deep);">${escapeHtml(d.topikNama)} ${d.namaSesi ? '· '+escapeHtml(d.namaSesi) : ''}</h4>
+            <div class="meta">${escapeHtml(d.tanggal)} &middot; ${escapeHtml(d.jamMulai)}-${escapeHtml(d.jamSelesai)} &middot; Target: ${ringkasan}</div>
+          </div>
+        </div>
+      </div>`;
+    });
+    box.innerHTML = html;
+    box.querySelectorAll('[data-id]').forEach(el => {
+      el.addEventListener('click', async () => {
+        const doc = await db.collection('jadwal_ujian').doc(el.dataset.id).get();
+        if(doc.exists) muatJadwalKeForm(doc.id, doc.data());
+      });
+    });
+  }catch(err){
+    box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// muat data awal saat tab Jadwal Ujian pertama kali dibuka
+let jwSudahDiinit = false;
+document.querySelector('.tab-btn[data-tab="jadwal"]').addEventListener('click', () => {
+  if(jwSudahDiinit) return;
+  jwSudahDiinit = true;
+  loadJwTopikOptions();
+  loadJwKelasCheckboxes();
+  document.getElementById('jwTanggal').value = new Date().toISOString().slice(0,10);
+  loadDaftarJadwal();
+});
+
 
 /* ---------------- Akses Admin Tersembunyi ---------------- */
 (function(){
