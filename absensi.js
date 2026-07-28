@@ -70,7 +70,7 @@ async function renderRekapPublikCari(kelasId, box){
   box.innerHTML = '<div class="loading">Memuat data…</div>';
   try{
     const [siswaSnap, pertemuanSnap, nilaiSnap] = await Promise.all([
-      db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get(),
+      db.collection('siswa').where('kelasId','==',kelasId).orderBy('nama').get(),
       db.collection('pertemuan').where('kelasId','==',kelasId).get(),
       db.collection('nilai').where('kelasId','==',kelasId).get()
     ]);
@@ -160,7 +160,7 @@ async function renderRekap(kelasId, box, isAdmin){
   box.innerHTML = '<div class="loading">Memuat data…</div>';
   try{
     const [siswaSnap, pertemuanSnap, nilaiSnap] = await Promise.all([
-      db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get(),
+      db.collection('siswa').where('kelasId','==',kelasId).orderBy('nama').get(),
       db.collection('pertemuan').where('kelasId','==',kelasId).get(),
       db.collection('nilai').where('kelasId','==',kelasId).get()
     ]);
@@ -476,8 +476,10 @@ async function bersihkanDataSiswa(kelasId){
       let nama = d.nama || '';
       let jk = d.jk || '';
       let berubah = false;
-      // pisahkan tab/spasi ganda + L/P yang nempel di akhir nama
-      const match = nama.match(/^(.*?)[\t]+([LP])$/) || nama.match(/^(.*?)\s+([LP])$/);
+      // pisahkan tab/spasi ganda / "(L)"-"(P)" / L-P yang nempel di akhir nama
+      const match = nama.match(/^(.*?)[\t]+([LP])$/)
+        || nama.match(/^(.*?)\s*\(([LP])\)\s*$/)
+        || nama.match(/^(.*?)\s+([LP])$/);
       if(match && (!jk || jk==='')){
         nama = match[1].trim();
         jk = match[2];
@@ -515,7 +517,7 @@ async function bersihkanDataSiswa(kelasId){
 async function loadSiswaList(kelasId){
   const wrap = document.getElementById('siswaListWrap');
   try{
-    const snap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get();
+    const snap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('nama').get();
     if(snap.empty){ wrap.innerHTML = '<div class="empty">Belum ada siswa.</div>'; return; }
     let html = '';
     snap.forEach(doc => {
@@ -547,29 +549,41 @@ async function loadSiswaList(kelasId){
 
 function openEditSiswaMini(siswaId, nama, jk, kelasId){
   const wrap = document.getElementById('siswaListWrap');
+  const existing = wrap.querySelector('.edit-siswa-box');
+  if(existing) existing.remove();
+
   const editBox = document.createElement('div');
-  editBox.className = 'list-item';
+  editBox.className = 'list-item edit-siswa-box';
   editBox.style.background = 'var(--bg-alt)';
   editBox.innerHTML = `
-    <div class="field" style="margin-bottom:8px;"><label>Nama</label><input type="text" id="editSiswaNama" value="${escapeHtml(nama)}"></div>
+    <div class="field" style="margin-bottom:8px;"><label>Nama</label><input type="text" class="editSiswaNamaInput" value="${escapeHtml(nama)}"></div>
     <div class="field" style="margin-bottom:8px;max-width:140px;"><label>L/P</label>
-      <select id="editSiswaJk">
+      <select class="editSiswaJkInput">
         <option value="" ${jk===''?'selected':''}>-</option>
         <option value="L" ${jk==='L'?'selected':''}>L</option>
         <option value="P" ${jk==='P'?'selected':''}>P</option>
       </select></div>
+    <div id="editSiswaBanner"></div>
     <div class="row">
-      <button class="btn btn-solid btn-sm" id="btnSimpanEditSiswa">Simpan</button>
-      <button class="btn btn-outline btn-sm" id="btnBatalEditSiswa">Batal</button>
+      <button class="btn btn-solid btn-sm" data-act="simpan-edit">Simpan</button>
+      <button class="btn btn-outline btn-sm" data-act="batal-edit">Batal</button>
     </div>`;
   wrap.prepend(editBox);
-  document.getElementById('btnBatalEditSiswa').addEventListener('click', () => loadSiswaList(kelasId));
-  document.getElementById('btnSimpanEditSiswa').addEventListener('click', async () => {
-    const namaBaru = document.getElementById('editSiswaNama').value.trim();
-    const jkBaru = document.getElementById('editSiswaJk').value;
-    if(!namaBaru) return;
-    await db.collection('siswa').doc(siswaId).update({ nama: namaBaru, jk: jkBaru });
-    loadSiswaList(kelasId);
+  const inputNama = editBox.querySelector('.editSiswaNamaInput');
+  const inputJk = editBox.querySelector('.editSiswaJkInput');
+  const banner = editBox.querySelector('#editSiswaBanner');
+
+  editBox.querySelector('[data-act="batal-edit"]').addEventListener('click', () => loadSiswaList(kelasId));
+  editBox.querySelector('[data-act="simpan-edit"]').addEventListener('click', async () => {
+    const namaBaru = inputNama.value.trim();
+    const jkBaru = inputJk.value;
+    if(!namaBaru){ bannerErr(banner, 'Nama tidak boleh kosong.'); return; }
+    try{
+      await db.collection('siswa').doc(siswaId).update({ nama: namaBaru, jk: jkBaru });
+      loadSiswaList(kelasId);
+    }catch(err){
+      bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
+    }
   });
 }
 
@@ -629,7 +643,7 @@ async function muatAbsen(){
   if(!kelasId || !tanggal){ alert('Pilih kelas dan tanggal dahulu.'); return; }
   box.innerHTML = '<div class="loading">Memuat…</div>';
   try{
-    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get();
+    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('nama').get();
     if(siswaSnap.empty){ box.innerHTML = '<div class="empty">Belum ada siswa di kelas ini. Tambahkan lewat tab "Kelas & Siswa".</div>'; return; }
     const pertemuanId = `${kelasId}_${tanggal}`;
     const pertemuanDoc = await db.collection('pertemuan').doc(pertemuanId).get();
@@ -695,7 +709,7 @@ async function muatNilai(){
   if(!kelasId){ alert('Pilih kelas dahulu.'); return; }
   box.innerHTML = '<div class="loading">Memuat…</div>';
   try{
-    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get();
+    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('nama').get();
     if(siswaSnap.empty){ box.innerHTML = '<div class="empty">Belum ada siswa di kelas ini.</div>'; return; }
     const nilaiSnap = await db.collection('nilai').where('kelasId','==',kelasId).where('tp','==',tp).get();
     const nilaiMap = {};
@@ -851,7 +865,7 @@ async function tarikDataAbsensiKeJurnal(){
       return;
     }
     const pertemuan = pertemuanDoc.data();
-    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('urutan').get();
+    const siswaSnap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('nama').get();
     const kehadiran = pertemuan.kehadiran || {};
     const tidakHadir = [];
     let s=0, i=0, a=0;
