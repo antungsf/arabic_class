@@ -1060,6 +1060,7 @@ async function loadHasilAdmin(){
     });
     html += '</tbody></table>';
     box.innerHTML = html;
+    state.lastHasilRows = rows;
     box.querySelectorAll('tr.clickable').forEach(tr => {
       tr.addEventListener('click', () => bukaHasilDetail(tr.dataset.id, rows.find(r=>r.id===tr.dataset.id)));
     });
@@ -1068,33 +1069,121 @@ async function loadHasilAdmin(){
   }
 }
 
-function bukaHasilDetail(id, r){
+document.getElementById('btnDownloadHasil').addEventListener('click', () => {
+  const rows = state.lastHasilRows || [];
+  if(!rows.length){ alert('Tidak ada data untuk didownload.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('Modul Excel gagal dimuat, coba lagi saat koneksi stabil.'); return; }
+
+  const statusLabel = {
+    berlangsung:'Sedang Berlangsung', belum_dinilai:'Belum Dinilai',
+    sudah_dinilai:'Sudah Dinilai', didiskualifikasi:'Didiskualifikasi'
+  };
+  const data = rows.map(r => ({
+    Nama: r.namaSiswa,
+    Kelas: r.kelas + (r.kelasAbsensiNama ? ' · '+r.kelasAbsensiNama : ''),
+    Materi: r.topikNama,
+    Waktu: r.waktuSubmit && r.waktuSubmit.toDate ? r.waktuSubmit.toDate().toLocaleString('id-ID') : (r.status==='berlangsung' ? 'Sedang mengerjakan' : '-'),
+    Status: statusLabel[r.status] || r.status,
+    Pelanggaran: r.pelanggaran || 0,
+    Nilai: r.nilai ?? '-',
+    Catatan: r.catatanGuru || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:22},{wch:16},{wch:22},{wch:20},{wch:16},{wch:11},{wch:8},{wch:26}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Hasil Ujian');
+  const tgl = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `hasil-ujian-${tgl}.xlsx`);
+});
+
+async function bukaHasilDetail(id, r){
   state.hasilOpenId = id;
+  renderModal(`<h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3><div class="loading">Memuat &amp; mengoreksi jawaban…</div>`);
+
+  const daftarJawaban = r.jawaban || [];
+  // ambil data soal terbaru (kunci jawaban) untuk tiap soal pilihan ganda, guna auto-koreksi
+  const soalIds = [...new Set(daftarJawaban.filter(j => j.tipe === 'pilihan_ganda').map(j => j.soalId))];
+  const soalMap = {};
+  try{
+    const hasilFetch = await Promise.all(soalIds.map(sid => db.collection('soal').doc(sid).get()));
+    hasilFetch.forEach(doc => { if(doc.exists) soalMap[doc.id] = doc.data(); });
+  }catch(err){ /* kalau gagal, biarkan tanpa auto-koreksi untuk soal itu */ }
+
+  let jumlahBenarPG = 0, jumlahSoalPG = 0, jumlahEsai = 0;
   let jawabanHtml = '';
-  (r.jawaban||[]).forEach((j, i) => {
-    jawabanHtml += `<div class="list-item">
-      <div class="meta">Soal ${i+1} (${j.tipe==='pilihan_ganda'?'Pilihan Ganda':'Esai'})</div>
-      <h4>${escapeHtml(j.pertanyaan)}</h4>
-      <div><b>Jawaban:</b> ${escapeHtml(String(j.jawabanSiswa ?? '-'))}</div>
-    </div>`;
+  daftarJawaban.forEach((j, i) => {
+    if(j.tipe === 'pilihan_ganda'){
+      jumlahSoalPG++;
+      const soalAsli = soalMap[j.soalId];
+      const kunci = soalAsli ? soalAsli.jawabanBenar : null;
+      let statusHtml;
+      if(kunci){
+        const benar = j.jawabanSiswa === kunci;
+        if(benar) jumlahBenarPG++;
+        statusHtml = benar
+          ? `<span class="badge badge-done">&check; Benar</span>`
+          : `<span class="badge badge-danger">&cross; Salah &middot; Kunci: ${escapeHtml(kunci)}</span>`;
+      } else {
+        statusHtml = `<span class="hint">(kunci jawaban tidak tersedia / soal sudah dihapus)</span>`;
+      }
+      jawabanHtml += `<div class="list-item">
+        <div class="meta">Soal ${i+1} (Pilihan Ganda) ${statusHtml}</div>
+        <h4>${escapeHtml(j.pertanyaan)}</h4>
+        <div><b>Jawaban siswa:</b> ${escapeHtml(String(j.jawabanSiswa ?? '-'))}</div>
+      </div>`;
+    } else {
+      jumlahEsai++;
+      jawabanHtml += `<div class="list-item">
+        <div class="meta">Soal ${i+1} (Esai) <span class="badge badge-wait">Nilai manual</span></div>
+        <h4>${escapeHtml(j.pertanyaan)}</h4>
+        <div><b>Jawaban:</b> ${escapeHtml(String(j.jawabanSiswa ?? '-'))}</div>
+      </div>`;
+    }
   });
+
+  const skorPG = jumlahSoalPG ? Math.round((jumlahBenarPG / jumlahSoalPG) * 100) : null;
+  let ringkasanSkor = '';
+  if(jumlahSoalPG && !jumlahEsai){
+    ringkasanSkor = `<div class="banner banner-ok">Skor otomatis (Pilihan Ganda): <b>${jumlahBenarPG}/${jumlahSoalPG} benar = ${skorPG}</b>. Sudah diisi otomatis ke kolom Nilai di bawah, boleh disesuaikan.</div>`;
+  } else if(jumlahSoalPG && jumlahEsai){
+    ringkasanSkor = `<div class="banner banner-ok">Skor otomatis Pilihan Ganda: <b>${jumlahBenarPG}/${jumlahSoalPG} benar (${skorPG})</b>. Ada ${jumlahEsai} soal esai — baca &amp; nilai manual, lalu sesuaikan Nilai akhir di bawah (kolom Nilai baru diisi skor PG saja sebagai referensi awal).</div>`;
+  } else if(jumlahEsai){
+    ringkasanSkor = `<div class="banner banner-error">Semua ${jumlahEsai} soal esai — nilai manual sepenuhnya, tidak ada auto-koreksi.</div>`;
+  }
+
+  const nilaiAwal = r.nilai ?? (skorPG !== null ? skorPG : '');
+
   renderModal(`
     <h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3>
     <p class="hint">Kelas ${escapeHtml(r.kelas)} · ${escapeHtml(r.topikNama)}</p>
     ${r.status === 'didiskualifikasi' ? `<div class="banner banner-error">⚠️ Siswa ini <b>didiskualifikasi</b> otomatis oleh sistem karena terdeteksi meninggalkan halaman ujian ${r.pelanggaran||0}x.</div>` : (r.pelanggaran ? `<div class="banner banner-error">Terdeteksi ${r.pelanggaran}x meninggalkan halaman ujian (di bawah batas diskualifikasi).</div>` : '')}
+    ${ringkasanSkor}
     <div style="max-height:280px;overflow:auto;margin-bottom:16px;">${jawabanHtml}</div>
     <div class="field"><label>Nilai</label>
-      <input type="number" id="mNilai" min="0" max="100" value="${r.nilai ?? ''}"></div>
+      <input type="number" id="mNilai" min="0" max="100" value="${nilaiAwal}"></div>
     <div class="field"><label>Catatan untuk siswa (opsional)</label>
       <textarea id="mCatatan">${escapeHtml(r.catatanGuru||'')}</textarea></div>
     <div id="mHasilBanner"></div>
     <div class="row">
       <button class="btn btn-solid" id="mSimpanNilai">Simpan Penilaian</button>
       <button class="btn btn-outline" id="mCancel">Tutup</button>
+      <button class="btn btn-danger btn-sm" id="mHapusHasil">Hapus Data Ini</button>
     </div>
   `);
   document.getElementById('mCancel').addEventListener('click', closeModal);
   document.getElementById('mSimpanNilai').addEventListener('click', simpanNilai);
+  document.getElementById('mHapusHasil').addEventListener('click', () => hapusHasilUjian(id, r.namaSiswa));
+}
+
+async function hapusHasilUjian(id, nama){
+  if(!confirm(`Hapus data hasil ujian atas nama "${nama}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+  try{
+    await db.collection('hasil_ujian').doc(id).delete();
+    closeModal();
+    loadHasilAdmin();
+  }catch(err){
+    alert('Gagal menghapus: ' + err.message);
+  }
 }
 
 async function simpanNilai(){

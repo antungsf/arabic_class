@@ -380,15 +380,18 @@
 
     <!-- Tab: Hasil -->
     <div id="tabHasil" class="hidden">
-      <div class="field" style="max-width:280px;">
-        <label>Filter Status</label>
-        <select id="filterStatusHasil">
-          <option value="semua">Semua</option>
-          <option value="berlangsung">Sedang Berlangsung</option>
-          <option value="belum_dinilai">Belum Dinilai</option>
-          <option value="sudah_dinilai">Sudah Dinilai</option>
-          <option value="didiskualifikasi">Didiskualifikasi</option>
-        </select>
+      <div class="row" style="align-items:flex-end;">
+        <div class="field" style="max-width:280px;">
+          <label>Filter Status</label>
+          <select id="filterStatusHasil">
+            <option value="semua">Semua</option>
+            <option value="berlangsung">Sedang Berlangsung</option>
+            <option value="belum_dinilai">Belum Dinilai</option>
+            <option value="sudah_dinilai">Sudah Dinilai</option>
+            <option value="didiskualifikasi">Didiskualifikasi</option>
+          </select>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnDownloadHasil">Download Excel</button>
       </div>
       <div id="hasilAdminList"><div class="loading">Memuat…</div></div>
     </div>
@@ -404,6 +407,7 @@
 <!-- ============ FIREBASE ============ -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
 /* =========================================================================
