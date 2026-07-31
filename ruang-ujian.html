@@ -387,7 +387,11 @@
     <!-- Tab: Hasil -->
     <div id="tabHasil" class="hidden">
       <div class="row" style="align-items:flex-end;">
-        <div class="field" style="max-width:280px;">
+        <div class="field" style="max-width:220px;">
+          <label>Filter Kelas</label>
+          <select id="filterKelasHasil"><option value="semua">Semua Kelas</option></select>
+        </div>
+        <div class="field" style="max-width:220px;">
           <label>Filter Status</label>
           <select id="filterStatusHasil">
             <option value="semua">Semua</option>
@@ -398,6 +402,7 @@
           </select>
         </div>
         <button class="btn btn-outline btn-sm" id="btnDownloadHasil">Download Excel</button>
+        <button class="btn btn-danger btn-sm" id="btnHapusSemuaHasil">Hapus Semua (sesuai filter)</button>
       </div>
       <div id="hasilAdminList"><div class="loading">Memuat…</div></div>
     </div>

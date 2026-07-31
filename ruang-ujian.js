@@ -95,7 +95,7 @@ async function loadTopikSiswa(kelas){
 }
 
 function bukaTopik(id, d){
-  state.topik = {id, nama:d.nama, kelas:d.kelas};
+  state.topik = {id, nama:d.nama, kelas:d.kelas, tpTerhubung:d.tpTerhubung||null};
   document.getElementById('namaEyebrow').textContent = 'Kelas ' + d.kelas + ' · ' + d.nama;
   document.getElementById('namaTitle').textContent = 'Mulai: ' + d.nama;
   resetLangkahNama();
@@ -424,10 +424,28 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
       tipe: s.tipe,
       jawabanSiswa: state.jawaban[s.id]
     }));
+
+    // koreksi otomatis untuk soal pilihan ganda (data jawabanBenar sudah ada di state.soalList)
+    let jumlahBenarPG = 0, jumlahSoalPG = 0, adaEsai = false;
+    state.soalList.forEach(s => {
+      if(s.tipe === 'pilihan_ganda'){
+        jumlahSoalPG++;
+        if(state.jawaban[s.id] === s.jawabanBenar) jumlahBenarPG++;
+      } else {
+        adaEsai = true;
+      }
+    });
+    const skorPGOtomatis = jumlahSoalPG ? Math.round((jumlahBenarPG / jumlahSoalPG) * 100) : null;
+
     const payload = {
       jawaban: jawabanArr,
       waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
-      status: 'belum_dinilai',
+      // langsung "Sudah Dinilai" kalau semua soal pilihan ganda (tanpa esai) — guru tidak perlu input manual
+      status: adaEsai ? 'belum_dinilai' : (jumlahSoalPG ? 'sudah_dinilai' : 'belum_dinilai'),
+      nilai: adaEsai ? null : skorPGOtomatis,
+      skorPGOtomatis,
+      jumlahBenarPG,
+      jumlahSoalPG,
       pelanggaran: state.jumlahPelanggaran
     };
     if(state.hasilUjianId){
@@ -436,8 +454,12 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
       // fallback kalau entri awal gagal dibuat tadi
       await db.collection('hasil_ujian').add({
         topikId: state.topik.id, topikNama: state.topik.nama, kelas: state.topik.kelas,
-        namaSiswa: state.namaSiswa, nilai:null, catatanGuru:null, ...payload
+        namaSiswa: state.namaSiswa, catatanGuru:null, ...payload
       });
+    }
+    // kalau materi ini terhubung ke TP dan sudah otomatis dinilai (semua pilihan ganda), sinkron ke Absensi
+    if(payload.status === 'sudah_dinilai' && state.topik.tpTerhubung){
+      sinkronNilaiKeAbsensi(state.kelasAbsensiId, state.siswaTerpilihId, state.topik.tpTerhubung, payload.nilai);
     }
     state.ujianSelesai = true;
     nonaktifkanPengawasanUjian();
@@ -470,6 +492,7 @@ auth.onAuthStateChanged(user => {
     document.getElementById('adminWhoami').textContent = user.email;
     loadTopikAdmin();
     loadSelectTopikSoal();
+    loadFilterKelasHasil();
     loadHasilAdmin();
   } else {
     document.getElementById('viewLogin').classList.remove('hidden');
@@ -521,7 +544,7 @@ async function loadTopikAdmin(){
       item.innerHTML = `
         <div class="list-item-head">
           <div>
-            <h4>${escapeHtml(d.nama)} <span class="badge ${d.aktif?'badge-done':'badge-wait'}">${d.aktif?'Aktif':'Nonaktif'}</span></h4>
+            <h4>${escapeHtml(d.nama)} <span class="badge ${d.aktif?'badge-done':'badge-wait'}">${d.aktif?'Aktif':'Nonaktif'}</span>${d.tpTerhubung ? ` <span class="badge badge-done" style="background:#eaf5ee;">→ ${escapeHtml(d.tpTerhubung)}</span>` : ''}</h4>
             <div class="meta">Kelas ${d.kelas} · urutan ${d.urutan ?? '-'} · ${escapeHtml(d.deskripsi||'')}</div>
           </div>
           <div>
@@ -560,6 +583,20 @@ function openTopikModal(id, d){
     <div class="field">
       <label><input type="checkbox" id="mTopikAktif" ${d.aktif!==false?'checked':''} style="width:auto;margin-right:8px;">Tampilkan ke siswa (aktif)</label>
     </div>
+    <div class="field"><label>Kirim nilai otomatis ke Absensi &amp; Nilai sebagai <span class="hint">(opsional)</span></label>
+      <select id="mTopikTP">
+        <option value="">Tidak terhubung — nilai cukup di Ruang Ujian saja</option>
+        <option value="TP1" ${d.tpTerhubung==='TP1'?'selected':''}>TP1</option>
+        <option value="TP2" ${d.tpTerhubung==='TP2'?'selected':''}>TP2</option>
+        <option value="TP3" ${d.tpTerhubung==='TP3'?'selected':''}>TP3</option>
+        <option value="TP4" ${d.tpTerhubung==='TP4'?'selected':''}>TP4</option>
+        <option value="TP5" ${d.tpTerhubung==='TP5'?'selected':''}>TP5</option>
+        <option value="TP6" ${d.tpTerhubung==='TP6'?'selected':''}>TP6</option>
+        <option value="TP7" ${d.tpTerhubung==='TP7'?'selected':''}>TP7</option>
+        <option value="TP8" ${d.tpTerhubung==='TP8'?'selected':''}>TP8</option>
+      </select>
+      <p class="hint">Kalau dipilih, nilai hasil ujian materi ini otomatis masuk ke Rekap Nilai TP di menu Absensi &amp; Nilai — guru tidak perlu input ulang manual.</p>
+    </div>
     <div id="mTopikBanner"></div>
     <div class="row">
       <button class="btn btn-solid" id="mTopikSimpan">Simpan</button>
@@ -579,7 +616,8 @@ async function simpanTopik(){
     nama,
     deskripsi: document.getElementById('mTopikDeskripsi').value.trim(),
     urutan: Number(document.getElementById('mTopikUrutan').value) || 1,
-    aktif: document.getElementById('mTopikAktif').checked
+    aktif: document.getElementById('mTopikAktif').checked,
+    tpTerhubung: document.getElementById('mTopikTP').value || null
   };
   try{
     if(state.editTopikId){
@@ -1024,17 +1062,56 @@ async function hapusSoal(id, topikId){
 
 /* ---- Admin: Hasil Ujian ---- */
 document.getElementById('filterStatusHasil').addEventListener('change', () => loadHasilAdmin());
+document.getElementById('filterKelasHasil').addEventListener('change', () => loadHasilAdmin());
+
+async function loadFilterKelasHasil(){
+  const sel = document.getElementById('filterKelasHasil');
+  try{
+    const snap = await db.collection('kelas_absensi').orderBy('jenjang').orderBy('urutan').get();
+    let opts = '<option value="semua">Semua Kelas</option>';
+    snap.forEach(doc => {
+      const d = doc.data();
+      opts += `<option value="${doc.id}">${escapeHtml(d.jenjang)} · ${escapeHtml(d.nama)}</option>`;
+    });
+    sel.innerHTML = opts;
+  }catch(err){ /* biarkan default */ }
+}
+
+document.getElementById('btnHapusSemuaHasil').addEventListener('click', async () => {
+  const rows = state.lastHasilRows || [];
+  if(!rows.length){ alert('Tidak ada data sesuai filter untuk dihapus.'); return; }
+  const kelasLabel = document.getElementById('filterKelasHasil').selectedOptions[0].textContent;
+  const statusLabel = document.getElementById('filterStatusHasil').selectedOptions[0].textContent;
+  if(!confirm(`Hapus SEMUA ${rows.length} data hasil ujian sesuai filter saat ini?\n\nKelas: ${kelasLabel}\nStatus: ${statusLabel}\n\nTindakan ini tidak bisa dibatalkan.`)) return;
+  const btn = document.getElementById('btnHapusSemuaHasil');
+  btn.disabled = true; btn.textContent = 'Menghapus…';
+  try{
+    const batchSize = 400; // batas aman per batch Firestore (maks 500)
+    for(let i = 0; i < rows.length; i += batchSize){
+      const batch = db.batch();
+      rows.slice(i, i+batchSize).forEach(r => batch.delete(db.collection('hasil_ujian').doc(r.id)));
+      await batch.commit();
+    }
+    loadHasilAdmin();
+  }catch(err){
+    alert('Gagal menghapus: ' + err.message);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Hapus Semua (sesuai filter)';
+  }
+});
 
 async function loadHasilAdmin(){
   const box = document.getElementById('hasilAdminList');
   box.innerHTML = '<div class="loading">Memuat…</div>';
   const filter = document.getElementById('filterStatusHasil').value;
+  const filterKelas = document.getElementById('filterKelasHasil').value;
   try{
     const snap = await db.collection('hasil_ujian').orderBy('waktuSubmit','desc').get();
     let rows = [];
     snap.forEach(doc => rows.push({id:doc.id, ...doc.data()}));
     if(filter !== 'semua') rows = rows.filter(r => r.status === filter);
-    if(!rows.length){ box.innerHTML = '<div class="empty">Belum ada data.</div>'; return; }
+    if(filterKelas !== 'semua') rows = rows.filter(r => r.kelasAbsensiId === filterKelas);
+    if(!rows.length){ box.innerHTML = '<div class="empty">Belum ada data.</div>'; state.lastHasilRows = []; return; }
 
     let html = `<table><thead><tr>
       <th>Nama</th><th>Kelas</th><th>Materi</th><th>Waktu</th><th>Status</th><th>Pelanggaran</th><th>Nilai</th>
@@ -1098,6 +1175,7 @@ document.getElementById('btnDownloadHasil').addEventListener('click', () => {
 
 async function bukaHasilDetail(id, r){
   state.hasilOpenId = id;
+  state.hasilOpenData = r;
   renderModal(`<h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3><div class="loading">Memuat &amp; mengoreksi jawaban…</div>`);
 
   const daftarJawaban = r.jawaban || [];
@@ -1190,12 +1268,24 @@ async function simpanNilai(){
   const banner = document.getElementById('mHasilBanner');
   const nilai = document.getElementById('mNilai').value;
   const catatan = document.getElementById('mCatatan').value.trim();
+  const nilaiNum = nilai === '' ? null : Number(nilai);
   try{
     await db.collection('hasil_ujian').doc(state.hasilOpenId).update({
-      nilai: nilai === '' ? null : Number(nilai),
+      nilai: nilaiNum,
       catatanGuru: catatan || null,
       status: 'sudah_dinilai'
     });
+
+    // sinkron ke Absensi kalau materi ujian ini terhubung ke salah satu TP
+    const r = state.hasilOpenData;
+    if(r && r.topikId && r.kelasAbsensiId && r.siswaId && nilaiNum !== null){
+      try{
+        const topikDoc = await db.collection('topik').doc(r.topikId).get();
+        const tp = topikDoc.exists ? topikDoc.data().tpTerhubung : null;
+        if(tp) await sinkronNilaiKeAbsensi(r.kelasAbsensiId, r.siswaId, tp, nilaiNum);
+      }catch(e){ /* jangan hentikan alur utama kalau sinkronisasi gagal */ }
+    }
+
     closeModal();
     loadHasilAdmin();
   }catch(err){
@@ -1214,6 +1304,16 @@ function renderModal(inner){
   });
 }
 function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+
+async function sinkronNilaiKeAbsensi(kelasAbsensiId, siswaId, tp, nilai){
+  if(!kelasAbsensiId || !siswaId || !tp || nilai === null || nilai === undefined) return;
+  try{
+    const tanggal = new Date().toISOString().slice(0,10);
+    await db.collection('nilai').doc(`${kelasAbsensiId}_${siswaId}_${tp}`).set({
+      kelasId: kelasAbsensiId, siswaId, tp, nilai: Number(nilai), tanggal, sumber: 'ruang_ujian'
+    }, {merge:true});
+  }catch(err){ /* jangan hentikan alur utama kalau sinkronisasi gagal */ }
+}
 
 function escapeHtml(str){
   return String(str)
