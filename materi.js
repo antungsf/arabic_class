@@ -21,6 +21,12 @@ function escapeHtml(str){
 function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}</div>`; }
 function bannerErr(el, msg){ el.innerHTML = `<div class="banner banner-error">${msg}</div>`; }
 
+// PERBAIKAN #2: validasi link harus http:// atau https:// sebelum dipakai di manapun.
+// Ini mencegah link seperti "javascript:alert(1)" atau skema aneh lain tersimpan ke database.
+function isLinkAman(url){
+  return /^https?:\/\//i.test(String(url || '').trim());
+}
+
 function showPublicView(id){
   document.querySelectorAll('#publicApp > div').forEach(el => el.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
@@ -28,32 +34,44 @@ function showPublicView(id){
 }
 
 /* ---------------- STUDENT ---------------- */
-document.querySelectorAll('#viewKelas .card').forEach(card => {
-  card.addEventListener('click', () => {
-    state.kelas = card.dataset.kelas;
-    document.getElementById('semEyebrow').textContent = 'Kelas ' + state.kelas;
-    showPublicView('viewSemester');
+
+// PERBAIKAN #4: kartu pilihan (kelas/semester/skill) sekarang bisa diakses via keyboard.
+// Fungsi ini menambahkan role="button", tabindex="0", dan event keydown (Enter/Space)
+// ke semua elemen .card yang ditemukan, lalu memanggil callback yang sama seperti klik mouse.
+function jadikanCardAccessible(selector, onActivate){
+  document.querySelectorAll(selector).forEach(card => {
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.addEventListener('click', () => onActivate(card));
+    card.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        onActivate(card);
+      }
+    });
   });
+}
+
+jadikanCardAccessible('#viewKelas .card', (card) => {
+  state.kelas = card.dataset.kelas;
+  document.getElementById('semEyebrow').textContent = 'Kelas ' + state.kelas;
+  showPublicView('viewSemester');
 });
 document.getElementById('crumbKelas').addEventListener('click', () => showPublicView('viewKelas'));
 
-document.querySelectorAll('#viewSemester .card').forEach(card => {
-  card.addEventListener('click', () => {
-    state.semester = card.dataset.sem;
-    document.getElementById('skillEyebrow').textContent = `Kelas ${state.kelas} · Semester ${state.semester}`;
-    showPublicView('viewSkill');
-  });
+jadikanCardAccessible('#viewSemester .card', (card) => {
+  state.semester = card.dataset.sem;
+  document.getElementById('skillEyebrow').textContent = `Kelas ${state.kelas} · Semester ${state.semester}`;
+  showPublicView('viewSkill');
 });
 document.getElementById('crumbSemester').addEventListener('click', () => showPublicView('viewSemester'));
 
-document.querySelectorAll('#viewSkill .card').forEach(card => {
-  card.addEventListener('click', () => {
-    state.skill = card.dataset.skill;
-    document.getElementById('materiEyebrow').textContent = `Kelas ${state.kelas} · Semester ${state.semester}`;
-    document.getElementById('materiTitle').textContent = SKILL_LABEL[state.skill];
-    showPublicView('viewMateriList');
-    loadMateriSiswa();
-  });
+jadikanCardAccessible('#viewSkill .card', (card) => {
+  state.skill = card.dataset.skill;
+  document.getElementById('materiEyebrow').textContent = `Kelas ${state.kelas} · Semester ${state.semester}`;
+  document.getElementById('materiTitle').textContent = SKILL_LABEL[state.skill];
+  showPublicView('viewMateriList');
+  loadMateriSiswa();
 });
 document.getElementById('crumbSkill').addEventListener('click', () => showPublicView('viewSkill'));
 
@@ -88,8 +106,13 @@ async function loadMateriSiswa(){
       const d = doc.data();
       const ytId = d.tipe === 'video' ? ambilYoutubeId(d.link) : null;
 
+      // PERBAIKAN #2: kalau link tidak diawali http/https, lewati item ini (jangan dirender)
+      // supaya tidak ada skema aneh (javascript:, data:, dll) yang bisa dipakai siswa.
+      if(!ytId && !isLinkAman(d.link)){
+        return;
+      }
+
       if(ytId){
-        // video YouTube: tampilkan tombol Putar, embed player tertanam (tanpa buka tab/situs YouTube)
         const wrap = document.createElement('div');
         wrap.className = 'materi-item';
         wrap.style.cursor = 'pointer';
@@ -133,6 +156,9 @@ async function loadMateriSiswa(){
         box.appendChild(item);
       }
     });
+    if(!box.children.length){
+      box.innerHTML = '<div class="empty">Belum ada materi untuk Maharah ini.</div>';
+    }
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat materi. ${escapeHtml(err.message)}</div>`;
   }
@@ -197,7 +223,7 @@ async function loadMateriAdmin(){
         <div class="list-item-head">
           <div>
             <h4 style="margin:0 0 4px;font-size:14px;font-family:'Poppins',sans-serif;color:var(--green-deep);">${escapeHtml(d.judul)}</h4>
-            <div class="hint">${TIPE_LABEL[d.tipe] || d.tipe} · urutan ${d.urutan ?? '-'} · <a href="${d.link}" target="_blank" style="text-decoration:underline;">buka link</a></div>
+            <div class="hint">${TIPE_LABEL[d.tipe] || d.tipe} · urutan ${d.urutan ?? '-'} · <a href="${escapeHtml(d.link)}" target="_blank" style="text-decoration:underline;">buka link</a></div>
           </div>
           <div>
             <button class="icon-btn" data-act="edit">Edit</button>
@@ -229,7 +255,8 @@ function openMateriModal(id, d){
         <option value="dokumen" ${tipe==='dokumen'?'selected':''}>Dokumen</option>
       </select></div>
     <div class="field"><label>Link (YouTube / Google Drive / lainnya)</label>
-      <input type="text" id="mLink" value="${escapeHtml(d.link||'')}" placeholder="https://..."></div>
+      <input type="text" id="mLink" value="${escapeHtml(d.link||'')}" placeholder="https://...">
+      <div class="hint">Harus diawali dengan http:// atau https://</div></div>
     <div class="field"><label>Urutan tampil</label>
       <input type="number" id="mUrutan" value="${d.urutan ?? 1}"></div>
     <div id="mMateriBanner"></div>
@@ -247,6 +274,13 @@ async function simpanMateri(){
   const link = document.getElementById('mLink').value.trim();
   if(!judul){ bannerErr(banner, 'Judul wajib diisi.'); return; }
   if(!link){ bannerErr(banner, 'Link wajib diisi.'); return; }
+
+  // PERBAIKAN #2: tolak simpan kalau link bukan http:// atau https://
+  if(!isLinkAman(link)){
+    bannerErr(banner, 'Link harus diawali dengan http:// atau https://');
+    return;
+  }
+
   const payload = {
     kelas: document.getElementById('aKelas').value,
     semester: document.getElementById('aSemester').value,
@@ -291,10 +325,8 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 
   function tampilkanTombolAdmin(){ btn.classList.add("tampak"); }
 
-  // cara 1: buka lewat URL ...#admin (bisa di-bookmark)
   if(window.location.hash === "#admin") tampilkanTombolAdmin();
 
-  // cara 2: tap/klik logo header 5x berturut-turut dalam 3 detik
   if(logo){
     let jumlahTap = 0, timerReset = null;
     logo.style.cursor = "default";
@@ -309,4 +341,3 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
     });
   }
 })();
-
