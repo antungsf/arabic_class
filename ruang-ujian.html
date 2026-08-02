@@ -190,11 +190,16 @@
   <div id="viewUjian" class="hidden">
     <span class="eyebrow" id="ujianEyebrow">Materi</span>
     <h1 id="ujianTitle">Soal</h1>
-    <p class="lead">Jawab semua soal di bawah ini, lalu klik kumpulkan. <b>Jangan tinggalkan halaman ini</b> — sistem mendeteksi kalau kamu pindah tab/app selama ujian berlangsung.</p>
+    <p class="lead">Jawab soal ini, lalu klik "Berikutnya". <b>Jangan tinggalkan halaman ini</b> — sistem mendeteksi kalau kamu pindah tab/app selama ujian berlangsung.</p>
     <div id="pelanggaranBanner"></div>
     <div id="banner"></div>
+    <div id="soalProgress" class="hint" style="margin-bottom:10px;font-weight:700;"></div>
     <div id="soalList"><div class="loading">Memuat soal…</div></div>
-    <button class="btn btn-gold" id="btnKumpulkan">Kumpulkan Jawaban</button>
+    <div class="row" style="justify-content:space-between;margin-top:16px;">
+      <button class="btn btn-outline hidden" id="btnSoalSebelumnya">&larr; Sebelumnya</button>
+      <button class="btn btn-solid" id="btnSoalBerikutnya" style="margin-left:auto;">Berikutnya &rarr;</button>
+      <button class="btn btn-gold hidden" id="btnKumpulkan" style="margin-left:auto;">Kumpulkan Jawaban</button>
+    </div>
   </div>
 
   <!-- View: didiskualifikasi -->
@@ -341,47 +346,6 @@
 
       <p class="lead" style="margin:0 0 10px;">Daftar jadwal ujian (klik untuk edit).</p>
       <div id="jwDaftarJadwal"><div class="loading">Memuat…</div></div>
-    </div>
-
-    <!-- Tab: Jadwal Ujian -->
-    <div id="tabJadwal" class="hidden">
-      <p class="lead" style="margin:0 0 16px;">Setiap materi ujian <b>wajib</b> punya jadwal &amp; target peserta sebelum bisa diakses siswa.</p>
-
-      <div class="list-item" style="margin-bottom:20px;">
-        <h4 id="jadwalFormTitle" style="margin-bottom:12px;">Buat Jadwal Baru</h4>
-        <div class="field" style="max-width:420px;"><label>Materi/Topik</label>
-          <select id="jMateriSelect"></select>
-        </div>
-        <div class="field"><label>Nama Sesi (opsional)</label>
-          <input type="text" id="jNamaSesi" placeholder="Contoh: Ujian Reguler, Remedial Kelompok A, Susulan Individu"></div>
-        <div class="row">
-          <div class="field" style="max-width:160px;"><label>Tanggal</label><input type="date" id="jTanggalUjian"></div>
-          <div class="field" style="max-width:140px;"><label>Jam Mulai</label><input type="time" id="jJamMulaiUjian"></div>
-          <div class="field" style="max-width:140px;"><label>Jam Selesai</label><input type="time" id="jJamSelesaiUjian"></div>
-        </div>
-
-        <div class="field">
-          <label>Target: Seluruh Siswa di Kelas Ini (centang 1 atau lebih)</label>
-          <div id="jTargetKelasList" class="hint">Memuat daftar kelas…</div>
-        </div>
-
-        <div class="field">
-          <label>Target: Individu / Grup Tambahan (bisa lintas kelas)</label>
-          <input type="text" id="jCariSiswa" placeholder="Cari nama siswa (min. 2 huruf)…" autocomplete="off">
-          <div id="jHasilCariSiswa"></div>
-          <div id="jDaftarTerpilih" style="margin-top:8px;"></div>
-        </div>
-
-        <div id="jadwalBanner"></div>
-        <div class="row">
-          <button class="btn btn-solid" id="btnSimpanJadwalUjian">Simpan Jadwal</button>
-          <button class="btn btn-outline btn-sm" id="btnBatalEditJadwal" style="display:none;">Batal Edit / Baru</button>
-          <button class="btn btn-danger btn-sm" id="btnHapusJadwalUjian" style="display:none;">Hapus Jadwal Ini</button>
-        </div>
-      </div>
-
-      <p class="lead" style="margin:0 0 10px;">Daftar jadwal ujian (klik untuk edit):</p>
-      <div id="daftarJadwalUjian"><div class="loading">Memuat…</div></div>
     </div>
 
     <!-- Tab: Hasil -->
