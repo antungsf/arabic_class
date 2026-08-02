@@ -102,17 +102,27 @@
   .quran-bar .qicon{width:22px;height:22px;flex-shrink:0;}
   .quran-bar .arrow{margin-left:auto;font-size:17px;}
 
-  .survey-bar{
-    max-width:1180px;margin:12px auto 0;padding:16px 22px;
-    background:rgba(255,255,255,.06);border:1.5px solid var(--gold);color:#fff;
-    border-radius:6px;display:flex;align-items:center;gap:12px;
-    font-family:'Poppins',sans-serif;font-weight:700;font-size:14.5px;
-    transition:background .2s,transform .15s;
+  .mufradat-widget{
+    max-width:1180px;margin:12px auto 0;padding:20px 22px 16px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(234,182,40,.35);
+    border-radius:10px;
   }
-  .survey-bar:hover{background:rgba(234,182,40,.14);transform:translateY(-1px);}
-  .survey-bar .qicon{width:22px;height:22px;flex-shrink:0;color:var(--gold);}
-  .survey-bar .arrow{margin-left:auto;font-size:17px;color:var(--gold);}
-  .survey-bar .st2{font-size:12px;font-weight:500;color:#b9c8c2;display:block;margin-top:2px;}
+  .mufradat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .mw-label{font-family:'Poppins',sans-serif;font-weight:800;font-size:15px;color:#fff;}
+  .mw-sub{font-size:12px;color:#b9c8c2;}
+  .mufradat-list{display:flex;flex-direction:column;gap:2px;}
+  .mufradat-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .mufradat-row:last-child{border-bottom:none;}
+  .mw-arab{font-family:'Poppins',sans-serif;font-size:19px;font-weight:700;color:var(--gold);direction:rtl;}
+  .mw-indo{font-size:13.5px;color:#dce9e2;text-align:right;}
+  .mw-loading, .mw-empty{padding:14px 4px;font-size:12.5px;color:#b9c8c2;}
+  @media (max-width:520px){
+    .mw-arab{font-size:17px;}
+    .mw-indo{font-size:12.5px;}
+  }
 
   .prayer-widget{
     max-width:1180px;margin:12px auto 0;padding:20px 22px 18px;
@@ -354,11 +364,15 @@
     <span class="arrow">&rarr;</span>
   </a>
 
-  <a class="survey-bar" href="kuesioner.html">
-    <svg class="qicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-    <span>Isi Kuesioner Pemetaan Pembelajaran Bahasa Arab<span class="st2">Untuk siswa kelas XI &amp; XII &middot; 4–6 menit</span></span>
-    <span class="arrow">&rarr;</span>
-  </a>
+  <div class="mufradat-widget" id="mufradatWidget">
+    <div class="mufradat-head">
+      <span class="mw-label">Mufradat Hari Ini</span>
+      <span class="mw-sub">Kosakata Bahasa Arab &middot; Fi'il</span>
+    </div>
+    <div class="mufradat-list" id="mufradatList">
+      <div class="mw-loading">Memuat kosakata…</div>
+    </div>
+  </div>
 
   <div class="prayer-widget" id="prayerWidget">
     <div class="prayer-clock-row">
@@ -729,6 +743,30 @@
       statRef.get()
         .then(function(doc){ if(doc.exists) tampilkanTotal(doc.data().total || 0); })
         .catch(function(){ if(counterEl) counterEl.textContent = ''; });
+    }
+
+    // Widget Mufradat Hari Ini: dengar perubahan realtime dari koleksi 'mufradat'
+    // Struktur dokumen: { arab: "ذَهَبَ", indo: "pergi", urutan: 1 }
+    // Admin menambah/mengubah/menghapus data lewat Firebase Console -> Firestore Database -> koleksi "mufradat"
+    function escapeHtmlMufradat(str){
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+    const mufradatBox = document.getElementById('mufradatList');
+    if(mufradatBox){
+      db.collection('mufradat').orderBy('urutan','asc').limit(10).onSnapshot(function(snap){
+        if(snap.empty){
+          mufradatBox.innerHTML = '<div class="mw-empty">Belum ada kosakata. Admin bisa menambahkan lewat Firebase Console (koleksi "mufradat").</div>';
+          return;
+        }
+        let html = '';
+        snap.forEach(function(doc){
+          const d = doc.data();
+          html += '<div class="mufradat-row"><span class="mw-arab">' + escapeHtmlMufradat(d.arab || '') + '</span><span class="mw-indo">' + escapeHtmlMufradat(d.indo || '') + '</span></div>';
+        });
+        mufradatBox.innerHTML = html;
+      }, function(){
+        mufradatBox.innerHTML = '<div class="mw-empty">Gagal memuat kosakata.</div>';
+      });
     }
   }catch(e){ /* biarkan tampilan default (terkunci) kalau Firebase gagal dimuat */ }
 })();
