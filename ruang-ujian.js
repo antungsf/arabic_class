@@ -12,26 +12,24 @@
 
 const state = {
   kelas: null,
-  topik: null,      // {id, nama, kelas}
+  topik: null,
   namaSiswa: "",
-  soalList: [],      // soal aktif yang sedang dikerjakan
-  jawaban: {},       // soalId -> jawaban
+  soalList: [],
+  jawaban: {},
+  soalIndex: 0,
   editTopikId: null,
   editSoalId: null,
   hasilOpenId: null,
   adminTopikCache: [],
-  // integritas ujian
   hasilUjianId: null,
   jumlahPelanggaran: 0,
   ujianSelesai: false,
-  // verifikasi identitas siswa
   siswaTerpilihId: null,
   kelasAbsensiId: null,
   kelasAbsensiNama: null,
   daftarSiswaUjian: [],
-  // Jadwal Ujian (admin)
   jwEditId: null,
-  jwTargetSiswaTerpilih: [], // [{id, nama, kelasNama}]
+  jwTargetSiswaTerpilih: [],
   semuaSiswaCache: null
 };
 const BATAS_PELANGGARAN = 3;
@@ -45,7 +43,6 @@ function showView(id){
 function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}</div>`; }
 function bannerErr(el, msg){ el.innerHTML = `<div class="banner banner-error">${msg}</div>`; }
 
-/* ---------------- STUDENT: pilih kelas ---------------- */
 document.querySelectorAll('#viewKelas .card').forEach(card => {
   card.addEventListener('click', () => {
     state.kelas = card.dataset.kelas;
@@ -220,7 +217,6 @@ async function cekEligibilitasUjian(){
 document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
   if(!state.siswaTerpilihId || !state.namaSiswa){ alert('Pilih namamu dari daftar pencarian dulu ya.'); return; }
 
-  // pengecekan akhir (jaga-jaga kalau waktu berubah sejak pengecekan pertama)
   const btn = document.getElementById('btnMulaiUjian');
   btn.disabled = true; btn.textContent = 'Memeriksa jadwal…';
   try{
@@ -242,7 +238,6 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
   document.getElementById('ujianTitle').textContent = state.topik.nama;
   showView('viewUjian');
 
-  // buat entri hasil_ujian di awal (status: berlangsung), supaya pelanggaran bisa dicatat realtime
   state.jumlahPelanggaran = 0;
   state.ujianSelesai = false;
   try{
@@ -285,66 +280,98 @@ async function loadSoalSiswa(topikId){
   const box = document.getElementById('soalList');
   box.innerHTML = '<div class="loading">Memuat soal…</div>';
   document.getElementById('banner').innerHTML = '';
+  document.getElementById('soalProgress').textContent = '';
   try{
     const snap = await db.collection('soal').where('topikId','==',topikId).orderBy('urutan','asc').get();
     let daftarSoal = [];
     snap.forEach(doc => daftarSoal.push({id:doc.id, ...doc.data()}));
-    daftarSoal = acakArray(daftarSoal); // urutan soal diacak per siswa
+    daftarSoal = acakArray(daftarSoal);
 
     state.soalList = daftarSoal;
     state.jawaban = {};
+    state.soalIndex = 0;
+
     if(!daftarSoal.length){
       box.innerHTML = '<div class="empty">Belum ada soal untuk materi ini.</div>';
-      document.getElementById('btnKumpulkan').disabled = true;
+      document.getElementById('btnSoalSebelumnya').classList.add('hidden');
+      document.getElementById('btnSoalBerikutnya').classList.add('hidden');
+      document.getElementById('btnKumpulkan').classList.add('hidden');
       return;
     }
-    document.getElementById('btnKumpulkan').disabled = false;
-    box.innerHTML = '';
-    let no = 1;
-    daftarSoal.forEach(d => {
-      const block = document.createElement('div');
-      block.className = 'soal-block';
-      let inner = `<div class="soal-no">Soal ${no}</div><p class="soal-text">${escapeHtml(d.pertanyaan)}</p>`;
-      if(d.tipe === 'pilihan_ganda'){
-        const kunciTersedia = ['A','B','C','D','E'].filter(k => d.pilihan && d.pilihan[k]);
-        const kunciAcak = acakArray(kunciTersedia); // urutan pilihan A-E diacak per siswa, jawaban tetap merujuk kunci asli
-        kunciAcak.forEach(k => {
-          inner += `
-            <label class="opsi" data-key="${k}" data-soal="${d.id}">
-              <input type="radio" name="soal_${d.id}" value="${k}">
-              <span>${escapeHtml(d.pilihan[k])}</span>
-            </label>`;
-        });
-      } else {
-        inner += `<textarea class="soal-esai" data-soal="${d.id}" placeholder="Tulis jawaban kamu di sini…"></textarea>`;
-      }
-      block.innerHTML = inner;
-      box.appendChild(block);
-      no++;
-    });
-
-    box.querySelectorAll('.opsi').forEach(opt => {
-      opt.addEventListener('click', () => {
-        const soalId = opt.dataset.soal;
-        box.querySelectorAll(`.opsi[data-soal="${soalId}"]`).forEach(o => o.classList.remove('checked'));
-        opt.classList.add('checked');
-        opt.querySelector('input').checked = true;
-        state.jawaban[soalId] = opt.dataset.key;
-      });
-    });
-    box.querySelectorAll('.soal-esai').forEach(ta => {
-      ta.addEventListener('input', () => { state.jawaban[ta.dataset.soal] = ta.value; });
-    });
+    renderSoalHalaman();
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat soal. ${escapeHtml(err.message)}</div>`;
   }
 }
 
-/* ---------------- Integritas Ujian: fullscreen + deteksi pindah tab/app ---------------- */
+function renderSoalHalaman(){
+  const box = document.getElementById('soalList');
+  const progress = document.getElementById('soalProgress');
+  const total = state.soalList.length;
+  const i = state.soalIndex;
+  const d = state.soalList[i];
+
+  progress.textContent = `Soal ${i + 1} dari ${total}`;
+
+  let inner = `<div class="soal-block"><div class="soal-no">Soal ${i + 1}</div><p class="soal-text">${escapeHtml(d.pertanyaan)}</p>`;
+  if(d.tipe === 'pilihan_ganda'){
+    if(!d._kunciAcak){
+      const kunciTersedia = ['A','B','C','D','E'].filter(k => d.pilihan && d.pilihan[k]);
+      d._kunciAcak = acakArray(kunciTersedia);
+    }
+    d._kunciAcak.forEach(k => {
+      const sudahDipilih = state.jawaban[d.id] === k;
+      inner += `
+        <label class="opsi${sudahDipilih ? ' checked' : ''}" data-key="${k}" data-soal="${d.id}">
+          <input type="radio" name="soal_${d.id}" value="${k}" ${sudahDipilih ? 'checked' : ''}>
+          <span>${escapeHtml(d.pilihan[k])}</span>
+        </label>`;
+    });
+  } else {
+    inner += `<textarea class="soal-esai" data-soal="${d.id}" placeholder="Tulis jawaban kamu di sini…">${escapeHtml(state.jawaban[d.id] || '')}</textarea>`;
+  }
+  inner += `</div>`;
+  box.innerHTML = inner;
+
+  box.querySelectorAll('.opsi').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const soalId = opt.dataset.soal;
+      box.querySelectorAll(`.opsi[data-soal="${soalId}"]`).forEach(o => o.classList.remove('checked'));
+      opt.classList.add('checked');
+      opt.querySelector('input').checked = true;
+      state.jawaban[soalId] = opt.dataset.key;
+    });
+  });
+  box.querySelectorAll('.soal-esai').forEach(ta => {
+    ta.addEventListener('input', () => { state.jawaban[ta.dataset.soal] = ta.value; });
+  });
+
+  const isFirst = (i === 0);
+  const isLast = (i === total - 1);
+  document.getElementById('btnSoalSebelumnya').classList.toggle('hidden', isFirst);
+  document.getElementById('btnSoalBerikutnya').classList.toggle('hidden', isLast);
+  document.getElementById('btnKumpulkan').classList.toggle('hidden', !isLast);
+
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.getElementById('btnSoalBerikutnya').addEventListener('click', () => {
+  if(state.soalIndex < state.soalList.length - 1){
+    state.soalIndex++;
+    renderSoalHalaman();
+  }
+});
+document.getElementById('btnSoalSebelumnya').addEventListener('click', () => {
+  if(state.soalIndex > 0){
+    state.soalIndex--;
+    renderSoalHalaman();
+  }
+});
+
 function mintaFullscreen(){
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-  if(req){ req.call(el).catch(() => { /* browser boleh menolak, tetap lanjut tanpa fullscreen */ }); }
+  if(req){ req.call(el).catch(() => {}); }
 }
 function keluarFullscreen(){
   const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
@@ -369,9 +396,9 @@ function nonaktifkanPengawasanUjian(){
 let waktuPelanggaranTerakhir = 0;
 async function handlePelanggaran(){
   if(state.ujianSelesai) return;
-  if(document.visibilityState === 'visible') return; // cuma proses saat benar-benar meninggalkan/blur
+  if(document.visibilityState === 'visible') return;
   const sekarang = Date.now();
-  if(sekarang - waktuPelanggaranTerakhir < 1500) return; // hindari hitung ganda dari 2 event sekaligus
+  if(sekarang - waktuPelanggaranTerakhir < 1500) return;
   waktuPelanggaranTerakhir = sekarang;
 
   state.jumlahPelanggaran++;
@@ -404,7 +431,7 @@ async function diskualifikasiSiswa(){
         pelanggaran: state.jumlahPelanggaran
       });
     }
-  }catch(err){ /* tetap tampilkan layar diskualifikasi walau update gagal */ }
+  }catch(err){}
   showView('viewDiskualifikasi');
 }
 
@@ -412,7 +439,10 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
   const banner = document.getElementById('banner');
   const belumDijawab = state.soalList.filter(s => !state.jawaban[s.id] || String(state.jawaban[s.id]).trim()==='');
   if(belumDijawab.length){
-    bannerErr(banner, `Masih ada ${belumDijawab.length} soal yang belum dijawab.`);
+    const idxBelum = state.soalList.findIndex(s => !state.jawaban[s.id] || String(state.jawaban[s.id]).trim()==='');
+    state.soalIndex = idxBelum;
+    renderSoalHalaman();
+    bannerErr(banner, `Masih ada ${belumDijawab.length} soal yang belum dijawab. Kamu diarahkan ke soal nomor ${idxBelum + 1}.`);
     return;
   }
   const btn = document.getElementById('btnKumpulkan');
@@ -425,7 +455,6 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
       jawabanSiswa: state.jawaban[s.id]
     }));
 
-    // koreksi otomatis untuk soal pilihan ganda (data jawabanBenar sudah ada di state.soalList)
     let jumlahBenarPG = 0, jumlahSoalPG = 0, adaEsai = false;
     state.soalList.forEach(s => {
       if(s.tipe === 'pilihan_ganda'){
@@ -440,7 +469,6 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
     const payload = {
       jawaban: jawabanArr,
       waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
-      // langsung "Sudah Dinilai" kalau semua soal pilihan ganda (tanpa esai) — guru tidak perlu input manual
       status: adaEsai ? 'belum_dinilai' : (jumlahSoalPG ? 'sudah_dinilai' : 'belum_dinilai'),
       nilai: adaEsai ? null : skorPGOtomatis,
       skorPGOtomatis,
@@ -451,13 +479,11 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
     if(state.hasilUjianId){
       await db.collection('hasil_ujian').doc(state.hasilUjianId).update(payload);
     } else {
-      // fallback kalau entri awal gagal dibuat tadi
       await db.collection('hasil_ujian').add({
         topikId: state.topik.id, topikNama: state.topik.nama, kelas: state.topik.kelas,
         namaSiswa: state.namaSiswa, catatanGuru:null, ...payload
       });
     }
-    // kalau materi ini terhubung ke TP dan sudah otomatis dinilai (semua pilihan ganda), sinkron ke Absensi
     if(payload.status === 'sudah_dinilai' && state.topik.tpTerhubung){
       sinkronNilaiKeAbsensi(state.kelasAbsensiId, state.siswaTerpilihId, state.topik.tpTerhubung, payload.nilai);
     }
@@ -471,7 +497,6 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
   }
 });
 
-/* ---------------- ADMIN ---------------- */
 document.getElementById('btnShowAdmin').addEventListener('click', (e) => {
   e.preventDefault();
   document.getElementById('studentApp').classList.add('hidden');
@@ -527,7 +552,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
-/* ---- Admin: Topik ---- */
 async function loadTopikAdmin(){
   const box = document.getElementById('topikAdminList');
   box.innerHTML = '<div class="loading">Memuat…</div>';
@@ -644,7 +668,6 @@ async function hapusTopik(id, nama){
   }
 }
 
-/* ---- Admin: Soal ---- */
 async function loadSelectTopikSoal(){
   const sel = document.getElementById('selectTopikSoal');
   try{
@@ -768,7 +791,6 @@ async function cetakSoalPDF(topikId, topikLabel){
   }
 }
 
-/* ---------------- ADMIN: Bank Soal (lihat semua soal lintas materi) ---------------- */
 document.getElementById('btnMuatBank').addEventListener('click', loadBankSoal);
 document.getElementById('btnCetakPdfBank').addEventListener('click', cetakBankPDF);
 
@@ -781,12 +803,12 @@ async function ambilBankSoalTerfilter(){
   topikSnap.forEach(doc => { topikMap[doc.id] = doc.data(); });
 
   const soalSnap = await db.collection('soal').get();
-  const grup = {}; // key: "Kelas · Materi" -> { kelas, materi, urutanMateri, soal:[...] }
+  const grup = {};
 
   soalSnap.forEach(doc => {
     const s = { id: doc.id, ...doc.data() };
     const t = topikMap[s.topikId];
-    if(!t) return; // materi sudah dihapus
+    if(!t) return;
     if(kelasFilter && t.kelas !== kelasFilter) return;
     if(kataKunci && !s.pertanyaan.toLowerCase().includes(kataKunci)) return;
     const key = `${t.kelas}||${t.nama}`;
@@ -1060,7 +1082,6 @@ async function hapusSoal(id, topikId){
   }
 }
 
-/* ---- Admin: Hasil Ujian ---- */
 document.getElementById('filterStatusHasil').addEventListener('change', () => loadHasilAdmin());
 document.getElementById('filterKelasHasil').addEventListener('change', () => loadHasilAdmin());
 
@@ -1074,7 +1095,7 @@ async function loadFilterKelasHasil(){
       opts += `<option value="${doc.id}">${escapeHtml(d.jenjang)} · ${escapeHtml(d.nama)}</option>`;
     });
     sel.innerHTML = opts;
-  }catch(err){ /* biarkan default */ }
+  }catch(err){}
 }
 
 document.getElementById('btnHapusSemuaHasil').addEventListener('click', async () => {
@@ -1086,7 +1107,7 @@ document.getElementById('btnHapusSemuaHasil').addEventListener('click', async ()
   const btn = document.getElementById('btnHapusSemuaHasil');
   btn.disabled = true; btn.textContent = 'Menghapus…';
   try{
-    const batchSize = 400; // batas aman per batch Firestore (maks 500)
+    const batchSize = 400;
     for(let i = 0; i < rows.length; i += batchSize){
       const batch = db.batch();
       rows.slice(i, i+batchSize).forEach(r => batch.delete(db.collection('hasil_ujian').doc(r.id)));
@@ -1179,13 +1200,12 @@ async function bukaHasilDetail(id, r){
   renderModal(`<h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3><div class="loading">Memuat &amp; mengoreksi jawaban…</div>`);
 
   const daftarJawaban = r.jawaban || [];
-  // ambil data soal terbaru (kunci jawaban) untuk tiap soal pilihan ganda, guna auto-koreksi
   const soalIds = [...new Set(daftarJawaban.filter(j => j.tipe === 'pilihan_ganda').map(j => j.soalId))];
   const soalMap = {};
   try{
     const hasilFetch = await Promise.all(soalIds.map(sid => db.collection('soal').doc(sid).get()));
     hasilFetch.forEach(doc => { if(doc.exists) soalMap[doc.id] = doc.data(); });
-  }catch(err){ /* kalau gagal, biarkan tanpa auto-koreksi untuk soal itu */ }
+  }catch(err){}
 
   let jumlahBenarPG = 0, jumlahSoalPG = 0, jumlahEsai = 0;
   let jawabanHtml = '';
@@ -1276,14 +1296,13 @@ async function simpanNilai(){
       status: 'sudah_dinilai'
     });
 
-    // sinkron ke Absensi kalau materi ujian ini terhubung ke salah satu TP
     const r = state.hasilOpenData;
     if(r && r.topikId && r.kelasAbsensiId && r.siswaId && nilaiNum !== null){
       try{
         const topikDoc = await db.collection('topik').doc(r.topikId).get();
         const tp = topikDoc.exists ? topikDoc.data().tpTerhubung : null;
         if(tp) await sinkronNilaiKeAbsensi(r.kelasAbsensiId, r.siswaId, tp, nilaiNum);
-      }catch(e){ /* jangan hentikan alur utama kalau sinkronisasi gagal */ }
+      }catch(e){}
     }
 
     closeModal();
@@ -1293,7 +1312,6 @@ async function simpanNilai(){
   }
 }
 
-/* ---- helpers ---- */
 function renderModal(inner){
   document.getElementById('modalRoot').innerHTML = `
     <div class="modal-bg" id="modalBg">
@@ -1312,7 +1330,7 @@ async function sinkronNilaiKeAbsensi(kelasAbsensiId, siswaId, tp, nilai){
     await db.collection('nilai').doc(`${kelasAbsensiId}_${siswaId}_${tp}`).set({
       kelasId: kelasAbsensiId, siswaId, tp, nilai: Number(nilai), tanggal, sumber: 'ruang_ujian'
     }, {merge:true});
-  }catch(err){ /* jangan hentikan alur utama kalau sinkronisasi gagal */ }
+  }catch(err){}
 }
 
 function escapeHtml(str){
@@ -1326,7 +1344,6 @@ if(CONFIG_BELUM_DIISI){
     '<div class="empty">Konfigurasi Firebase belum diisi. Admin perlu mengisi <code>firebaseConfig</code> di ruang-ujian.html.</div>';
 }
 
-/* ================= ADMIN: Jadwal Ujian ================= */
 async function loadJwTopikOptions(){
   const sel = document.getElementById('jwTopik');
   try{
@@ -1463,7 +1480,7 @@ document.getElementById('btnSimpanJadwal').addEventListener('click', async () =>
     namaSesi: document.getElementById('jwNamaSesi').value.trim(),
     targetKelasIds,
     targetSiswaIds,
-    targetSiswaDetail: state.jwTargetSiswaTerpilih // untuk tampilan ringkasan tanpa perlu join ulang
+    targetSiswaDetail: state.jwTargetSiswaTerpilih
   };
 
   try{
@@ -1545,7 +1562,6 @@ async function loadDaftarJadwal(){
   }
 }
 
-// muat data awal saat tab Jadwal Ujian pertama kali dibuka
 let jwSudahDiinit = false;
 document.querySelector('.tab-btn[data-tab="jadwal"]').addEventListener('click', () => {
   if(jwSudahDiinit) return;
@@ -1556,8 +1572,6 @@ document.querySelector('.tab-btn[data-tab="jadwal"]').addEventListener('click', 
   loadDaftarJadwal();
 });
 
-
-/* ---------------- Akses Admin Tersembunyi ---------------- */
 (function(){
   const btn = document.getElementById("btnShowAdmin");
   const logo = document.getElementById("brandLogoTap");
@@ -1565,10 +1579,8 @@ document.querySelector('.tab-btn[data-tab="jadwal"]').addEventListener('click', 
 
   function tampilkanTombolAdmin(){ btn.classList.add("tampak"); }
 
-  // cara 1: buka lewat URL ...#admin (bisa di-bookmark)
   if(window.location.hash === "#admin") tampilkanTombolAdmin();
 
-  // cara 2: tap/klik logo header 5x berturut-turut dalam 3 detik
   if(logo){
     let jumlahTap = 0, timerReset = null;
     logo.style.cursor = "default";
@@ -1583,4 +1595,3 @@ document.querySelector('.tab-btn[data-tab="jadwal"]').addEventListener('click', 
     });
   }
 })();
-
