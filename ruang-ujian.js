@@ -313,7 +313,11 @@ function renderSoalHalaman(){
 
   progress.textContent = `Soal ${i + 1} dari ${total}`;
 
-  let inner = `<div class="soal-block"><div class="soal-no">Soal ${i + 1}</div><p class="soal-text">${escapeHtml(d.pertanyaan)}</p>`;
+  let inner = `<div class="soal-block"><div class="soal-no">Soal ${i + 1}</div>`;
+  if(d.audioUrl){
+    inner += `<audio controls preload="none" style="width:100%;margin-bottom:14px;" src="${escapeHtml(d.audioUrl)}"></audio>`;
+  }
+  inner += `<p class="soal-text">${escapeHtml(d.pertanyaan)}</p>`;
   if(d.tipe === 'pilihan_ganda'){
     if(!d._kunciAcak){
       const kunciTersedia = ['A','B','C','D','E'].filter(k => d.pilihan && d.pilihan[k]);
@@ -1003,6 +1007,8 @@ function openSoalModal(id, d, topikId){
     </div>
     <div class="field"><label>Pertanyaan</label>
       <textarea id="mSoalPertanyaan" placeholder="Tulis pertanyaan…">${escapeHtml(d.pertanyaan||'')}</textarea></div>
+    <div class="field"><label>Link Audio <span class="hint">(opsional, untuk soal listening — mp3/wav dari Google Drive/hosting lain)</span></label>
+      <input type="text" id="mSoalAudio" value="${escapeHtml(d.audioUrl||'')}" placeholder="https://..."></div>
     <div id="mSoalOpsiWrap" class="${tipe==='pilihan_ganda'?'':'hidden'}">
       <div class="field"><label>Pilihan A</label><input type="text" id="mOpsiA" value="${escapeHtml(p.A||'')}"></div>
       <div class="field"><label>Pilihan B</label><input type="text" id="mOpsiB" value="${escapeHtml(p.B||'')}"></div>
@@ -1039,11 +1045,17 @@ async function simpanSoal(topikId){
   const banner = document.getElementById('mSoalBanner');
   const pertanyaan = document.getElementById('mSoalPertanyaan').value.trim();
   if(!pertanyaan){ bannerErr(banner, 'Pertanyaan wajib diisi.'); return; }
+  const audioUrl = document.getElementById('mSoalAudio').value.trim();
+  if(audioUrl && !/^https?:\/\//i.test(audioUrl)){
+    bannerErr(banner, 'Link audio harus diawali dengan http:// atau https://');
+    return;
+  }
   const tipe = document.getElementById('mSoalTipe').value;
   const payload = {
     topikId,
     tipe,
     pertanyaan,
+    audioUrl: audioUrl || null,
     urutan: Number(document.getElementById('mSoalUrutan').value) || 1
   };
   if(tipe === 'pilihan_ganda'){

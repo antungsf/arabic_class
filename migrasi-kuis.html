@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migrasi Data Kuis — Sekali Pakai</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1c2624;line-height:1.6;}
+  h1{font-size:20px;color:#0f3627;}
+  .warn{background:#fdf3da;border:1px solid #eab628;padding:14px 16px;border-radius:8px;font-size:13.5px;margin-bottom:20px;}
+  .danger{background:#fbeae7;border:1px solid #b3311f;color:#b3311f;padding:14px 16px;border-radius:8px;font-size:13.5px;margin-bottom:20px;}
+  button{background:#175c41;color:#fff;border:none;padding:12px 24px;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer;}
+  button:hover{background:#0f3627;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  #log{margin-top:20px;background:#f2f7f4;border-radius:8px;padding:16px;font-family:monospace;font-size:12.5px;white-space:pre-wrap;max-height:400px;overflow:auto;}
+  #loginBox{margin-bottom:20px;}
+  input{padding:9px 12px;border:1.5px solid #ccc;border-radius:6px;font-size:14px;margin-right:8px;}
+</style>
+</head>
+<body>
+<h1>Migrasi Data Kuis ke Latihan Kuis</h1>
+
+<div class="warn">
+  <b>Halaman sekali pakai.</b> Setelah migrasi berhasil dan sudah dicek di <code>latihan-kuis.html</code>,
+  hapus file <code>migrasi-kuis.html</code> ini dari GitHub — jangan dibiarkan online permanen karena
+  isinya duplikat data mentah.
+</div>
+<div class="danger" id="dupWarn" style="display:none;"></div>
+
+<div id="loginBox">
+  <p>Login admin dulu untuk menjalankan migrasi (butuh izin tulis ke Firestore):</p>
+  <input type="email" id="email" placeholder="Email admin">
+  <input type="password" id="pass" placeholder="Kata sandi">
+  <button id="btnLogin">Login</button>
+</div>
+
+<div id="migrasiBox" style="display:none;">
+  <p>Login berhasil sebagai <b id="whoami"></b>. Klik tombol di bawah untuk memulai migrasi
+  (akan membuat <b>17 topik</b> dan <b>~103 soal</b> ke koleksi <code>latihan_topik</code> &amp; <code>latihan_soal</code>).</p>
+  <button id="btnMigrasi">Jalankan Migrasi</button>
+</div>
+
+<div id="log"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDDi8odiYL0h2xCsghfNr1EdGd8wXVfidY",
+  authDomain: "arabic-class-manbpn.firebaseapp.com",
+  projectId: "arabic-class-manbpn",
+  storageBucket: "arabic-class-manbpn.firebasestorage.app",
+  messagingSenderId: "82009627923",
+  appId: "1:82009627923:web:143877e1c45fcd861c4ee6"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const logEl = document.getElementById('log');
+function log(msg){ logEl.textContent += msg + '\n'; logEl.scrollTop = logEl.scrollHeight; }
+
+/* ================= DATA SUMBER (dari كنز اللغة) ================= */
+const DATA = {
+  x: {
+    kelas: "X",
+    topics: [
+      { ar:"التحيات والتعارف", title:"Salam & Perkenalan", sub:"Mubtada' & Khabar (dhamir)",
+        q:[
+          {t:"Jumlah ismiyah (kalimat nominal) tersusun dari...", o:["Fi'il + fa'il","Mubtada' + khabar","Mudhaf + mudhaf ilaih","Na'at + man'ut","Huruf jar + majrur"], a:1},
+          {t:"Dhamir untuk kata 'saya' dalam bahasa Arab adalah...", o:["أنتَ","أنا","هو","نحن","هي"], a:1},
+          {t:"Ungkapan 'Selamat pagi' dalam bahasa Arab adalah...", o:["مساء الخير","صباح الخير","مع السلامة","أهلا وسهلا","شكرا"], a:1},
+          {t:"Kata «التعارف» artinya...", o:["Perpisahan","Perkenalan","Permintaan maaf","Ucapan selamat","Pertanyaan"], a:1},
+          {t:"Jawaban dari «كيف حالك؟» yang berarti 'baik-baik saja' adalah...", o:["بخير، الحمد لله","لا، شكرا","مع السلامة","اسمي أحمد","من أين أنت"], a:0}
+        ]},
+      { ar:"الأسرة والبيت", title:"Keluarga & Rumah", sub:"Dhamir Muttasil (kata ganti kepemilikan)",
+        q:[
+          {t:"Kata ganti kepemilikan '-ku' pada kata «كتابي» (bukuku) ditunjukkan oleh akhiran...", o:["ـك","ـه","ـي","ـها","ـنا"], a:2},
+          {t:"«كتابُكَ» artinya...", o:["Bukuku","Bukumu (laki-laki)","Bukunya (perempuan)","Buku kami","Buku mereka"], a:1},
+          {t:"Kata «الأسرة» artinya...", o:["Sekolah","Keluarga","Rumah","Kelas","Teman"], a:1},
+          {t:"«الأخ» artinya...", o:["Ibu","Saudara laki-laki","Ayah","Saudara perempuan","Paman"], a:1},
+          {t:"«البيت» artinya...", o:["Mobil","Rumah","Kantor","Taman","Toko"], a:1}
+        ]},
+      { ar:"المدرسة والبيئة", title:"Sekolah & Lingkungan", sub:"Isim Isyarah (kata tunjuk)",
+        q:[
+          {t:"Kata tunjuk 'ini' untuk benda mudzakkar (maskulin) adalah...", o:["هذه","هذا","تلك","ذلك","أولئك"], a:1},
+          {t:"Kata tunjuk 'itu' untuk benda muannats (feminin) adalah...", o:["هذا","هذه","ذلك","تلك","هؤلاء"], a:3},
+          {t:"«هذا كتابٌ» artinya...", o:["Itu buku","Ini buku","Ini pintu","Itu meja","Ini sekolah"], a:1},
+          {t:"«الفصل» artinya...", o:["Perpustakaan","Kelas / ruang kelas","Kantin","Lapangan","Kantor"], a:1},
+          {t:"«المكتبة» artinya...", o:["Kantin","Perpustakaan","Laboratorium","UKS","Masjid"], a:1}
+        ]},
+      { ar:"الحياة اليومية", title:"Kehidupan Sehari-hari", sub:"Fi'il Mudhari' & Zharaf Zaman",
+        q:[
+          {t:"Fi'il mudhari' menunjukkan perbuatan yang sedang/akan dilakukan, contohnya «يذهب» artinya...", o:["Telah pergi","Sedang / akan pergi","Pergilah! (perintah)","Tempat pergi","Kepergian"], a:1},
+          {t:"«كل يوم» artinya...", o:["Hari ini","Setiap hari","Kemarin","Besok","Minggu depan"], a:1},
+          {t:"«يستيقظ» artinya...", o:["Tidur","Bangun tidur","Makan","Mandi","Belajar"], a:1},
+          {t:"Urutan waktu yang benar dari pagi ke malam adalah...", o:["الليل، الصباح، المساء","الصباح، الظهر، المساء، الليل","المساء، الصباح، الظهر","الليل، الظهر، الصباح","الظهر، الليل، الصباح"], a:1},
+          {t:"«يذاكر الدرس» artinya...", o:["Menonton pelajaran","Belajar / mengulang pelajaran","Menulis surat","Bermain","Tidur siang"], a:1}
+        ]},
+      { ar:"الهواية", title:"Hobi", sub:"Jumlah Fi'liyah (kalimat verbal)",
+        q:[
+          {t:"Jumlah fi'liyah (kalimat verbal) diawali dengan...", o:["Mubtada'","Fi'il","Huruf jar","Isim isyarah","Khabar"], a:1},
+          {t:"«يقرأ» artinya...", o:["Menulis","Membaca","Mendengar","Berbicara","Berenang"], a:1},
+          {t:"«الهواية» artinya...", o:["Pekerjaan","Hobi","Pelajaran","Liburan","Cita-cita"], a:1},
+          {t:"«يلعب كرة القدم» artinya...", o:["Bermain bola voli","Bermain sepak bola","Berenang","Memasak","Melukis"], a:1},
+          {t:"«الرسم» artinya...", o:["Menyanyi","Melukis / menggambar","Memasak","Menari","Berkebun"], a:1}
+        ]},
+      { ar:"الطعام والشراب", title:"Makanan & Minuman", sub:"Jumlah Ismiyah (kalimat nominal)",
+        q:[
+          {t:"Jumlah ismiyah (kalimat nominal) diawali dengan...", o:["Fi'il madhi","Isim (mubtada')","Huruf nashab","Huruf jazm","Fi'il amr"], a:1},
+          {t:"«الطعام» artinya...", o:["Minuman","Makanan","Piring","Sendok","Meja makan"], a:1},
+          {t:"«الماء» artinya...", o:["Teh","Air","Susu","Jus","Kopi"], a:1},
+          {t:"«لذيذ» artinya...", o:["Pahit","Lezat / enak","Asam","Pedas","Hambar"], a:1},
+          {t:"«أتناول الفطور» artinya...", o:["Saya makan malam","Saya makan sarapan","Saya minum teh","Saya memasak","Saya mencuci piring"], a:1}
+        ]}
+    ]},
+  xi: {
+    kelas: "XI",
+    topics: [
+      { ar:"التسوق", title:"Belanja", sub:"'Adad & Ma'dud (bilangan Arab)",
+        q:[
+          {t:"Jika 'adad (bilangan) berupa angka 3–10, bagaimana bentuk ma'dud (kata bendanya)?", o:["Mufrad manshub","Jama' majrur (jamak, dibaca jer)","Mufrad marfu'","Jama' manshub","Mufrad majrur"], a:1, e:"Untuk bilangan 3–10, ma'dud wajib berbentuk jamak majrur, dan jenis kelaminnya (mudzakkar/muannats) harus berlawanan dengan 'adad-nya."},
+          {t:"Aturan mudzakkar–muannats untuk bilangan 3–10 adalah...", o:["'Adad dan ma'dud harus sama jenis","'Adad dan ma'dud harus berlawanan jenis","Keduanya selalu muannats","Tidak ada aturan khusus","Keduanya selalu mudzakkar"], a:1, e:"Jika ma'dud-nya mudzakkar, 'adad-nya harus berbentuk muannats, dan sebaliknya."},
+          {t:"Untuk bilangan 11–99, ma'dud berbentuk apa?", o:["Jama' majrur","Mufrad manshub","Mufrad marfu'","Jama' manshub","Mufrad majrur"], a:1, e:"Bilangan 11–99 diikuti ma'dud dalam bentuk mufrad manshub (dibaca nashab)."},
+          {t:"Untuk bilangan ratusan, ribuan, atau jutaan (100, 1000, sejuta, dst), ma'dud berbentuk...", o:["Jama' majrur","Mufrad majrur","Mufrad manshub","Jama' manshub","Mufrad marfu'"], a:1, e:"Kelipatan ratusan/ribuan/jutaan diikuti ma'dud berbentuk mufrad majrur."},
+          {t:"Kata «السوق التقليدي» artinya...", o:["Supermarket","Pasar tradisional","Toko buku","Apotek","Restoran"], a:1},
+          {t:"Kata «الزبون» dalam konteks jual-beli berarti...", o:["Penjual","Pembeli / pelanggan","Kasir","Pemilik toko","Sopir"], a:1}
+        ]},
+      { ar:"الصحة", title:"Kesehatan", sub:"Huruf Jar & Huruf 'Athaf",
+        q:[
+          {t:"Isim yang didahului huruf jar hukum i'rabnya menjadi...", o:["Marfu'","Manshub","Majrur","Tetap mabni","Sesuai kehendak pembicara"], a:2, e:"Setiap isim yang didahului huruf jar wajib majrur."},
+          {t:"Manakah yang BUKAN termasuk huruf jar?", o:["في (di dalam)","على (di atas)","ثم (kemudian)","إلى (ke)","من (dari)"], a:2, e:"«ثم» adalah huruf 'athaf, bukan huruf jar."},
+          {t:"Huruf 'athaf yang bermakna 'atau' (memilih salah satu) adalah...", o:["و","ثم","أو","بل","حتى"], a:2},
+          {t:"Huruf 'athaf «لكن» bermakna...", o:["dan","akan tetapi","kemudian","bahkan","jika"], a:1},
+          {t:"«سماعة الطبيب» adalah alat kesehatan yang dalam bahasa Indonesia disebut...", o:["Termometer","Stetoskop","Tensimeter","Jarum suntik","Kursi roda"], a:1},
+          {t:"«الوصفة الطبية» artinya...", o:["Kartu pasien","Resep dokter","Kwitansi rumah sakit","Jadwal periksa","Surat rujukan"], a:1}
+        ]},
+      { ar:"السفر", title:"Perjalanan & Wisata", sub:"Isim Nakirah & Isim Ma'rifah",
+        q:[
+          {t:"Isim nakirah adalah isim yang menunjukkan makna...", o:["Khusus / tertentu","Umum, belum tentu / belum terdefinisi","Nama diri","Kata ganti","Kata kerja"], a:1},
+          {t:"Manakah yang BUKAN termasuk isim ma'rifah?", o:["Isim yang diawali ال","Isim 'alam (nama orang)","Isim dhamir","Isim nakirah bertanwin","Isim maushul"], a:3, e:"Isim ma'rifah mencakup: ber-alif lam, 'alam, dhamir, isyarah, maushul, dan idhafah pada ma'rifah. Isim bertanwin justru ciri nakirah."},
+          {t:"Contoh isim isyarah (kata tunjuk) yang termasuk isim ma'rifah adalah...", o:["رجل","هذا","كتاب","مدينة","التي"], a:1},
+          {t:"«جواز السفر» artinya...", o:["Tiket pesawat","Paspor","Visa","KTP","Peta"], a:1},
+          {t:"«شاطئ البحر» artinya...", o:["Puncak gunung","Pantai","Sungai","Bandara","Danau"], a:1},
+          {t:"Kata «المتحف» dalam teks wisata berarti...", o:["Kebun binatang","Museum","Hotel","Terminal","Perpustakaan"], a:1}
+        ]},
+      { ar:"الحج والعمرة", title:"Haji & Umrah", sub:"Pembagian Fi'il & Mudzakkar-Muannats",
+        q:[
+          {t:"Fi'il dalam bahasa Arab terbagi menjadi tiga jenis, yaitu...", o:["Fi'il madhi, mudhari', amr","Fi'il lazim, muta'addi, majhul","Fi'il tsulatsi, ruba'i, khumasi","Fi'il shahih, mu'tal, mudha'af","Fi'il mujarrad, mazid, jamid"], a:0},
+          {t:"Fi'il yang menunjukkan makna perintah disebut fi'il...", o:["Madhi","Mudhari'","Amr","Nahi","Majzum"], a:2},
+          {t:"Fi'il mudhari' menunjukkan perbuatan yang...", o:["Sudah lampau","Sedang / akan terjadi","Larangan","Perintah","Kata benda"], a:1},
+          {t:"«السعي» dalam manasik haji artinya...", o:["Mengelilingi Ka'bah","Berjalan bolak-balik antara Shafa–Marwah","Melontar jumrah","Mencukur rambut","Berdoa di Multazam"], a:1},
+          {t:"Umrah berbeda dengan haji karena...", o:["Wajib dilakukan setahun sekali","Tidak terikat waktu tertentu (bisa kapan saja)","Hanya untuk laki-laki","Tidak memerlukan ihram","Harus memakai kain ihram berwarna"], a:1}
+        ]},
+      { ar:"تكنولوجيا الإعلام", title:"Teknologi Informasi", sub:"Tashrif Fi'il Madhi (sesuai dhamir)",
+        q:[
+          {t:"Tashrif lughawi adalah perubahan bentuk fi'il berdasarkan...", o:["Zaman/waktu kejadian","Dhamir / pelaku (هو، هما، هم، أنتَ, dst)","Jenis huruf akar kata","Makna kalimat","Letak kata dalam kalimat"], a:1},
+          {t:"Fi'il madhi untuk dhamir «هم» (mereka, laki-laki banyak) biasanya berakhiran...", o:["ـَتْ","ـُوا","ـْتَ","ـْنَ","ـَان"], a:1},
+          {t:"Fi'il madhi untuk dhamir «هي» (dia, perempuan tunggal) berakhiran...", o:["ـَ (fathah saja)","ـَتْ","ـُوا","ـْتُ","ـَا"], a:1},
+          {t:"Kata «الإنترنت» dan «الحاسوب» termasuk kosakata tema...", o:["Kesehatan","Teknologi informasi & komunikasi","Olahraga","Pariwisata","Kesenian"], a:1},
+          {t:"Kata «الاتصال» artinya...", o:["Perjalanan","Komunikasi","Kesehatan","Pendidikan","Keamanan"], a:1}
+        ]},
+      { ar:"الأديان في إندونيسيا", title:"Agama di Indonesia", sub:"Tashrif Fi'il Mudhari' (sesuai dhamir)",
+        q:[
+          {t:"Fi'il mudhari' untuk dhamir «أنا» (saya) biasanya diawali huruf...", o:["ت","ي","أ","ن","س"], a:2},
+          {t:"Fi'il mudhari' untuk dhamir «نحن» (kami/kita) diawali huruf...", o:["ي","ت","ن","أ","س"], a:2},
+          {t:"Fi'il mudhari' untuk dhamir «هي» (dia, perempuan) diawali huruf...", o:["ي","ت","ن","أ","س"], a:1},
+          {t:"Kata «الدين» (jamak: الأديان) artinya...", o:["Budaya","Agama","Suku","Bahasa","Adat istiadat"], a:1},
+          {t:"Pelajaran ini membahas keragaman... di Indonesia", o:["Bahasa daerah","Agama","Suku bangsa","Makanan","Pekerjaan"], a:1}
+        ]}
+    ]},
+  xii: {
+    kelas: "XII",
+    topics: [
+      { ar:"الرياضة", title:"Olahraga", sub:"Na'at (Sifat) & Idhafah",
+        q:[
+          {t:"Na'at (kata sifat) harus mengikuti man'ut (yang disifati) dalam hal berikut, KECUALI...", o:["Mudzakkar / muannats","Mufrad / mutsanna / jama'","Makna kata (sinonim)","Ma'rifah / nakirah","I'rab (rafa' / nashab / jarr)"], a:2, e:"Na'at wajib cocok dengan man'ut-nya dalam jenis, jumlah, i'rab, dan status ma'rifah/nakirah — bukan soal kesamaan makna."},
+          {t:"Dalam susunan idhafah, mudhaf ilaih selalu ber-i'rab...", o:["Marfu'","Manshub","Majrur","Sesuai posisi dalam kalimat","Mengikuti mudhafnya"], a:2, e:"Mudhaf ilaih selalu majrur, sedangkan i'rab mudhaf mengikuti kedudukannya dalam kalimat."},
+          {t:"Contoh susunan idhafah yang benar adalah...", o:["كرة القدم","كرة قدم","الكرة قدم","كرة الالقدم","كرة قدم ال"], a:0},
+          {t:"«الرياضة الفردية» artinya...", o:["Olahraga tim / kelompok","Olahraga individu / perorangan","Olahraga air","Olahraga tradisional","Olahraga ekstrem"], a:1},
+          {t:"«رفع الأثقال» artinya...", o:["Lari","Angkat besi","Berenang","Bulu tangkis","Panjat tebing"], a:1}
+        ]},
+      { ar:"الشباب", title:"Pemuda", sub:"Fi'il Ma'lum & Fi'il Majhul",
+        q:[
+          {t:"Fi'il majhul adalah kalimat fi'il yang...", o:["Fa'ilnya disebutkan jelas","Fa'ilnya dibuang / tidak disebutkan","Tidak memiliki fa'il sama sekali","Selalu berbentuk mudhari'","Fi'ilnya selalu madhi"], a:1},
+          {t:"Salah satu tujuan penggunaan fi'il majhul adalah 'lil-jahli', artinya...", o:["Karena takut","Karena pelakunya tidak diketahui","Untuk meringkas kalimat","Karena sudah diketahui umum","Karena ingin meringkas kata"], a:1},
+          {t:"Pada fi'il majhul, kata benda yang menggantikan posisi fa'il disebut...", o:["Mudhaf ilaih","Na'ib al-fa'il","Khabar","Maf'ul li ajlih","Fa'il asli"], a:1},
+          {t:"«متفائل» artinya...", o:["Pesimis","Optimis","Pemalas","Pemarah","Sombong"], a:1},
+          {t:"«الثقة بالنفس» artinya...", o:["Rasa takut","Percaya diri","Kesabaran","Kejujuran","Rasa iri"], a:1}
+        ]},
+      { ar:"الشعر العربي", title:"Puisi Arab", sub:"Isim Tafdhil",
+        q:[
+          {t:"Isim tafdhil digunakan untuk menyatakan...", o:["Perbandingan dua hal, salah satunya lebih unggul","Jumlah / bilangan","Kepemilikan","Sifat tetap suatu benda","Tempat kejadian"], a:0},
+          {t:"Wazan (pola) umum isim tafdhil untuk bentuk mudzakkar adalah...", o:["فَعيل","أَفْعَل","مُفَعَّل","فُعْلَى","فَعْلَان"], a:1},
+          {t:"Contoh isim tafdhil untuk bentuk muannats adalah...", o:["أفضل","فضلى","مفضل","تفضيل","فاعلة"], a:1},
+          {t:"«شعر المدح» adalah syair yang bertemakan...", o:["Duka cita / ratapan","Pujian","Semangat perang","Cinta","Nasihat"], a:1},
+          {t:"«شعر الرثاء» adalah syair...", o:["Pujian","Duka cita atas kematian seseorang","Cinta / rindu","Semangat juang","Kebanggaan"], a:1},
+          {t:"Imam Al-Bushiri terkenal dengan syair pujiannya (qasidah Burdah) yang ditujukan kepada...", o:["Raja / penguasa","Rasulullah SAW","Sahabatnya","Negaranya","Khalifah"], a:1}
+        ]},
+      { ar:"الحضارة الإسلامية", title:"Peradaban Islam", sub:"Asma' Khamsah & Af'al Khamsah",
+        q:[
+          {t:"Yang termasuk Asma' Khamsah (5 isim istimewa) adalah...", o:["أب، أخ، حم، فو، ذو","كتاب، قلم، باب، بيت، شمس","هذا، ذلك، هؤلاء","أنا، أنت، هو","أخت، بنت، أم، عم، خال"], a:0},
+          {t:"Ciri i'rab rafa' pada Asma' Khamsah ditandai dengan huruf...", o:["ا (alif)","و (wawu)","ي (ya)","ة (ta marbuthah)","hilangnya huruf akhir"], a:1},
+          {t:"Af'al Khamsah adalah fi'il mudhari' yang bersambung dengan...", o:["Dhamir أنا / نحن","Alif tatsniyah, wawu jama', atau ya mukhathabah","Dhamir هو / هي","Dhamir أنتَ / أنتِ (tunggal)","Dhamir mustatir saja"], a:1},
+          {t:"Tanda rafa' pada Af'al Khamsah adalah dengan...", o:["Tetapnya huruf ن","Hilangnya huruf ن","Harakat fathah","Harakat sukun","Harakat kasrah"], a:0},
+          {t:"«الحضارة» artinya...", o:["Agama","Peradaban","Kebiasaan","Suku","Sejarah"], a:1}
+        ]},
+      { ar:"الدراسة في الجامعة", title:"Kuliah di Universitas", sub:"Mudhari' Marfu', Manshub & Majzum",
+        q:[
+          {t:"Fi'il mudhari' berubah menjadi manshub apabila didahului oleh...", o:["Huruf jazm","Huruf nashab (seperti أن، لن، كي)","Tidak ada huruf sama sekali","Huruf jar","Huruf 'athaf"], a:1},
+          {t:"Tanda nashab pada fi'il mudhari' shahihul akhir adalah...", o:["Dhammah","Fathah","Sukun","Hilangnya huruf illat","Kasrah"], a:1},
+          {t:"Fi'il mudhari' menjadi majzum apabila didahului huruf jazm, contohnya...", o:["أن","لن","لم","كي","سوف"], a:2},
+          {t:"Tanda jazm pada fi'il mudhari' shahihul akhir adalah...", o:["Fathah","Dhammah","Sukun","Kasrah","Tanwin"], a:2},
+          {t:"«الجامعة» artinya...", o:["Sekolah menengah","Universitas","Pesantren","Perpustakaan","Kelurahan"], a:1}
+        ]}
+    ]}
+};
+
+/* ================= LOGIN ================= */
+document.getElementById('btnLogin').addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  try{
+    await auth.signInWithEmailAndPassword(email, pass);
+  }catch(err){
+    log('Login gagal: ' + err.message);
+  }
+});
+
+auth.onAuthStateChanged(async (user) => {
+  if(!user) return;
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('migrasiBox').style.display = 'block';
+  document.getElementById('whoami').textContent = user.email;
+
+  // cek duplikat: kalau latihan_topik sudah ada isinya, kasih peringatan
+  const existing = await db.collection('latihan_topik').limit(1).get();
+  if(!existing.empty){
+    const w = document.getElementById('dupWarn');
+    w.style.display = 'block';
+    w.innerHTML = '⚠️ Koleksi <code>latihan_topik</code> sudah ada isinya. Menjalankan migrasi lagi akan menambah data BARU (bukan menimpa), berpotensi duplikat. Cek dulu isi datanya di panel admin Latihan Kuis sebelum lanjut.';
+  }
+});
+
+const HURUF = ['A','B','C','D','E'];
+
+document.getElementById('btnMigrasi').addEventListener('click', async () => {
+  const btn = document.getElementById('btnMigrasi');
+  btn.disabled = true;
+  log('Mulai migrasi...\n');
+
+  let totalTopik = 0, totalSoal = 0;
+
+  try{
+    for(const kelasKey of Object.keys(DATA)){
+      const kelasData = DATA[kelasKey];
+      let urutanTopik = 1;
+      for(const topic of kelasData.topics){
+        const topikPayload = {
+          kelas: kelasData.kelas,
+          nama: topic.title + ' (' + topic.ar + ')',
+          deskripsi: topic.sub,
+          urutan: urutanTopik++,
+          aktif: true
+        };
+        const topikRef = await db.collection('latihan_topik').add(topikPayload);
+        totalTopik++;
+        log('✓ Topik dibuat: Kelas ' + kelasData.kelas + ' · ' + topic.title);
+
+        let urutanSoal = 1;
+        const batch = db.batch();
+        topic.q.forEach(q => {
+          const pilihan = {};
+          q.o.forEach((teks, idx) => { pilihan[HURUF[idx]] = teks; });
+          const jawabanBenar = HURUF[q.a];
+          const soalRef = db.collection('latihan_soal').doc();
+          batch.set(soalRef, {
+            topikId: topikRef.id,
+            pertanyaan: q.t,
+            audioUrl: null,
+            pilihan,
+            jawabanBenar,
+            penjelasan: q.e || null,
+            urutan: urutanSoal++
+          });
+          totalSoal++;
+        });
+        await batch.commit();
+        log('  → ' + topic.q.length + ' soal ditambahkan');
+      }
+    }
+    log('\n✅ SELESAI. Total ' + totalTopik + ' topik, ' + totalSoal + ' soal berhasil dimigrasi.');
+    log('Silakan cek di latihan-kuis.html, lalu HAPUS file migrasi-kuis.html ini dari GitHub.');
+  }catch(err){
+    log('\n❌ GAGAL: ' + err.message);
+    log('Cek Firestore Rules — pastikan akun admin punya izin write ke latihan_topik & latihan_soal.');
+  }finally{
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
