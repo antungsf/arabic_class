@@ -100,40 +100,17 @@
   .chip-nav svg{width:15px;height:15px;flex-shrink:0;color:var(--gold);}
   @media (max-width:640px){ .chip-nav{padding:0 18px;} }
 
-  .embed-wrap{
-    position:relative;width:100%;min-height:520px;
-    border:1px solid var(--line);border-radius:10px;overflow:hidden;
-    background:var(--bg-alt);
-  }
-  .embed-wrap iframe{
-    position:absolute;top:0;left:0;width:100%;height:100%;border:0;
-  }
-  @media (max-width:640px){
-    .embed-wrap{min-height:420px;}
-  }
-
   .home-widgets{max-width:1180px;margin:14px auto 0;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .home-widgets.home-widgets-single{grid-template-columns:1fr;margin-top:12px;}
   @media (max-width:820px){ .home-widgets{grid-template-columns:1fr;padding:0 18px;} }
   .hw-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:18px 20px;}
+  .pg-empty{font-size:12.5px;color:#b9c8c2;}
+  .pg-preview-judul{font-weight:700;font-size:14px;color:#fff;margin-bottom:4px;}
+  .pg-preview-isi{font-size:13px;color:#dce9e2;white-space:pre-line;}
   .hw-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
   .hw-label{font-family:'Poppins',sans-serif;font-weight:800;font-size:14.5px;color:#fff;}
   .hw-sub{font-size:11.5px;color:#b9c8c2;}
   .hw-loading, .hw-empty{padding:10px 2px;font-size:12.5px;color:#b9c8c2;}
-
-  .ujian-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.09);}
-  .ujian-item:last-child{border-bottom:none;}
-  .ujian-topik{font-weight:700;font-size:13.5px;color:#fff;margin-bottom:2px;}
-  .ujian-waktu{font-size:12px;color:var(--gold);}
-  .ujian-target{font-size:11.5px;color:#b9c8c2;}
-
-  .cuplikan-text{font-size:13.5px;color:#fff;font-weight:600;margin:0 0 10px;}
-  .cuplikan-opsi{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.16);border-radius:6px;margin-bottom:6px;cursor:pointer;font-size:12.5px;color:#dce9e2;transition:border-color .15s,background .15s;}
-  .cuplikan-opsi:hover{border-color:var(--gold);}
-  .cuplikan-opsi.benar{border-color:#5ec98a;background:rgba(94,201,138,.15);color:#c9f2da;}
-  .cuplikan-opsi.salah{border-color:#e2685a;background:rgba(226,104,90,.15);color:#ffd6cf;}
-  .cuplikan-opsi.locked{pointer-events:none;}
-  .cuplikan-cta{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--gold);}
-  .cuplikan-cta:hover{text-decoration:underline;}
 
   .prayer-widget{
     max-width:1180px;margin:12px auto 0;padding:20px 22px 18px;
@@ -196,9 +173,9 @@
 
   .spacer{height:36px;background:#fff;}
 
-  .section-wrap{max-width:1180px;margin:0 auto;padding:56px 24px;}
+  .section-wrap{max-width:1180px;margin:0 auto;padding:38px 24px;}
   .section-wrap.alt{background:var(--bg-alt);}
-  .section-head{margin-bottom:30px;}
+  .section-head{margin-bottom:20px;}
   @media (max-width:700px){
     .section-wrap{padding:32px 20px;}
     .section-head{margin-bottom:18px;}
@@ -359,18 +336,12 @@
     <span class="arrow">&rarr;</span>
   </a>
 
-  <div class="home-widgets">
-    <div class="hw-box">
+  <div class="home-widgets home-widgets-single">
+    <div class="hw-box" id="pengumumanBoxWrap">
       <div class="hw-head">
-        <span class="hw-label">Jadwal Ujian Terdekat</span>
+        <span class="hw-label">Pengumuman</span>
       </div>
-      <div id="pengumumanUjian"><div class="hw-loading">Memuat…</div></div>
-    </div>
-    <div class="hw-box">
-      <div class="hw-head">
-        <span class="hw-label">Coba Latihan Kuis</span>
-      </div>
-      <div id="cuplikanKuis"><div class="hw-loading">Memuat contoh soal…</div></div>
+      <div id="pengumumanIsi"><div class="hw-loading">Memuat…</div></div>
     </div>
   </div>
 
@@ -418,7 +389,6 @@
 
 <section class="section-wrap" id="materi">
   <div class="section-head">
-    <span class="eyebrow-sm">01</span>
     <h2>Materi Belajar</h2>
     <p>Pilih kelas, semester, dan Maharah (Istima', Qira'ah, Kalam, Qawaid) untuk mulai belajar.</p>
   </div>
@@ -429,7 +399,6 @@
 
 <section class="section-wrap alt" id="kelas-live">
   <div class="section-head">
-    <span class="eyebrow-sm">02</span>
     <h2>Kelas Live</h2>
     <p>Pembelajaran langsung lewat Google Meet, terjadwal per kelas &amp; jam pelajaran.</p>
   </div>
@@ -440,7 +409,6 @@
 
 <section class="section-wrap" id="absensi">
   <div class="section-head">
-    <span class="eyebrow-sm">03</span>
     <h2>Absensi &amp; Jurnal</h2>
     <p>Rekap kehadiran &amp; nilai asesmen formatif realtime per kelas, dan jurnal pembelajaran di folder Drive.</p>
   </div>
@@ -452,7 +420,6 @@
 
 <section class="section-wrap alt" id="jadwal">
   <div class="section-head">
-    <span class="eyebrow-sm">04</span>
     <h2>Jadwal &amp; Kalender</h2>
     <p>Jadwal pelajaran dan kalender pendidikan tahun ajaran berjalan.</p>
   </div>
@@ -474,7 +441,6 @@
 
 <section class="section-wrap" id="asesmen">
   <div class="section-head">
-    <span class="eyebrow-sm">05</span>
     <h2>Asesmen</h2>
     <p>Ruang ujian daring: siswa memilih kelas &amp; materi (qawaid, dsb.), lalu mengerjakan soal yang sudah disiapkan guru.</p>
   </div>
@@ -485,7 +451,6 @@
 
 <section class="section-wrap alt" id="tugas">
   <div class="section-head">
-    <span class="eyebrow-sm">06</span>
     <h2>Kolom Tugas</h2>
     <p>Daftar tugas yang diberikan, dan tautan tempat pengumpulan jawaban siswa.</p>
   </div>
@@ -499,20 +464,11 @@
 
 <section class="section-wrap" id="kuis-eksternal">
   <div class="section-head">
-    <span class="eyebrow-sm">07</span>
     <h2>Kuis Bahasa Arab</h2>
-    <p>Latihan kuis tambahan dari Madinah Arabic (sumber eksternal). Kalau tampilan di bawah kosong, gunakan tombol untuk membukanya di tab baru.</p>
+    <p>Latihan santai berdasarkan materi buku Bahasa Arab MA Kemenag — pilih kelas, kerjakan, jawaban langsung ketahuan benar/salah, bisa diulang sepuasnya.</p>
   </div>
-  <div class="action-row" style="margin-bottom:14px;">
-    <a class="btn btn-outline" href="https://madinaharabic.com/quizzes/" target="_blank" rel="noopener">Buka di Tab Baru &rarr;</a>
-  </div>
-  <div class="embed-wrap">
-    <iframe
-      src="https://madinaharabic.com/quizzes/"
-      loading="lazy"
-      referrerpolicy="no-referrer-when-downgrade"
-      title="Kuis Bahasa Arab — Madinah Arabic">
-    </iframe>
+  <div class="action-row">
+    <a class="btn btn-gold" href="latihan-kuis.html">Mulai Latihan Kuis &rarr;</a>
   </div>
 </section>
 
@@ -767,91 +723,23 @@
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
 
-    // ============ Widget: Jadwal Ujian Terdekat (realtime) ============
-    // Ambil dari koleksi 'jadwal_ujian' (Ruang Ujian), tampilkan yang tanggalnya >= hari ini, urut terdekat.
-    const pengumumanBox = document.getElementById('pengumumanUjian');
-    if(pengumumanBox){
-      const hariIni = new Date().toISOString().slice(0,10);
-      db.collection('jadwal_ujian')
-        .where('tanggal','>=',hariIni)
-        .orderBy('tanggal','asc')
-        .limit(5)
-        .onSnapshot(function(snap){
-          if(snap.empty){
-            pengumumanBox.innerHTML = '<div class="hw-empty">Belum ada jadwal ujian mendatang.</div>';
-            return;
-          }
-          let html = '';
-          snap.forEach(function(doc){
-            const d = doc.data();
-            const jmlKelas = (d.targetKelasIds||[]).length;
-            const jmlSiswa = (d.targetSiswaIds||[]).length;
-            const target = [
-              jmlKelas ? (jmlKelas + ' kelas') : null,
-              jmlSiswa ? (jmlSiswa + ' siswa individu') : null
-            ].filter(Boolean).join(' + ') || 'target belum diatur';
-            html += '<div class="ujian-item">'
-              + '<div class="ujian-topik">' + escapeHtmlHome(d.topikNama || '') + (d.namaSesi ? ' &middot; ' + escapeHtmlHome(d.namaSesi) : '') + '</div>'
-              + '<div class="ujian-waktu">' + escapeHtmlHome(d.tanggal) + ' &middot; ' + escapeHtmlHome(d.jamMulai||'') + '-' + escapeHtmlHome(d.jamSelesai||'') + '</div>'
-              + '<div class="ujian-target">Untuk: ' + escapeHtmlHome(target) + '</div>'
-              + '</div>';
-          });
-          pengumumanBox.innerHTML = html;
-        }, function(){
-          pengumumanBox.innerHTML = '<div class="hw-empty">Gagal memuat jadwal ujian.</div>';
-        });
-    }
-
-    // ============ Widget: Cuplikan Latihan Kuis ============
-    // Ambil 1 topik latihan aktif secara acak, lalu 1 soal acak dari topik itu, tampilkan dengan cek jawaban instan.
-    const cuplikanBox = document.getElementById('cuplikanKuis');
-    if(cuplikanBox){
-      db.collection('latihan_topik').where('aktif','==',true).limit(20).get()
-        .then(function(topikSnap){
-          if(topikSnap.empty){
-            cuplikanBox.innerHTML = '<div class="hw-empty">Belum ada topik latihan. <a href="latihan-kuis.html" style="color:var(--gold);">Buka Latihan Kuis</a></div>';
-            return;
-          }
-          const daftarTopik = [];
-          topikSnap.forEach(function(doc){ daftarTopik.push({id:doc.id, ...doc.data()}); });
-          const topikAcak = daftarTopik[Math.floor(Math.random()*daftarTopik.length)];
-          return db.collection('latihan_soal').where('topikId','==',topikAcak.id).get().then(function(soalSnap){
-            if(soalSnap.empty){
-              cuplikanBox.innerHTML = '<div class="hw-empty">Belum ada soal latihan. <a href="latihan-kuis.html" style="color:var(--gold);">Buka Latihan Kuis</a></div>';
-              return;
-            }
-            const daftarSoal = [];
-            soalSnap.forEach(function(doc){ daftarSoal.push({id:doc.id, ...doc.data()}); });
-            const soal = daftarSoal[Math.floor(Math.random()*daftarSoal.length)];
-            renderCuplikanSoal(topikAcak, soal);
-          });
-        })
-        .catch(function(){
-          cuplikanBox.innerHTML = '<div class="hw-empty">Gagal memuat contoh soal.</div>';
-        });
-    }
-
-    function renderCuplikanSoal(topik, soal){
-      const kunciTersedia = ['A','B','C','D','E'].filter(function(k){ return soal.pilihan && soal.pilihan[k]; });
-      let html = '<div class="hw-sub" style="margin-bottom:8px;">' + escapeHtmlHome(topik.nama) + '</div>';
-      html += '<p class="cuplikan-text">' + escapeHtmlHome(soal.pertanyaan) + '</p>';
-      kunciTersedia.forEach(function(k){
-        html += '<div class="cuplikan-opsi" data-key="' + k + '">' + escapeHtmlHome(soal.pilihan[k]) + '</div>';
-      });
-      html += '<a class="cuplikan-cta" href="latihan-kuis.html">Coba Latihan Lengkap &rarr;</a>';
-      cuplikanBox.innerHTML = html;
-
-      let sudahDijawab = false;
-      cuplikanBox.querySelectorAll('.cuplikan-opsi').forEach(function(opt){
-        opt.addEventListener('click', function(){
-          if(sudahDijawab) return;
-          sudahDijawab = true;
-          cuplikanBox.querySelectorAll('.cuplikan-opsi').forEach(function(o){
-            o.classList.add('locked');
-            if(o.dataset.key === soal.jawabanBenar) o.classList.add('benar');
-            else if(o === opt) o.classList.add('salah');
-          });
-        });
+    // ============ Widget: Pengumuman (manual, admin-editable) ============
+    // Firestore: koleksi 'pengumuman', doc id 'ujian' -> { judul, isi, aktif }
+    // Read-only di sini — mengelola isinya lewat panel admin Absensi & Nilai (tab Pengumuman).
+    const pengumumanIsiBox = document.getElementById('pengumumanIsi');
+    if(pengumumanIsiBox){
+      db.collection('pengumuman').doc('ujian').onSnapshot(function(doc){
+        const data = doc.exists ? doc.data() : null;
+        if(!data || !data.isi || data.aktif === false){
+          pengumumanIsiBox.innerHTML = '<div class="pg-empty">Belum ada pengumuman.</div>';
+          return;
+        }
+        let html = '';
+        if(data.judul) html += '<div class="pg-preview-judul">' + escapeHtmlHome(data.judul) + '</div>';
+        html += '<div class="pg-preview-isi">' + escapeHtmlHome(data.isi) + '</div>';
+        pengumumanIsiBox.innerHTML = html;
+      }, function(){
+        pengumumanIsiBox.innerHTML = '<div class="pg-empty">Gagal memuat pengumuman.</div>';
       });
     }
   }catch(e){ /* biarkan tampilan default (terkunci) kalau Firebase gagal dimuat */ }
