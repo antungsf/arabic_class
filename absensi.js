@@ -768,15 +768,27 @@ document.getElementById('selectKelasRekap').addEventListener('change', (e) => {
 });
 
 /* ---------------- ADMIN: Pengumuman ---------------- */
+function toggleFieldSumberPengumuman(){
+  const jenis = document.getElementById('pmJenis').value;
+  const wrapSumber = document.getElementById('pmSumberWrap');
+  const labelIsi = document.getElementById('pmIsiLabel');
+  wrapSumber.classList.toggle('hidden', jenis !== 'hikmah');
+  labelIsi.textContent = jenis === 'hikmah' ? 'Isi Kata Hikmah' : (jenis === 'info' ? 'Isi Info' : 'Isi Pengumuman');
+}
+document.getElementById('pmJenis').addEventListener('change', toggleFieldSumberPengumuman);
+
 async function muatPengumuman(){
   const banner = document.getElementById('pengumumanBanner');
   banner.innerHTML = '';
   try{
     const doc = await db.collection('pengumuman').doc('ujian').get();
     const d = doc.exists ? doc.data() : {};
+    document.getElementById('pmJenis').value = d.jenis || 'pengumuman';
     document.getElementById('pmJudul').value = d.judul || '';
     document.getElementById('pmIsi').value = d.isi || '';
+    document.getElementById('pmSumber').value = d.sumber || '';
     document.getElementById('pmAktif').checked = !!d.aktif;
+    toggleFieldSumberPengumuman();
   }catch(err){
     bannerErr(banner, 'Gagal memuat pengumuman: ' + escapeHtml(err.message));
   }
@@ -785,15 +797,17 @@ async function muatPengumuman(){
 document.getElementById('btnSimpanPengumuman').addEventListener('click', async () => {
   const banner = document.getElementById('pengumumanBanner');
   const isi = document.getElementById('pmIsi').value.trim();
-  if(!isi){ bannerErr(banner, 'Isi pengumuman wajib diisi.'); return; }
+  if(!isi){ bannerErr(banner, 'Isi wajib diisi.'); return; }
   const payload = {
+    jenis: document.getElementById('pmJenis').value,
     judul: document.getElementById('pmJudul').value.trim(),
     isi,
+    sumber: document.getElementById('pmSumber').value.trim(),
     aktif: document.getElementById('pmAktif').checked
   };
   try{
     await db.collection('pengumuman').doc('ujian').set(payload, {merge:true});
-    bannerOk(banner, 'Pengumuman tersimpan. Perubahan langsung tampil di beranda (realtime).');
+    bannerOk(banner, 'Tersimpan. Perubahan langsung tampil di beranda (realtime).');
   }catch(err){
     bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
   }

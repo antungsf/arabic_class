@@ -220,11 +220,19 @@
 
     <!-- Tab: Pengumuman -->
     <div id="tabPengumuman" class="hidden">
-      <p class="lead" style="margin:0 0 16px;">Pengumuman singkat yang tampil di beranda situs (kotak "Pengumuman", di atas jam sholat). Cocok untuk info jadwal ujian, libur, atau pengumuman lain untuk siswa.</p>
-      <div class="field" style="max-width:480px;"><label>Judul <span class="hint">(opsional)</span></label>
+      <p class="lead" style="margin:0 0 16px;">Info singkat yang tampil di beranda situs (kotak di atas jam sholat). Cocok untuk pengumuman jadwal ujian/libur, info umum, atau kata hikmah harian.</p>
+      <div class="field" style="max-width:480px;"><label>Jenis</label>
+        <select id="pmJenis">
+          <option value="pengumuman">Pengumuman</option>
+          <option value="info">Info</option>
+          <option value="hikmah">Kata Hikmah</option>
+        </select></div>
+      <div class="field" style="max-width:480px;" id="pmJudulWrap"><label>Judul <span class="hint">(opsional)</span></label>
         <input type="text" id="pmJudul" placeholder="Contoh: Jadwal PTS Ganjil 2026"></div>
-      <div class="field" style="max-width:480px;"><label>Isi Pengumuman</label>
+      <div class="field" style="max-width:480px;"><label id="pmIsiLabel">Isi Pengumuman</label>
         <textarea id="pmIsi" style="min-height:110px;" placeholder="Tulis isi pengumuman untuk siswa di sini..."></textarea></div>
+      <div class="field" style="max-width:480px;" id="pmSumberWrap"><label>Sumber / Penulis <span class="hint">(khusus Kata Hikmah)</span></label>
+        <input type="text" id="pmSumber" placeholder="Contoh: Imam Syafi'i"></div>
       <div class="field">
         <label><input type="checkbox" id="pmAktif" style="width:auto;margin-right:8px;">Tampilkan ke publik di beranda</label>
       </div>
