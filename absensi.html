@@ -164,6 +164,7 @@
       <button class="tab-btn" data-tab="absen">Ambil Absensi</button>
       <button class="tab-btn" data-tab="nilai">Input Nilai</button>
       <button class="tab-btn" data-tab="rekap">Rekap</button>
+      <button class="tab-btn" data-tab="pengumuman">Pengumuman</button>
       <button class="tab-btn" data-tab="jurnal">Jurnal Guru</button>
       <button class="tab-btn" data-tab="pengaturan">Pengaturan</button>
       <button class="tab-btn" data-tab="backup">Backup</button>
@@ -215,6 +216,20 @@
         <button class="btn btn-outline btn-sm" id="btnDownloadRekap" disabled>Download Excel</button>
       </div>
       <div id="rekapAdminTable" style="margin-top:16px;"><div class="empty">Pilih kelas untuk melihat rekap.</div></div>
+    </div>
+
+    <!-- Tab: Pengumuman -->
+    <div id="tabPengumuman" class="hidden">
+      <p class="lead" style="margin:0 0 16px;">Pengumuman singkat yang tampil di beranda situs (kotak "Pengumuman", di atas jam sholat). Cocok untuk info jadwal ujian, libur, atau pengumuman lain untuk siswa.</p>
+      <div class="field" style="max-width:480px;"><label>Judul <span class="hint">(opsional)</span></label>
+        <input type="text" id="pmJudul" placeholder="Contoh: Jadwal PTS Ganjil 2026"></div>
+      <div class="field" style="max-width:480px;"><label>Isi Pengumuman</label>
+        <textarea id="pmIsi" style="min-height:110px;" placeholder="Tulis isi pengumuman untuk siswa di sini..."></textarea></div>
+      <div class="field">
+        <label><input type="checkbox" id="pmAktif" style="width:auto;margin-right:8px;">Tampilkan ke publik di beranda</label>
+      </div>
+      <div id="pengumumanBanner"></div>
+      <button class="btn btn-solid" id="btnSimpanPengumuman">Simpan Pengumuman</button>
     </div>
 
     <!-- Tab: Jurnal Guru -->

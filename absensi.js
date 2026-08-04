@@ -8,6 +8,7 @@
      doc id = `${kelasId}_${tanggal}` (upsert per kelas+tanggal)
    - nilai         { kelasId, siswaId, tp, nilai, tanggal }
      doc id = `${kelasId}_${siswaId}_${tp}` (upsert per siswa+tp)
+   - pengumuman    { judul, isi, aktif }  doc id = 'ujian' (dipakai di beranda index.html)
    ============================================================ */
 
 const TP_LIST = ['TP1','TP2','TP3','TP4','TP5','TP6','TP7','TP8'];
@@ -314,10 +315,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['kelas','absen','nilai','rekap','jurnal','pengaturan','backup'].forEach(t => {
+    ['kelas','absen','nilai','rekap','pengumuman','jurnal','pengaturan','backup'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
     });
     if(btn.dataset.tab === 'jurnal') loadJurnalBulan();
+    if(btn.dataset.tab === 'pengumuman') muatPengumuman();
   });
 });
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -765,6 +767,38 @@ document.getElementById('selectKelasRekap').addEventListener('change', (e) => {
   }
 });
 
+/* ---------------- ADMIN: Pengumuman ---------------- */
+async function muatPengumuman(){
+  const banner = document.getElementById('pengumumanBanner');
+  banner.innerHTML = '';
+  try{
+    const doc = await db.collection('pengumuman').doc('ujian').get();
+    const d = doc.exists ? doc.data() : {};
+    document.getElementById('pmJudul').value = d.judul || '';
+    document.getElementById('pmIsi').value = d.isi || '';
+    document.getElementById('pmAktif').checked = !!d.aktif;
+  }catch(err){
+    bannerErr(banner, 'Gagal memuat pengumuman: ' + escapeHtml(err.message));
+  }
+}
+
+document.getElementById('btnSimpanPengumuman').addEventListener('click', async () => {
+  const banner = document.getElementById('pengumumanBanner');
+  const isi = document.getElementById('pmIsi').value.trim();
+  if(!isi){ bannerErr(banner, 'Isi pengumuman wajib diisi.'); return; }
+  const payload = {
+    judul: document.getElementById('pmJudul').value.trim(),
+    isi,
+    aktif: document.getElementById('pmAktif').checked
+  };
+  try{
+    await db.collection('pengumuman').doc('ujian').set(payload, {merge:true});
+    bannerOk(banner, 'Pengumuman tersimpan. Perubahan langsung tampil di beranda (realtime).');
+  }catch(err){
+    bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
+  }
+});
+
 /* ---------------- ADMIN: Pengaturan (Nama & NIP Guru + Kepala Madrasah) ---------------- */
 async function muatPengaturan(uid){
   try{
@@ -1089,7 +1123,7 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 const KOLEKSI_BACKUP = [
   'topik','soal','hasil_ujian',
   'kelas_absensi','siswa','pertemuan','nilai',
-  'jurnal_guru','materi_item',
+  'jurnal_guru','materi_item','pengumuman',
   'pengaturan_guru','pengaturan_sekolah'
 ];
 
@@ -1211,4 +1245,3 @@ if(CONFIG_BELUM_DIISI){
     });
   }
 })();
-
