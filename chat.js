@@ -250,6 +250,12 @@ document.getElementById('btnShowAdmin').addEventListener('click', (e) => {
 });
 document.getElementById('crumbGuruBack').addEventListener('click', () => showView('viewKelas'));
 
+document.getElementById('btnKeluarModeGuru').addEventListener('click', async () => {
+  if(!confirm('Keluar dari Mode Guru? Kamu akan kembali ke tampilan siswa biasa.')) return;
+  try{ await auth.signOut(); }catch(err){}
+  showView('viewKelas');
+});
+
 document.getElementById('btnLogin').addEventListener('click', async () => {
   const email = document.getElementById('adminEmail').value.trim();
   const pass = document.getElementById('adminPassword').value;

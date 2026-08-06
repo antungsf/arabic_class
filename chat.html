@@ -160,8 +160,13 @@
 
   <!-- View: admin/guru pilih kelas -->
   <div id="viewAdminKelas" class="hidden">
-    <span class="eyebrow">Mode Guru</span>
-    <h1>Pilih kelas untuk dipantau</h1>
+    <div class="chat-head" style="border-bottom:none;">
+      <div>
+        <span class="eyebrow" style="margin-bottom:2px;">Mode Guru</span>
+        <h1 style="margin:0;">Pilih kelas untuk dipantau</h1>
+      </div>
+      <button class="btn btn-outline btn-sm" id="btnKeluarModeGuru">Keluar Mode Guru</button>
+    </div>
     <p class="lead">Sebagai guru, kamu bisa masuk ke ruang chat kelas manapun dan menghapus pesan yang tidak pantas.</p>
     <div id="adminKelasList"><div class="loading">Memuat daftar kelas…</div></div>
   </div>
