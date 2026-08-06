@@ -59,6 +59,7 @@
   .hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
   .list-item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer;}
   .list-item:hover{border-color:var(--green);background:var(--bg-alt);}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 
   .banner{padding:10px 14px;border-radius:6px;font-size:12.5px;margin-bottom:14px;}
   .banner-error{background:var(--red-bg);color:var(--red);border:1px solid rgba(179,49,31,.25);}
@@ -154,6 +155,9 @@
         <div class="chat-head-info">Kamu masuk sebagai <b id="chatNamaSaya">-</b></div>
       </div>
       <div class="chat-online-badge" id="chatOnlineBadge"></div>
+    </div>
+    <div class="row hidden" id="chatAdminTools" style="margin-bottom:10px;">
+      <button class="btn btn-outline btn-sm" id="btnHapusSemuaChat" style="border-color:var(--red);color:var(--red);">Hapus Semua Pesan di Kelas Ini</button>
     </div>
     <div class="chat-box" id="chatBox"><div class="loading">Memuat percakapan…</div></div>
     <div class="chat-form">

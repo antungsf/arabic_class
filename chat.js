@@ -152,10 +152,35 @@ function bukaRuangChat(kelasAbsensiId, kelasAbsensiNama){
   state.kelasAbsensiNama = kelasAbsensiNama;
   document.getElementById('chatEyebrow').textContent = kelasAbsensiNama;
   document.getElementById('chatNamaSaya').textContent = state.namaSaya + (state.tipeSaya === 'guru' ? ' (Guru)' : '');
+  document.getElementById('chatAdminTools').classList.toggle('hidden', !state.isAdmin);
   showView('viewChat');
   dengarkanChat(kelasAbsensiId);
   mulaiPresence(kelasAbsensiId);
 }
+
+document.getElementById('btnHapusSemuaChat').addEventListener('click', async () => {
+  const kelasAbsensiId = state.kelasAbsensiId;
+  const kelasNama = state.kelasAbsensiNama;
+  if(!confirm(`Hapus SEMUA pesan chat di kelas "${kelasNama}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+  const btn = document.getElementById('btnHapusSemuaChat');
+  btn.disabled = true; btn.textContent = 'Menghapus…';
+  try{
+    const snap = await db.collection('chat_pesan').where('kelasId','==',kelasAbsensiId).get();
+    if(snap.empty){ alert('Tidak ada pesan untuk dihapus.'); return; }
+    const docs = snap.docs;
+    const batchSize = 400;
+    for(let i = 0; i < docs.length; i += batchSize){
+      const batch = db.batch();
+      docs.slice(i, i+batchSize).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    alert(`${docs.length} pesan berhasil dihapus.`);
+  }catch(err){
+    alert('Gagal menghapus: ' + err.message);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Hapus Semua Pesan di Kelas Ini';
+  }
+});
 
 /* ---------------- Indikator siswa online ---------------- */
 const BATAS_ONLINE_MS = 45000; // dianggap online kalau lapor dalam 45 detik terakhir
