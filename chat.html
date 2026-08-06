@@ -68,6 +68,10 @@
   .chat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line);}
   .chat-head-info{font-size:13px;color:var(--muted);}
   .chat-head-info b{color:var(--green-deep);}
+  .chat-online-badge{font-size:12px;font-weight:700;color:var(--green-deep);background:var(--bg-alt);border:1px solid var(--line);padding:6px 12px;border-radius:20px;cursor:default;position:relative;}
+  .chat-online-badge .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ab577;margin-right:6px;}
+  .chat-online-badge .nama-list{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:160px;box-shadow:0 8px 24px rgba(15,54,39,.12);font-weight:400;font-size:12px;color:var(--ink);z-index:20;}
+  .chat-online-badge:hover .nama-list{display:block;}
   .chat-box{
     border:1px solid var(--line);border-radius:12px;background:var(--bg-alt);
     height:60vh;min-height:320px;max-height:560px;overflow-y:auto;
@@ -149,6 +153,7 @@
         <span class="eyebrow" id="chatEyebrow" style="margin-bottom:2px;">Kelas</span>
         <div class="chat-head-info">Kamu masuk sebagai <b id="chatNamaSaya">-</b></div>
       </div>
+      <div class="chat-online-badge" id="chatOnlineBadge"></div>
     </div>
     <div class="chat-box" id="chatBox"><div class="loading">Memuat percakapan…</div></div>
     <div class="chat-form">

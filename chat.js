@@ -22,7 +22,11 @@ const state = {
   tipeSaya: 'siswa', // 'siswa' | 'guru'
   isAdmin: false,
   daftarSiswa: [],
-  unsubChat: null
+  unsubChat: null,
+  unsubPresence: null,
+  presenceHeartbeat: null,
+  presenceRenderTick: null,
+  presenceCache: []
 };
 
 function escapeHtml(str){
@@ -138,6 +142,7 @@ document.getElementById('crumbChat').addEventListener('click', keluarRuangChat);
 
 function keluarRuangChat(){
   if(state.unsubChat){ state.unsubChat(); state.unsubChat = null; }
+  hentikanPresence();
   if(state.isAdmin) showView('viewAdminKelas');
   else showView('viewKelas');
 }
@@ -149,7 +154,69 @@ function bukaRuangChat(kelasAbsensiId, kelasAbsensiNama){
   document.getElementById('chatNamaSaya').textContent = state.namaSaya + (state.tipeSaya === 'guru' ? ' (Guru)' : '');
   showView('viewChat');
   dengarkanChat(kelasAbsensiId);
+  mulaiPresence(kelasAbsensiId);
 }
+
+/* ---------------- Indikator siswa online ---------------- */
+const BATAS_ONLINE_MS = 45000; // dianggap online kalau lapor dalam 45 detik terakhir
+const INTERVAL_LAPOR_MS = 20000;
+
+function mulaiPresence(kelasAbsensiId){
+  hentikanPresence();
+  // siswa lapor hadir tiap 20 detik; guru cukup memantau (tidak ikut lapor sebagai "siswa online")
+  if(state.tipeSaya === 'siswa' && state.siswaTerpilihId){
+    laporHadir(kelasAbsensiId);
+    state.presenceHeartbeat = setInterval(() => laporHadir(kelasAbsensiId), INTERVAL_LAPOR_MS);
+  }
+  // semua yang buka ruang (siswa maupun guru) mendengarkan daftar kehadiran untuk badge
+  state.unsubPresence = db.collection('kehadiran_chat')
+    .where('kelasId','==',kelasAbsensiId)
+    .onSnapshot(snap => {
+      state.presenceCache = [];
+      snap.forEach(doc => state.presenceCache.push(doc.data()));
+      renderBadgeOnline();
+    }, () => { renderBadgeOnline(); });
+  state.presenceRenderTick = setInterval(renderBadgeOnline, 15000);
+}
+
+function hentikanPresence(){
+  if(state.presenceHeartbeat){ clearInterval(state.presenceHeartbeat); state.presenceHeartbeat = null; }
+  if(state.presenceRenderTick){ clearInterval(state.presenceRenderTick); state.presenceRenderTick = null; }
+  if(state.unsubPresence){ state.unsubPresence(); state.unsubPresence = null; }
+  // best-effort hapus jejak hadir sendiri saat keluar (tidak wajib berhasil)
+  if(state.tipeSaya === 'siswa' && state.siswaTerpilihId && state.kelasAbsensiId){
+    db.collection('kehadiran_chat').doc(state.kelasAbsensiId + '_' + state.siswaTerpilihId).delete().catch(() => {});
+  }
+}
+
+function laporHadir(kelasAbsensiId){
+  const docId = kelasAbsensiId + '_' + state.siswaTerpilihId;
+  db.collection('kehadiran_chat').doc(docId).set({
+    kelasId: kelasAbsensiId,
+    siswaId: state.siswaTerpilihId,
+    nama: state.namaSaya,
+    terakhirAktif: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(() => {});
+}
+
+function renderBadgeOnline(){
+  const badge = document.getElementById('chatOnlineBadge');
+  if(!badge) return;
+  const sekarang = Date.now();
+  const aktif = state.presenceCache.filter(d => {
+    if(!d.terakhirAktif || !d.terakhirAktif.toDate) return false;
+    return (sekarang - d.terakhirAktif.toDate().getTime()) < BATAS_ONLINE_MS;
+  });
+  if(!aktif.length){
+    badge.innerHTML = `<span class="dot" style="background:#c7cfcb;"></span>Tidak ada siswa online`;
+    return;
+  }
+  const namaList = aktif.map(d => escapeHtml(d.nama)).sort().join('<br>');
+  badge.innerHTML = `<span class="dot"></span>${aktif.length} siswa online
+    <div class="nama-list">${namaList}</div>`;
+}
+
+window.addEventListener('beforeunload', hentikanPresence);
 
 function dengarkanChat(kelasAbsensiId){
   const box = document.getElementById('chatBox');
