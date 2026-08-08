@@ -240,6 +240,33 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
 
   state.jumlahPelanggaran = 0;
   state.ujianSelesai = false;
+
+  // PERBAIKAN: cek dulu apakah siswa ini sudah punya percobaan "berlangsung" yang belum selesai
+  // untuk materi yang sama — kalau ada, lanjutkan dari situ alih-alih membuat percobaan baru.
+  let percobaanLama = null;
+  try{
+    const snap = await db.collection('hasil_ujian')
+      .where('topikId','==',state.topik.id)
+      .where('siswaId','==',state.siswaTerpilihId)
+      .where('status','==','berlangsung')
+      .limit(1).get();
+    if(!snap.empty){ percobaanLama = { id: snap.docs[0].id, ...snap.docs[0].data() }; }
+  }catch(err){ /* kalau gagal cek, lanjut anggap tidak ada percobaan lama */ }
+
+  if(percobaanLama){
+    state.hasilUjianId = percobaanLama.id;
+    state.jumlahPelanggaran = percobaanLama.pelanggaran || 0;
+    state.jawaban = percobaanLama.jawabanSementara ? { ...percobaanLama.jawabanSementara } : {};
+    mintaFullscreen();
+    aktifkanPengawasanUjian();
+    await loadSoalSiswa(state.topik.id, percobaanLama.soalUrutan || null);
+    const jumlahTerjawab = Object.keys(state.jawaban).length;
+    if(jumlahTerjawab > 0){
+      bannerOk(document.getElementById('banner'), `Melanjutkan ujian sebelumnya — ${jumlahTerjawab} soal sudah terjawab.`);
+    }
+    return;
+  }
+
   try{
     const docRef = await db.collection('hasil_ujian').add({
       topikId: state.topik.id,
@@ -250,6 +277,8 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
       kelasAbsensiId: state.kelasAbsensiId,
       kelasAbsensiNama: state.kelasAbsensiNama,
       jawaban: [],
+      jawabanSementara: {},
+      soalUrutan: [],
       waktuMulai: firebase.firestore.FieldValue.serverTimestamp(),
       waktuSubmit: null,
       status: 'berlangsung',
@@ -264,7 +293,7 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
 
   mintaFullscreen();
   aktifkanPengawasanUjian();
-  await loadSoalSiswa(state.topik.id);
+  await loadSoalSiswa(state.topik.id, null);
 });
 
 function acakArray(arr){
@@ -276,7 +305,20 @@ function acakArray(arr){
   return a;
 }
 
-async function loadSoalSiswa(topikId){
+// PERBAIKAN: simpan progres jawaban ke Firestore setiap kali siswa menjawab,
+// supaya kalau tab/HP ditutup sebelum submit, jawaban yang sudah diisi tidak hilang.
+function simpanJawabanSementara(){
+  if(!state.hasilUjianId) return;
+  db.collection('hasil_ujian').doc(state.hasilUjianId)
+    .update({ jawabanSementara: state.jawaban }).catch(() => {});
+}
+let timerSimpanEsai = null;
+function simpanJawabanSementaraDebounced(){
+  clearTimeout(timerSimpanEsai);
+  timerSimpanEsai = setTimeout(simpanJawabanSementara, 900);
+}
+
+async function loadSoalSiswa(topikId, urutanTersimpan){
   const box = document.getElementById('soalList');
   box.innerHTML = '<div class="loading">Memuat soal…</div>';
   document.getElementById('banner').innerHTML = '';
@@ -284,12 +326,27 @@ async function loadSoalSiswa(topikId){
   try{
     const snap = await db.collection('soal').where('topikId','==',topikId).orderBy('urutan','asc').get();
     let daftarSoal = [];
-    snap.forEach(doc => daftarSoal.push({id:doc.id, ...doc.data()}));
-    daftarSoal = acakArray(daftarSoal);
+    const petaSoal = {};
+    snap.forEach(doc => { const d = {id:doc.id, ...doc.data()}; daftarSoal.push(d); petaSoal[doc.id] = d; });
+
+    if(urutanTersimpan && urutanTersimpan.length){
+      // PERBAIKAN: kalau melanjutkan ujian, pakai urutan soal yang sama persis seperti percobaan sebelumnya
+      // (supaya nomor soal & posisi tidak berubah-ubah). Soal yang mungkin sudah dihapus admin dilewati.
+      daftarSoal = urutanTersimpan.map(id => petaSoal[id]).filter(Boolean);
+    } else {
+      daftarSoal = acakArray(daftarSoal);
+      // simpan urutan ini ke Firestore sekali di awal, supaya kalau siswa keluar-masuk lagi urutannya tetap sama
+      if(state.hasilUjianId && daftarSoal.length){
+        db.collection('hasil_ujian').doc(state.hasilUjianId)
+          .update({ soalUrutan: daftarSoal.map(s => s.id) }).catch(() => {});
+      }
+    }
 
     state.soalList = daftarSoal;
-    state.jawaban = {};
     state.soalIndex = 0;
+    // cari soal pertama yang belum terjawab (relevan saat resume; kalau baru mulai, state.jawaban masih kosong jadi hasilnya 0)
+    const idxBelumJawab = daftarSoal.findIndex(s => !state.jawaban[s.id] || String(state.jawaban[s.id]).trim() === '');
+    if(idxBelumJawab !== -1) state.soalIndex = idxBelumJawab;
 
     if(!daftarSoal.length){
       box.innerHTML = '<div class="empty">Belum ada soal untuk materi ini.</div>';
@@ -344,10 +401,14 @@ function renderSoalHalaman(){
       opt.classList.add('checked');
       opt.querySelector('input').checked = true;
       state.jawaban[soalId] = opt.dataset.key;
+      simpanJawabanSementara();
     });
   });
   box.querySelectorAll('.soal-esai').forEach(ta => {
-    ta.addEventListener('input', () => { state.jawaban[ta.dataset.soal] = ta.value; });
+    ta.addEventListener('input', () => {
+      state.jawaban[ta.dataset.soal] = ta.value;
+      simpanJawabanSementaraDebounced();
+    });
   });
 
   const isFirst = (i === 0);
@@ -1211,7 +1272,25 @@ async function bukaHasilDetail(id, r){
   state.hasilOpenData = r;
   renderModal(`<h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3><div class="loading">Memuat &amp; mengoreksi jawaban…</div>`);
 
-  const daftarJawaban = r.jawaban || [];
+  let daftarJawaban = r.jawaban || [];
+
+  // PERBAIKAN: kalau ujian masih "berlangsung" (belum di-submit siswa), tetap tunjukkan
+  // progres jawaban terakhir yang ter-autosave (dari field jawabanSementara + soalUrutan).
+  if(r.status === 'berlangsung' && r.soalUrutan && r.soalUrutan.length){
+    try{
+      const hasilFetchSoal = await Promise.all(r.soalUrutan.map(sid => db.collection('soal').doc(sid).get()));
+      const jawabanSementara = r.jawabanSementara || {};
+      daftarJawaban = hasilFetchSoal
+        .filter(doc => doc.exists)
+        .map(doc => ({
+          soalId: doc.id,
+          pertanyaan: doc.data().pertanyaan,
+          tipe: doc.data().tipe,
+          jawabanSiswa: jawabanSementara[doc.id] ?? null
+        }));
+    }catch(err){ /* biarkan daftarJawaban kosong kalau gagal ambil */ }
+  }
+
   const soalIds = [...new Set(daftarJawaban.filter(j => j.tipe === 'pilihan_ganda').map(j => j.soalId))];
   const soalMap = {};
   try{
@@ -1266,9 +1345,11 @@ async function bukaHasilDetail(id, r){
   renderModal(`
     <h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3>
     <p class="hint">Kelas ${escapeHtml(r.kelas)} · ${escapeHtml(r.topikNama)}</p>
+    ${r.status === 'berlangsung' ? `<div class="banner banner-ok">🕓 Siswa ini <b>masih mengerjakan</b> (belum submit). Jawaban di bawah adalah progres terakhir yang ter-autosave, bisa berubah kapan saja. Kolom Nilai belum bisa diisi sebelum siswa mengumpulkan.</div>` : ''}
     ${r.status === 'didiskualifikasi' ? `<div class="banner banner-error">⚠️ Siswa ini <b>didiskualifikasi</b> otomatis oleh sistem karena terdeteksi meninggalkan halaman ujian ${r.pelanggaran||0}x.</div>` : (r.pelanggaran ? `<div class="banner banner-error">Terdeteksi ${r.pelanggaran}x meninggalkan halaman ujian (di bawah batas diskualifikasi).</div>` : '')}
-    ${ringkasanSkor}
+    ${r.status !== 'berlangsung' ? ringkasanSkor : ''}
     <div style="max-height:280px;overflow:auto;margin-bottom:16px;">${jawabanHtml}</div>
+    ${r.status === 'berlangsung' ? '' : `
     <div class="field"><label>Nilai</label>
       <input type="number" id="mNilai" min="0" max="100" value="${nilaiAwal}"></div>
     <div class="field"><label>Catatan untuk siswa (opsional)</label>
@@ -1278,10 +1359,15 @@ async function bukaHasilDetail(id, r){
       <button class="btn btn-solid" id="mSimpanNilai">Simpan Penilaian</button>
       <button class="btn btn-outline" id="mCancel">Tutup</button>
       <button class="btn btn-danger btn-sm" id="mHapusHasil">Hapus Data Ini</button>
-    </div>
+    </div>`}
+    ${r.status === 'berlangsung' ? `
+    <div class="row">
+      <button class="btn btn-outline" id="mCancel">Tutup</button>
+      <button class="btn btn-danger btn-sm" id="mHapusHasil">Hapus Data Ini</button>
+    </div>` : ''}
   `);
   document.getElementById('mCancel').addEventListener('click', closeModal);
-  document.getElementById('mSimpanNilai').addEventListener('click', simpanNilai);
+  if(r.status !== 'berlangsung') document.getElementById('mSimpanNilai').addEventListener('click', simpanNilai);
   document.getElementById('mHapusHasil').addEventListener('click', () => hapusHasilUjian(id, r.namaSiswa));
 }
 
