@@ -119,6 +119,13 @@
   .row-between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
 
   .list-item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin-bottom:10px;}
+  .pengawas-card{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;}
+  .pengawas-card:hover{border-color:var(--green);}
+  .pengawas-card.ada-pelanggaran{border-color:var(--red);background:var(--red-bg);}
+  .pengawas-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .pengawas-nama{font-weight:700;font-family:'Poppins',sans-serif;color:var(--green-deep);font-size:14.5px;}
+  .pengawas-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  .pengawas-durasi{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:700;color:var(--gold-deep);flex-shrink:0;}
   .list-item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
   .list-item h4{margin:0 0 4px;font-size:14.5px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
   .list-item .meta{font-size:11.5px;color:var(--muted);}
@@ -173,7 +180,7 @@
     <span class="crumb" id="crumbTopik">&larr; Pilih materi lain</span>
     <span class="eyebrow" id="namaEyebrow">Materi</span>
     <h1 id="namaTitle">Mulai ujian</h1>
-    <p class="lead">Pilih kelasmu, lalu cari namamu dari daftar siswa terdaftar.</p>
+    <p class="lead" id="infoJumlahSoal">Pilih kelasmu, lalu cari namamu dari daftar siswa terdaftar.</p>
     <div class="field" style="max-width:360px;">
       <label>Kelas</label>
       <select id="selectKelasAbsensiUjian"><option value="">— pilih kelas —</option></select>
@@ -189,8 +196,16 @@
 
   <!-- View: ujian -->
   <div id="viewUjian" class="hidden">
-    <span class="eyebrow" id="ujianEyebrow">Materi</span>
-    <h1 id="ujianTitle">Soal</h1>
+    <div class="row-between" style="align-items:flex-start;">
+      <div>
+        <span class="eyebrow" id="ujianEyebrow">Materi</span>
+        <h1 id="ujianTitle" style="margin-bottom:8px;">Soal</h1>
+      </div>
+      <div id="timerUjian" class="hidden" style="background:var(--bg-alt);border:1.5px solid var(--line);border-radius:8px;padding:8px 16px;text-align:center;flex-shrink:0;">
+        <div class="hint" style="margin:0;">Sisa Waktu</div>
+        <div id="timerAngka" style="font-family:'Poppins',sans-serif;font-weight:800;font-size:20px;color:var(--green-deep);">--:--</div>
+      </div>
+    </div>
     <p class="lead">Jawab soal ini, lalu klik "Berikutnya". <b>Jangan tinggalkan halaman ini</b> — sistem mendeteksi kalau kamu pindah tab/app selama ujian berlangsung.</p>
     <div id="pelanggaranBanner"></div>
     <div id="banner"></div>
@@ -262,6 +277,7 @@
       <button class="tab-btn" data-tab="bank">Bank Soal</button>
       <button class="tab-btn" data-tab="jadwal">Jadwal Ujian</button>
       <button class="tab-btn" data-tab="hasil">Hasil Ujian</button>
+      <button class="tab-btn" data-tab="pengawas">Ruang Pengawas</button>
     </div>
 
     <!-- Tab: Topik -->
@@ -370,6 +386,12 @@
         <button class="btn btn-danger btn-sm" id="btnHapusSemuaHasil">Hapus Semua (sesuai filter)</button>
       </div>
       <div id="hasilAdminList"><div class="loading">Memuat…</div></div>
+    </div>
+
+    <!-- Tab: Ruang Pengawas (live monitoring) -->
+    <div id="tabPengawas" class="hidden">
+      <p class="lead" style="margin:0 0 16px;">Daftar siswa yang <b>sedang mengerjakan ujian</b> saat ini, update otomatis realtime. Klik kartu untuk lihat progres jawabannya.</p>
+      <div id="pengawasList"><div class="loading">Memuat…</div></div>
     </div>
   </div>
 </main>

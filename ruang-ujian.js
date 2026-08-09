@@ -98,6 +98,15 @@ function bukaTopik(id, d){
   resetLangkahNama();
   showView('viewNama');
   muatKelasAbsensiUntukUjian(d.kelas);
+
+  // PERBAIKAN: tampilkan jumlah soal sebelum siswa mulai mengerjakan
+  const infoEl = document.getElementById('infoJumlahSoal');
+  infoEl.textContent = 'Memuat info materi…';
+  db.collection('soal').where('topikId','==',id).get().then(snap => {
+    infoEl.textContent = `Materi ini berisi ${snap.size} soal. Pilih kelasmu, lalu cari namamu dari daftar siswa terdaftar.`;
+  }).catch(() => {
+    infoEl.textContent = 'Pilih kelasmu, lalu cari namamu dari daftar siswa terdaftar.';
+  });
 }
 
 function resetLangkahNama(){
@@ -182,14 +191,18 @@ async function eligibilitasSekarang(){
   const jamSekarang = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   let cocokTarget = null;
   let aktifSekarang = false;
+  let jadwalAktif = null;
   snap.forEach(doc => {
     const d = doc.data();
     const masuk = (d.targetKelasIds||[]).includes(state.kelasAbsensiId) || (d.targetSiswaIds||[]).includes(state.siswaTerpilihId);
     if(!masuk) return;
     if(!cocokTarget || d.tanggal < cocokTarget.tanggal) cocokTarget = d;
-    if(d.tanggal === tanggalSekarang && jamSekarang >= d.jamMulai && jamSekarang <= d.jamSelesai) aktifSekarang = true;
+    if(d.tanggal === tanggalSekarang && jamSekarang >= d.jamMulai && jamSekarang <= d.jamSelesai){
+      aktifSekarang = true;
+      jadwalAktif = d;
+    }
   });
-  return { aktifSekarang, cocokTarget, adaJadwal: !snap.empty };
+  return { aktifSekarang, cocokTarget, jadwalAktif, adaJadwal: !snap.empty };
 }
 
 async function cekEligibilitasUjian(){
@@ -219,14 +232,16 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
 
   const btn = document.getElementById('btnMulaiUjian');
   btn.disabled = true; btn.textContent = 'Memeriksa jadwal…';
+  let jadwalAktifSaatMulai = null;
   try{
-    const { aktifSekarang } = await eligibilitasSekarang();
+    const { aktifSekarang, jadwalAktif } = await eligibilitasSekarang();
     if(!aktifSekarang){
       alert('Jadwal ujian untuk kamu sudah tidak aktif (mungkin waktu habis atau belum mulai). Halaman akan dimuat ulang.');
       btn.textContent = 'Mulai Mengerjakan';
       cekEligibilitasUjian();
       return;
     }
+    jadwalAktifSaatMulai = jadwalAktif;
   }catch(err){
     btn.disabled = false; btn.textContent = 'Mulai Mengerjakan';
     alert('Gagal memeriksa jadwal: ' + err.message);
@@ -240,6 +255,7 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
 
   state.jumlahPelanggaran = 0;
   state.ujianSelesai = false;
+  mulaiTimerUjian(jadwalAktifSaatMulai);
 
   // PERBAIKAN: cek dulu apakah siswa ini sudah punya percobaan "berlangsung" yang belum selesai
   // untuk materi yang sama — kalau ada, lanjutkan dari situ alih-alih membuat percobaan baru.
@@ -303,6 +319,66 @@ function acakArray(arr){
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/* PERBAIKAN: countdown waktu ujian berdasarkan jamSelesai jadwal, dengan auto-submit saat habis */
+let timerUjianInterval = null;
+function mulaiTimerUjian(jadwalAktif){
+  hentikanTimerUjian();
+  const box = document.getElementById('timerUjian');
+  const angka = document.getElementById('timerAngka');
+  if(!jadwalAktif || !jadwalAktif.jamSelesai){ box.classList.add('hidden'); return; }
+
+  const [jamAkhir, menitAkhir] = jadwalAktif.jamSelesai.split(':').map(Number);
+  const sekarang = new Date();
+  const batasWaktu = new Date(sekarang);
+  batasWaktu.setHours(jamAkhir, menitAkhir, 0, 0);
+
+  box.classList.remove('hidden');
+  function tick(){
+    const sisaMs = batasWaktu.getTime() - Date.now();
+    if(sisaMs <= 0){
+      angka.textContent = '00:00';
+      hentikanTimerUjian();
+      if(!state.ujianSelesai){
+        alert('Waktu ujian sudah habis. Jawaban yang sudah diisi akan otomatis dikumpulkan.');
+        submitOtomatisWaktuHabis();
+      }
+      return;
+    }
+    const totalDetik = Math.floor(sisaMs / 1000);
+    const jam = Math.floor(totalDetik / 3600);
+    const menit = Math.floor((totalDetik % 3600) / 60);
+    const detik = totalDetik % 60;
+    angka.textContent = (jam > 0 ? String(jam).padStart(2,'0')+':' : '') + String(menit).padStart(2,'0') + ':' + String(detik).padStart(2,'0');
+    angka.style.color = sisaMs < 5*60*1000 ? 'var(--red)' : 'var(--green-deep)';
+  }
+  tick();
+  timerUjianInterval = setInterval(tick, 1000);
+}
+function hentikanTimerUjian(){
+  if(timerUjianInterval){ clearInterval(timerUjianInterval); timerUjianInterval = null; }
+}
+async function submitOtomatisWaktuHabis(){
+  // pakai jalur yang sama seperti diskualifikasi: simpan jawaban apa adanya lalu tutup ujian
+  state.ujianSelesai = true;
+  nonaktifkanPengawasanUjian();
+  hentikanTimerUjian();
+  keluarFullscreen();
+  try{
+    if(state.hasilUjianId){
+      const jawabanArr = state.soalList.map(s => ({
+        soalId: s.id, pertanyaan: s.pertanyaan, tipe: s.tipe, jawabanSiswa: state.jawaban[s.id] || null
+      }));
+      await db.collection('hasil_ujian').doc(state.hasilUjianId).update({
+        jawaban: jawabanArr,
+        waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
+        status: 'belum_dinilai',
+        pelanggaran: state.jumlahPelanggaran
+      });
+    }
+  }catch(err){ /* tetap tampilkan layar selesai walau update gagal */ }
+  showView('viewSelesai');
 }
 
 // PERBAIKAN: simpan progres jawaban ke Firestore setiap kali siswa menjawab,
@@ -483,6 +559,7 @@ async function diskualifikasiSiswa(){
   if(state.ujianSelesai) return;
   state.ujianSelesai = true;
   nonaktifkanPengawasanUjian();
+  hentikanTimerUjian();
   keluarFullscreen();
   try{
     if(state.hasilUjianId){
@@ -554,6 +631,7 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
     }
     state.ujianSelesai = true;
     nonaktifkanPengawasanUjian();
+  hentikanTimerUjian();
     keluarFullscreen();
     showView('viewSelesai');
   }catch(err){
@@ -610,9 +688,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['topik','soal','bank','jadwal','hasil'].forEach(t => {
+    ['topik','soal','bank','jadwal','hasil','pengawas'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
     });
+    if(btn.dataset.tab === 'pengawas') mulaiPengawasLive();
+    else hentikanPengawasLive();
   });
 });
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -1193,6 +1273,67 @@ document.getElementById('btnHapusSemuaHasil').addEventListener('click', async ()
     btn.disabled = false; btn.textContent = 'Hapus Semua (sesuai filter)';
   }
 });
+
+/* ---- Admin: Ruang Pengawas (live monitoring, realtime) ---- */
+let unsubPengawas = null;
+let tickPengawas = null;
+let cachePengawasRows = [];
+function mulaiPengawasLive(){
+  hentikanPengawasLive();
+  const box = document.getElementById('pengawasList');
+  box.innerHTML = '<div class="loading">Memuat…</div>';
+  unsubPengawas = db.collection('hasil_ujian')
+    .where('status','==','berlangsung')
+    .onSnapshot(snap => {
+      cachePengawasRows = [];
+      snap.forEach(doc => cachePengawasRows.push({id:doc.id, ...doc.data()}));
+      renderPengawasList();
+    }, err => {
+      box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
+    });
+  tickPengawas = setInterval(renderPengawasList, 5000);
+}
+function renderPengawasList(){
+  const box = document.getElementById('pengawasList');
+  if(!cachePengawasRows.length){
+    box.innerHTML = '<div class="empty">Tidak ada siswa yang sedang mengerjakan ujian saat ini.</div>';
+    return;
+  }
+  const rows = cachePengawasRows.slice().sort((a,b) => (b.pelanggaran||0) - (a.pelanggaran||0));
+  let html = '';
+  rows.forEach(r => {
+    const mulai = r.waktuMulai && r.waktuMulai.toDate ? r.waktuMulai.toDate() : null;
+    const durasi = mulai ? formatDurasi(Date.now() - mulai.getTime()) : '-';
+    const jmlJawab = r.jawabanSementara ? Object.keys(r.jawabanSementara).length : 0;
+    const totalSoal = r.soalUrutan ? r.soalUrutan.length : 0;
+    html += `<div class="pengawas-card${r.pelanggaran ? ' ada-pelanggaran' : ''}" data-id="${r.id}">
+      <div class="pengawas-head">
+        <div>
+          <div class="pengawas-nama">${escapeHtml(r.namaSiswa)}</div>
+          <div class="pengawas-meta">${escapeHtml(r.kelas)}${r.kelasAbsensiNama ? ' · '+escapeHtml(r.kelasAbsensiNama) : ''} &middot; ${escapeHtml(r.topikNama)} &middot; ${jmlJawab}/${totalSoal || '?'} terjawab${r.pelanggaran ? ' &middot; <b style="color:var(--red);">'+r.pelanggaran+'x pindah tab</b>' : ''}</div>
+        </div>
+        <div class="pengawas-durasi">${durasi}</div>
+      </div>
+    </div>`;
+  });
+  box.innerHTML = html;
+  box.querySelectorAll('.pengawas-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const r = cachePengawasRows.find(x => x.id === el.dataset.id);
+      if(r) bukaHasilDetail(el.dataset.id, r);
+    });
+  });
+}
+function hentikanPengawasLive(){
+  if(unsubPengawas){ unsubPengawas(); unsubPengawas = null; }
+  if(tickPengawas){ clearInterval(tickPengawas); tickPengawas = null; }
+}
+function formatDurasi(ms){
+  const totalDetik = Math.floor(ms / 1000);
+  const menit = Math.floor(totalDetik / 60);
+  const detik = totalDetik % 60;
+  return String(menit).padStart(2,'0') + ':' + String(detik).padStart(2,'0');
+}
 
 async function loadHasilAdmin(){
   const box = document.getElementById('hasilAdminList');
