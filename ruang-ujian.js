@@ -620,11 +620,14 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
     });
     const skorPGOtomatis = jumlahSoalPG ? Math.round((jumlahBenarPG / jumlahSoalPG) * 100) : null;
 
+    // PERBAIKAN: skor pilihan ganda tetap dihitung otomatis (skorPGOtomatis) supaya guru
+    // tidak perlu koreksi manual satu-satu, TAPI status selalu "belum_dinilai" dan TIDAK
+    // langsung dikirim ke Absensi — harus lewat cek & konfirmasi guru dulu di tab Hasil Ujian.
     const payload = {
       jawaban: jawabanArr,
       waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
-      status: adaEsai ? 'belum_dinilai' : (jumlahSoalPG ? 'sudah_dinilai' : 'belum_dinilai'),
-      nilai: adaEsai ? null : skorPGOtomatis,
+      status: 'belum_dinilai',
+      nilai: null,
       skorPGOtomatis,
       jumlahBenarPG,
       jumlahSoalPG,
@@ -637,9 +640,6 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
         topikId: state.topik.id, topikNama: state.topik.nama, kelas: state.topik.kelas,
         namaSiswa: state.namaSiswa, catatanGuru:null, ...payload
       });
-    }
-    if(payload.status === 'sudah_dinilai' && state.topik.tpTerhubung){
-      sinkronNilaiKeAbsensi(state.kelasAbsensiId, state.siswaTerpilihId, state.topik.tpTerhubung, payload.nilai);
     }
     state.ujianSelesai = true;
     nonaktifkanPengawasanUjian();
@@ -1268,10 +1268,24 @@ document.getElementById('btnHapusSemuaHasil').addEventListener('click', async ()
   if(!rows.length){ alert('Tidak ada data sesuai filter untuk dihapus.'); return; }
   const kelasLabel = document.getElementById('filterKelasHasil').selectedOptions[0].textContent;
   const statusLabel = document.getElementById('filterStatusHasil').selectedOptions[0].textContent;
-  if(!confirm(`Hapus SEMUA ${rows.length} data hasil ujian sesuai filter saat ini?\n\nKelas: ${kelasLabel}\nStatus: ${statusLabel}\n\nTindakan ini tidak bisa dibatalkan.`)) return;
+  if(!confirm(`Hapus SEMUA ${rows.length} data hasil ujian sesuai filter saat ini?\n\nKelas: ${kelasLabel}\nStatus: ${statusLabel}\n\nTindakan ini tidak bisa dibatalkan. Nilai yang sudah pernah dikirim ke Absensi juga akan ikut dicabut.`)) return;
   const btn = document.getElementById('btnHapusSemuaHasil');
   btn.disabled = true; btn.textContent = 'Menghapus…';
   try{
+    // cabut nilai terkait di Absensi untuk baris yang sudah dinilai (cache tpTerhubung per topik biar tidak baca berulang)
+    const cacheTp = {};
+    for(const r of rows){
+      if(r.status !== 'sudah_dinilai' || !r.topikId || !r.kelasAbsensiId || !r.siswaId) continue;
+      try{
+        if(!(r.topikId in cacheTp)){
+          const topikDoc = await db.collection('topik').doc(r.topikId).get();
+          cacheTp[r.topikId] = topikDoc.exists ? topikDoc.data().tpTerhubung : null;
+        }
+        const tp = cacheTp[r.topikId];
+        if(tp) await db.collection('nilai').doc(`${r.kelasAbsensiId}_${r.siswaId}_${tp}`).delete();
+      }catch(e){ /* jangan hentikan proses kalau satu ini gagal */ }
+    }
+
     const batchSize = 400;
     for(let i = 0; i < rows.length; i += batchSize){
       const batch = db.batch();
@@ -1514,9 +1528,10 @@ async function bukaHasilDetail(id, r){
       <textarea id="mCatatan">${escapeHtml(r.catatanGuru||'')}</textarea></div>
     <div id="mHasilBanner"></div>
     <div class="row">
-      <button class="btn btn-solid" id="mSimpanNilai">Simpan Penilaian</button>
+      <button class="btn btn-solid" id="mSimpanNilai">${r.status === 'sudah_dinilai' ? 'Simpan Perubahan & Update Absensi' : 'Simpan &amp; Kirim ke Absensi'}</button>
       <button class="btn btn-outline" id="mCancel">Tutup</button>
       <button class="btn btn-danger btn-sm" id="mHapusHasil">Hapus Data Ini</button>
+      ${r.status === 'sudah_dinilai' ? '<button class="btn btn-danger btn-sm" id="mHapusNilaiAbsensi">Hapus Nilai dari Absensi</button>' : ''}
     </div>`}
     ${r.status === 'berlangsung' ? `
     <div class="row">
@@ -1529,6 +1544,26 @@ async function bukaHasilDetail(id, r){
   document.getElementById('mHapusHasil').addEventListener('click', () => hapusHasilUjian(id, r.namaSiswa));
   if(r.status === 'didiskualifikasi'){
     document.getElementById('mBukaKembali').addEventListener('click', () => bukaKembaliKesempatan(id, r));
+  }
+  if(r.status === 'sudah_dinilai'){
+    document.getElementById('mHapusNilaiAbsensi').addEventListener('click', () => hapusNilaiDariAbsensi(id, r));
+  }
+}
+
+async function hapusNilaiDariAbsensi(id, r){
+  if(!confirm(`Hapus nilai "${r.namaSiswa}" dari Absensi & Nilai? Nilai ujian ini akan dicabut dari rekap TP siswa (data hasil ujian sendiri tetap ada, statusnya kembali jadi "Belum Dinilai" supaya bisa dinilai ulang).`)) return;
+  const banner = document.getElementById('mHasilBanner');
+  try{
+    const topikDoc = await db.collection('topik').doc(r.topikId).get();
+    const tp = topikDoc.exists ? topikDoc.data().tpTerhubung : null;
+    if(tp && r.kelasAbsensiId && r.siswaId){
+      await db.collection('nilai').doc(`${r.kelasAbsensiId}_${r.siswaId}_${tp}`).delete();
+    }
+    await db.collection('hasil_ujian').doc(id).update({ status: 'belum_dinilai', nilai: null });
+    bannerOk(banner, 'Nilai sudah dihapus dari Absensi. Status hasil ujian ini kembali jadi Belum Dinilai.');
+    setTimeout(() => { closeModal(); loadHasilAdmin(); }, 1500);
+  }catch(err){
+    bannerErr(banner, 'Gagal menghapus nilai dari Absensi: ' + escapeHtml(err.message));
   }
 }
 
@@ -1560,8 +1595,16 @@ async function bukaKembaliKesempatan(id, r){
 }
 
 async function hapusHasilUjian(id, nama){
-  if(!confirm(`Hapus data hasil ujian atas nama "${nama}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+  if(!confirm(`Hapus data hasil ujian atas nama "${nama}"? Tindakan ini tidak bisa dibatalkan. Kalau nilainya sudah pernah dikirim ke Absensi, nilai itu juga akan ikut dicabut.`)) return;
   try{
+    const r = state.hasilOpenData;
+    if(r && r.status === 'sudah_dinilai' && r.topikId && r.kelasAbsensiId && r.siswaId){
+      try{
+        const topikDoc = await db.collection('topik').doc(r.topikId).get();
+        const tp = topikDoc.exists ? topikDoc.data().tpTerhubung : null;
+        if(tp) await db.collection('nilai').doc(`${r.kelasAbsensiId}_${r.siswaId}_${tp}`).delete();
+      }catch(e){ /* jangan hentikan proses hapus utama kalau ini gagal */ }
+    }
     await db.collection('hasil_ujian').doc(id).delete();
     closeModal();
     loadHasilAdmin();
