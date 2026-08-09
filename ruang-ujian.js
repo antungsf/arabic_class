@@ -256,6 +256,7 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
   state.jumlahPelanggaran = 0;
   state.ujianSelesai = false;
   mulaiTimerUjian(jadwalAktifSaatMulai);
+  pasangWatermark();
 
   // PERBAIKAN: cek dulu apakah siswa ini sudah punya percobaan "berlangsung" yang belum selesai
   // untuk materi yang sama — kalau ada, lanjutkan dari situ alih-alih membuat percobaan baru.
@@ -358,6 +359,17 @@ function mulaiTimerUjian(jadwalAktif){
 }
 function hentikanTimerUjian(){
   if(timerUjianInterval){ clearInterval(timerUjianInterval); timerUjianInterval = null; }
+}
+
+/* PERBAIKAN: watermark nama siswa di area soal — bukan mencegah screenshot (tidak mungkin lewat web),
+   tapi bikin screenshot yang disebar jelas kelihatan itu punya siapa (efek jera). */
+function pasangWatermark(){
+  const box = document.getElementById('watermarkUjian');
+  if(!box) return;
+  const teks = `${state.namaSiswa} · ${state.kelasAbsensiNama || ''}`;
+  let html = '';
+  for(let i = 0; i < 40; i++){ html += `<span>${escapeHtml(teks)}</span>`; }
+  box.innerHTML = html;
 }
 async function submitOtomatisWaktuHabis(){
   // pakai jalur yang sama seperti diskualifikasi: simpan jawaban apa adanya lalu tutup ujian
@@ -1487,9 +1499,14 @@ async function bukaHasilDetail(id, r){
     <h3>Hasil: ${escapeHtml(r.namaSiswa)}</h3>
     <p class="hint">Kelas ${escapeHtml(r.kelas)} · ${escapeHtml(r.topikNama)}</p>
     ${r.status === 'berlangsung' ? `<div class="banner banner-ok">🕓 Siswa ini <b>masih mengerjakan</b> (belum submit). Jawaban di bawah adalah progres terakhir yang ter-autosave, bisa berubah kapan saja. Kolom Nilai belum bisa diisi sebelum siswa mengumpulkan.</div>` : ''}
-    ${r.status === 'didiskualifikasi' ? `<div class="banner banner-error">⚠️ Siswa ini <b>didiskualifikasi</b> otomatis oleh sistem karena terdeteksi meninggalkan halaman ujian ${r.pelanggaran||0}x.</div>` : (r.pelanggaran ? `<div class="banner banner-error">Terdeteksi ${r.pelanggaran}x meninggalkan halaman ujian (di bawah batas diskualifikasi).</div>` : '')}
+    ${r.status === 'didiskualifikasi' ? `<div class="banner banner-error">⚠️ Siswa ini <b>didiskualifikasi</b> otomatis oleh sistem karena terdeteksi meninggalkan halaman ujian ${r.pelanggaran||0}x. Kalau ini bukan kesalahan siswa (mati baterai, koneksi putus, HP hang), guru bisa buka kembali kesempatannya di bawah — siswa akan lanjut dari soal yang belum terjawab, bukan mulai dari awal.</div>` : (r.pelanggaran ? `<div class="banner banner-error">Terdeteksi ${r.pelanggaran}x meninggalkan halaman ujian (di bawah batas diskualifikasi).</div>` : '')}
     ${r.status !== 'berlangsung' ? ringkasanSkor : ''}
     <div style="max-height:280px;overflow:auto;margin-bottom:16px;">${jawabanHtml}</div>
+    ${r.status === 'didiskualifikasi' ? `
+    <div class="row" style="margin-bottom:14px;">
+      <button class="btn btn-gold" id="mBukaKembali">Buka Kembali Kesempatan (izinkan lanjut)</button>
+    </div>
+    <div id="mBukaKembaliBanner"></div>` : ''}
     ${r.status === 'berlangsung' ? '' : `
     <div class="field"><label>Nilai</label>
       <input type="number" id="mNilai" min="0" max="100" value="${nilaiAwal}"></div>
@@ -1510,6 +1527,36 @@ async function bukaHasilDetail(id, r){
   document.getElementById('mCancel').addEventListener('click', closeModal);
   if(r.status !== 'berlangsung') document.getElementById('mSimpanNilai').addEventListener('click', simpanNilai);
   document.getElementById('mHapusHasil').addEventListener('click', () => hapusHasilUjian(id, r.namaSiswa));
+  if(r.status === 'didiskualifikasi'){
+    document.getElementById('mBukaKembali').addEventListener('click', () => bukaKembaliKesempatan(id, r));
+  }
+}
+
+async function bukaKembaliKesempatan(id, r){
+  if(!confirm(`Buka kembali kesempatan untuk "${r.namaSiswa}"? Siswa akan bisa masuk lagi dan melanjutkan dari soal yang belum terjawab. Pastikan jadwal ujiannya (jam mulai-selesai) masih aktif, kalau tidak siswa tetap tidak akan bisa masuk.`)) return;
+  const banner = document.getElementById('mBukaKembaliBanner');
+  try{
+    // ubah jawaban array (yang tersimpan saat diskualifikasi) jadi jawabanSementara (map),
+    // supaya alur resume di sisi siswa bisa mengenali soal mana yang sudah terjawab.
+    const jawabanSementara = {};
+    (r.jawaban || []).forEach(j => {
+      if(j.jawabanSiswa !== null && j.jawabanSiswa !== undefined && String(j.jawabanSiswa).trim() !== ''){
+        jawabanSementara[j.soalId] = j.jawabanSiswa;
+      }
+    });
+    const soalUrutan = r.soalUrutan && r.soalUrutan.length ? r.soalUrutan : (r.jawaban || []).map(j => j.soalId);
+    await db.collection('hasil_ujian').doc(id).update({
+      status: 'berlangsung',
+      pelanggaran: 0,
+      jawabanSementara,
+      soalUrutan,
+      waktuSubmit: null
+    });
+    bannerOk(banner, 'Kesempatan sudah dibuka kembali. Siswa bisa masuk lagi dari halaman Ruang Ujian.');
+    setTimeout(() => { closeModal(); loadHasilAdmin(); }, 1500);
+  }catch(err){
+    bannerErr(banner, 'Gagal membuka kembali: ' + escapeHtml(err.message));
+  }
 }
 
 async function hapusHasilUjian(id, nama){

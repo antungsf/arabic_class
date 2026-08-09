@@ -126,6 +126,12 @@
   .pengawas-nama{font-weight:700;font-family:'Poppins',sans-serif;color:var(--green-deep);font-size:14.5px;}
   .pengawas-meta{font-size:12px;color:var(--muted);margin-top:2px;}
   .pengawas-durasi{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:700;color:var(--gold-deep);flex-shrink:0;}
+  #watermarkUjian{
+    position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5;
+    display:flex;flex-wrap:wrap;align-content:flex-start;justify-content:center;
+    opacity:.09;transform:rotate(-22deg) scale(1.3);
+  }
+  #watermarkUjian span{font-size:12.5px;font-weight:800;color:#000;white-space:nowrap;margin:26px 18px;font-family:'Poppins',sans-serif;}
   .list-item-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
   .list-item h4{margin:0 0 4px;font-size:14.5px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
   .list-item .meta{font-size:11.5px;color:var(--muted);}
@@ -210,7 +216,10 @@
     <div id="pelanggaranBanner"></div>
     <div id="banner"></div>
     <div id="soalProgress" class="hint" style="margin-bottom:10px;font-weight:700;"></div>
-    <div id="soalList"><div class="loading">Memuat soal…</div></div>
+    <div id="ujianContentWrap" style="position:relative;">
+      <div id="watermarkUjian"></div>
+      <div id="soalList"><div class="loading">Memuat soal…</div></div>
+    </div>
     <div class="row" style="justify-content:space-between;margin-top:16px;">
       <button class="btn btn-outline hidden" id="btnSoalSebelumnya">&larr; Sebelumnya</button>
       <button class="btn btn-solid" id="btnSoalBerikutnya" style="margin-left:auto;">Berikutnya &rarr;</button>
