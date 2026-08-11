@@ -286,11 +286,29 @@ section.alt{background:var(--card); border-top:1px solid var(--line); border-bot
 .g-thumb{
   aspect-ratio:4/3; display:flex; align-items:center; justify-content:center;
   color:#fff; font-size:1.6rem; position:relative;
+  background-size:cover; background-position:center; cursor:pointer; transition:transform .25s ease;
+}
+.g-item:hover .g-thumb{transform:scale(1.03);}
+.g-thumb-play::after{
+  content:"▶"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(8,27,48,0.35); color:#fff; font-size:1.7rem;
 }
 .g-cap{padding:10px 12px; font-size:0.78rem; color:var(--ink-soft);}
 .g-cap b{display:block; color:var(--navy-deep); font-size:0.84rem; font-weight:600; margin-bottom:2px;}
 .gallery-pane{display:none;}
 .gallery-pane.active{display:grid;}
+
+/* ---------- LIGHTBOX ---------- */
+.lightbox{position:fixed; inset:0; background:rgba(8,27,48,0.92); display:none; align-items:center; justify-content:center; z-index:999; padding:24px;}
+.lightbox.open{display:flex;}
+.lightbox-inner{max-width:min(92vw,900px); width:100%; position:relative;}
+.lightbox-inner img, .lightbox-inner video{width:100%; max-height:80vh; border-radius:12px; display:block; background:#000;}
+.lightbox-cap{color:#fff; text-align:center; margin-top:12px; font-size:0.9rem;}
+.lightbox-close{
+  position:absolute; top:-44px; right:0; background:none; border:none; color:#fff;
+  font-size:2rem; line-height:1; cursor:pointer; padding:4px 10px;
+}
+.lightbox-close:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
 
 /* ---------- FOOTER ---------- */
 footer{background:var(--navy-deep); color:#D9D2BF; padding:56px 0 0;}
@@ -517,21 +535,21 @@ footer h5{font-family:'Petrona',serif; color:#fff; font-size:1.05rem; margin-bot
     </div>
 
     <div class="gallery-grid gallery-pane active" id="pane-foto" role="tabpanel" aria-labelledby="tab-foto">
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#0E2A47,#146B5B);">📷</div><div class="g-cap"><b>Milad ke-34</b>Des 2025</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#146B5B,#BF9B4E);">📷</div><div class="g-cap"><b>Gelar Wicara Literasi</b>Okt 2025</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#BF9B4E,#0E2A47);">📷</div><div class="g-cap"><b>Outdoor Classroom Day</b>Nov 2025</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#0E2A47,#BF9B4E);">📷</div><div class="g-cap"><b>Upacara Hari Pahlawan</b>Nov 2025</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#146B5B,#0E2A47);">📷</div><div class="g-cap"><b>Majelis Taklim Bahrul Ulum</b>Okt 2025</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#BF9B4E,#146B5B);">📷</div><div class="g-cap"><b>International Festival</b>Nov 2025</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#0E2A47,#146B5B);">📷</div><div class="g-cap"><b>PMBM Boarding Gel. 1 &amp; 2</b>2026</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#146B5B,#BF9B4E);">📷</div><div class="g-cap"><b>Rakor Kehumasan Kanwil</b>Okt 2025</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/milad-ke-34.jpg')" onclick="openLightbox('assets/galeri/foto/milad-ke-34.jpg','image','Milad ke-34 — Des 2025')"></div><div class="g-cap"><b>Milad ke-34</b>Des 2025</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/gelar-wicara-literasi.jpg')" onclick="openLightbox('assets/galeri/foto/gelar-wicara-literasi.jpg','image','Gelar Wicara Literasi — Okt 2025')"></div><div class="g-cap"><b>Gelar Wicara Literasi</b>Okt 2025</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/outdoor-classroom-day.jpg')" onclick="openLightbox('assets/galeri/foto/outdoor-classroom-day.jpg','image','Outdoor Classroom Day — Nov 2025')"></div><div class="g-cap"><b>Outdoor Classroom Day</b>Nov 2025</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/upacara-hari-pahlawan.jpg')" onclick="openLightbox('assets/galeri/foto/upacara-hari-pahlawan.jpg','image','Upacara Hari Pahlawan — Nov 2025')"></div><div class="g-cap"><b>Upacara Hari Pahlawan</b>Nov 2025</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/majelis-taklim-bahrul-ulum.jpg')" onclick="openLightbox('assets/galeri/foto/majelis-taklim-bahrul-ulum.jpg','image','Majelis Taklim Bahrul Ulum — Okt 2025')"></div><div class="g-cap"><b>Majelis Taklim Bahrul Ulum</b>Okt 2025</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/international-festival.jpg')" onclick="openLightbox('assets/galeri/foto/international-festival.jpg','image','International Festival — Nov 2025')"></div><div class="g-cap"><b>International Festival</b>Nov 2025</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/pmbm-boarding.jpg')" onclick="openLightbox('assets/galeri/foto/pmbm-boarding.jpg','image','PMBM Boarding Gel. 1 &amp; 2 — 2026')"></div><div class="g-cap"><b>PMBM Boarding Gel. 1 &amp; 2</b>2026</div></div>
+      <div class="g-item"><div class="g-thumb" style="background-image:url('assets/galeri/foto/rakor-kehumasan-kanwil.jpg')" onclick="openLightbox('assets/galeri/foto/rakor-kehumasan-kanwil.jpg','image','Rakor Kehumasan Kanwil — Okt 2025')"></div><div class="g-cap"><b>Rakor Kehumasan Kanwil</b>Okt 2025</div></div>
     </div>
 
     <div class="gallery-grid gallery-pane" id="pane-video" role="tabpanel" aria-labelledby="tab-video" hidden>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#0E2A47,#146B5B);">▶</div><div class="g-cap"><b>Video Profil Madrasah</b>Juara 1 Provinsi Kaltim</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#146B5B,#BF9B4E);">▶</div><div class="g-cap"><b>Highlight Milad ke-34</b>Des 2025</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#BF9B4E,#0E2A47);">▶</div><div class="g-cap"><b>Dokumentasi OMI 2025</b>18 peserta</div></div>
-      <div class="g-item"><div class="g-thumb" style="background:linear-gradient(135deg,#0E2A47,#BF9B4E);">▶</div><div class="g-cap"><b>Sosialisasi PMBM/PPDB</b>2026</div></div>
+      <div class="g-item"><div class="g-thumb g-thumb-play" style="background-image:url('assets/galeri/video/video-profil-madrasah-poster.jpg')" onclick="openLightbox('assets/galeri/video/video-profil-madrasah.mp4','video','Video Profil Madrasah — Juara 1 Provinsi Kaltim')"></div><div class="g-cap"><b>Video Profil Madrasah</b>Juara 1 Provinsi Kaltim</div></div>
+      <div class="g-item"><div class="g-thumb g-thumb-play" style="background-image:url('assets/galeri/video/highlight-milad-ke-34-poster.jpg')" onclick="openLightbox('assets/galeri/video/highlight-milad-ke-34.mp4','video','Highlight Milad ke-34 — Des 2025')"></div><div class="g-cap"><b>Highlight Milad ke-34</b>Des 2025</div></div>
+      <div class="g-item"><div class="g-thumb g-thumb-play" style="background-image:url('assets/galeri/video/dokumentasi-omi-2025-poster.jpg')" onclick="openLightbox('assets/galeri/video/dokumentasi-omi-2025.mp4','video','Dokumentasi OMI 2025 — 18 peserta')"></div><div class="g-cap"><b>Dokumentasi OMI 2025</b>18 peserta</div></div>
+      <div class="g-item"><div class="g-thumb g-thumb-play" style="background-image:url('assets/galeri/video/sosialisasi-pmbm-ppdb-poster.jpg')" onclick="openLightbox('assets/galeri/video/sosialisasi-pmbm-ppdb.mp4','video','Sosialisasi PMBM/PPDB — 2026')"></div><div class="g-cap"><b>Sosialisasi PMBM/PPDB</b>2026</div></div>
     </div>
   </div>
 </section>
@@ -577,6 +595,14 @@ footer h5{font-family:'Petrona',serif; color:#fff; font-size:1.05rem; margin-bot
 
 <div class="toast" id="toast">Saran Anda telah terkirim. Terima kasih.</div>
 
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Pratinjau galeri">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Tutup">&times;</button>
+    <div id="lightboxMedia"></div>
+    <p class="lightbox-cap" id="lightboxCap"></p>
+  </div>
+</div>
+
 <script>
   const navToggle = document.getElementById('navToggle');
   const mainMenu = document.getElementById('mainMenu');
@@ -604,6 +630,30 @@ footer h5{font-family:'Petrona',serif; color:#fff; font-size:1.05rem; margin-bot
   }
   tabFoto.addEventListener('click', () => showTab('foto'));
   tabVideo.addEventListener('click', () => showTab('video'));
+
+  // ---- Galeri: lightbox foto & video ----
+  const lightbox = document.getElementById('lightbox');
+  const lightboxMedia = document.getElementById('lightboxMedia');
+  const lightboxCap = document.getElementById('lightboxCap');
+  const lightboxClose = document.getElementById('lightboxClose');
+
+  function openLightbox(src, type, caption){
+    lightboxMedia.innerHTML = type === 'video'
+      ? `<video src="${src}" controls autoplay playsinline></video>`
+      : `<img src="${src}" alt="${caption || ''}">`;
+    lightboxCap.textContent = caption || '';
+    lightbox.classList.add('open');
+    lightboxClose.focus();
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox(){
+    lightbox.classList.remove('open');
+    lightboxMedia.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+  lightboxClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
 
   const saranForm = document.getElementById('saranForm');
   const toast = document.getElementById('toast');
