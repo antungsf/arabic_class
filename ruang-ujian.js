@@ -1625,17 +1625,35 @@ async function simpanNilai(){
       status: 'sudah_dinilai'
     });
 
+    // PERBAIKAN: selalu kasih tahu guru status sinkronisasi ke Absensi — jangan pernah diam-diam saja,
+    // supaya kalau gagal (atau materi belum ditautkan ke TP manapun) guru langsung tahu dan bisa perbaiki.
     const r = state.hasilOpenData;
+    let pesanSinkron = '';
     if(r && r.topikId && r.kelasAbsensiId && r.siswaId && nilaiNum !== null){
       try{
         const topikDoc = await db.collection('topik').doc(r.topikId).get();
         const tp = topikDoc.exists ? topikDoc.data().tpTerhubung : null;
-        if(tp) await sinkronNilaiKeAbsensi(r.kelasAbsensiId, r.siswaId, tp, nilaiNum);
-      }catch(e){}
+        if(tp){
+          await sinkronNilaiKeAbsensi(r.kelasAbsensiId, r.siswaId, tp, nilaiNum);
+          pesanSinkron = ` Nilai berhasil dikirim ke Absensi sebagai ${tp}.`;
+        } else {
+          pesanSinkron = ' ⚠️ Nilai TIDAK terkirim ke Absensi — materi ini belum ditautkan ke TP manapun. Buka tab Materi/Topik, edit materi ini, pilih TP di field "Kirim nilai otomatis ke Absensi & Nilai", lalu simpan ulang nilai ini.';
+        }
+      }catch(e){
+        pesanSinkron = ' ⚠️ Nilai gagal dikirim ke Absensi: ' + e.message;
+      }
+    } else if(nilaiNum === null){
+      pesanSinkron = ' Nilai kosong, tidak dikirim ke Absensi.';
     }
 
-    closeModal();
-    loadHasilAdmin();
+    if(pesanSinkron.includes('⚠️')){
+      bannerErr(banner, 'Nilai hasil ujian tersimpan.' + pesanSinkron);
+      // biarkan modal tetap terbuka supaya guru lihat peringatannya, jangan langsung ditutup
+      loadHasilAdmin();
+    } else {
+      closeModal();
+      loadHasilAdmin();
+    }
   }catch(err){
     bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
   }
@@ -1654,12 +1672,10 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 
 async function sinkronNilaiKeAbsensi(kelasAbsensiId, siswaId, tp, nilai){
   if(!kelasAbsensiId || !siswaId || !tp || nilai === null || nilai === undefined) return;
-  try{
-    const tanggal = new Date().toISOString().slice(0,10);
-    await db.collection('nilai').doc(`${kelasAbsensiId}_${siswaId}_${tp}`).set({
-      kelasId: kelasAbsensiId, siswaId, tp, nilai: Number(nilai), tanggal, sumber: 'ruang_ujian'
-    }, {merge:true});
-  }catch(err){}
+  const tanggal = new Date().toISOString().slice(0,10);
+  await db.collection('nilai').doc(`${kelasAbsensiId}_${siswaId}_${tp}`).set({
+    kelasId: kelasAbsensiId, siswaId, tp, nilai: Number(nilai), tanggal, sumber: 'ruang_ujian'
+  }, {merge:true});
 }
 
 function escapeHtml(str){
