@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin Galeri — Ruang Kehumasan</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Petrona:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --navy:#0E2A47; --navy-deep:#081B30; --teal:#146B5B; --gold:#BF9B4E;
+  --gold-soft:#E7D6A7; --paper:#F7F3EA; --card:#FFFFFF; --ink:#22201B;
+  --ink-soft:#5B5648; --line:#E2DCC8; --radius:14px; --maxw:920px;
+  --danger:#B23B3B;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif; background:var(--paper); color:var(--ink); line-height:1.6; padding:32px 18px 80px;}
+h1,h2,h3{font-family:'Petrona',serif; color:var(--navy-deep); font-weight:600;}
+.wrap{max-width:var(--maxw); margin:0 auto;}
+header{margin-bottom:28px;}
+header h1{font-size:1.7rem; margin-bottom:6px;}
+header p{color:var(--ink-soft); font-size:0.92rem;}
+
+.warn{
+  background:#FBEFE0; border:1px solid var(--gold); border-radius:var(--radius);
+  padding:16px 18px; font-size:0.86rem; color:var(--ink); margin-bottom:24px;
+}
+.warn b{color:var(--navy-deep);}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px; margin-bottom:22px;}
+.card h2{font-size:1.1rem; margin-bottom:14px;}
+
+label{display:block; font-weight:600; font-size:0.82rem; color:var(--navy-deep); margin-bottom:6px;}
+input[type="password"], input[type="text"], select{
+  width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+  font-family:inherit; font-size:0.9rem; background:#fff; color:var(--ink);
+}
+.row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;}
+.row > div{flex:1; min-width:180px;}
+.chk{display:flex; align-items:center; gap:8px; margin-top:10px; font-size:0.82rem; color:var(--ink-soft);}
+.chk input{width:auto;}
+
+button{
+  font-family:inherit; font-weight:700; font-size:0.86rem; padding:10px 20px; border-radius:999px;
+  border:1px solid var(--navy-deep); background:var(--navy-deep); color:#fff; cursor:pointer;
+}
+button.secondary{background:#fff; color:var(--navy-deep);}
+button.danger{background:var(--danger); border-color:var(--danger);}
+button:disabled{opacity:0.5; cursor:not-allowed;}
+button:hover:not(:disabled){filter:brightness(1.08);}
+
+.tabs{display:flex; gap:10px; margin-bottom:18px;}
+.tab-btn{
+  font-family:inherit; font-weight:700; font-size:0.84rem; padding:9px 18px; border-radius:999px;
+  border:1px solid var(--line); background:var(--card); color:var(--ink-soft); cursor:pointer;
+}
+.tab-btn[aria-selected="true"]{background:var(--navy-deep); color:#fff; border-color:var(--navy-deep);}
+
+.status{font-size:0.84rem; padding:10px 14px; border-radius:8px; margin:12px 0; display:none;}
+.status.show{display:block;}
+.status.ok{background:#E4F1EA; color:#146B5B;}
+.status.err{background:#FBE7E7; color:var(--danger);}
+.status.info{background:#EAF0F6; color:var(--navy-deep);}
+
+.filelist{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; margin-top:16px;}
+.file-item{border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#FAF8F2;}
+.file-thumb{aspect-ratio:4/3; background-size:cover; background-position:center; background-color:#EFE9D8; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:0.75rem;}
+.file-meta{padding:8px 10px; font-size:0.72rem; color:var(--ink-soft); word-break:break-all;}
+.file-meta b{display:block; color:var(--navy-deep); font-size:0.78rem; margin-bottom:2px;}
+.file-actions{display:flex; gap:6px; padding:0 10px 10px;}
+.file-actions button{flex:1; padding:6px 8px; font-size:0.72rem;}
+
+.upload-progress{font-size:0.8rem; color:var(--ink-soft); margin-top:8px;}
+small.hint{display:block; margin-top:6px; color:var(--ink-soft); font-size:0.76rem;}
+footer{text-align:center; font-size:0.76rem; color:var(--ink-soft); margin-top:40px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Admin Galeri — Ruang Kehumasan</h1>
+    <p>Kelola foto &amp; video di <code>kinerja-guru/assets/galeri/</code> langsung dari browser. Halaman ini tidak ditautkan di menu publik.</p>
+  </header>
+
+  <div class="warn">
+    <b>Perhatian keamanan:</b> Token GitHub Anda hanya dipakai langsung ke <code>api.github.com</code> dari browser ini dan
+    tidak pernah dikirim atau disimpan ke server lain. Jangan bagikan link halaman ini atau token kepada siapa pun.
+    Gunakan <b>Fine-grained token</b> yang dibatasi hanya untuk repo <code>arabic_class</code> dengan izin
+    <b>Contents: Read and write</b> saja, dan beri masa berlaku (expiration) secukupnya.
+  </div>
+
+  <div class="card">
+    <h2>1. Sambungkan ke GitHub</h2>
+    <div class="row">
+      <div style="flex:2;">
+        <label for="token">Personal Access Token (fine-grained)</label>
+        <input type="password" id="token" placeholder="github_pat_xxxxxxxxxxxx">
+      </div>
+      <div>
+        <label for="owner">Pemilik repo</label>
+        <input type="text" id="owner" value="antungsf">
+      </div>
+      <div>
+        <label for="repo">Nama repo</label>
+        <input type="text" id="repo" value="arabic_class">
+      </div>
+      <div>
+        <label for="branch">Branch</label>
+        <input type="text" id="branch" value="main">
+      </div>
+    </div>
+    <div class="chk">
+      <input type="checkbox" id="remember">
+      <label for="remember" style="margin:0; font-weight:400;">Simpan token untuk sesi ini saja (hilang otomatis saat tab ditutup)</label>
+    </div>
+    <div style="margin-top:14px;">
+      <button id="connectBtn">Hubungkan &amp; Muat Daftar File</button>
+      <button class="secondary" id="disconnectBtn" style="display:none;">Putuskan &amp; Hapus Token dari Browser</button>
+    </div>
+    <div class="status" id="connectStatus"></div>
+  </div>
+
+  <div class="card" id="managerCard" style="display:none;">
+    <h2>2. Kelola File</h2>
+    <div class="tabs" role="tablist">
+      <button class="tab-btn" role="tab" id="tabFoto" aria-selected="true">Foto</button>
+      <button class="tab-btn" role="tab" id="tabVideo" aria-selected="false">Video</button>
+    </div>
+
+    <div id="paneUpload">
+      <label for="fileInput">Pilih file untuk diunggah</label>
+      <input type="text" id="fileInput" style="display:none;">
+      <input type="file" id="realFileInput">
+      <small class="hint" id="folderHint">Akan diunggah ke: kinerja-guru/assets/galeri/foto/</small>
+      <div style="margin-top:10px;">
+        <label for="targetName">Nama file di server (boleh diubah, tanpa spasi)</label>
+        <input type="text" id="targetName" placeholder="contoh-nama-file.jpg">
+      </div>
+      <div style="margin-top:12px;">
+        <button id="uploadBtn" disabled>Unggah File</button>
+      </div>
+      <div class="upload-progress" id="uploadProgress"></div>
+      <div class="status" id="uploadStatus"></div>
+    </div>
+
+    <h3 style="margin-top:26px; font-size:0.95rem;">File saat ini</h3>
+    <div class="status info show" id="listStatus">Memuat daftar file…</div>
+    <div class="filelist" id="fileList"></div>
+  </div>
+
+  <footer>Halaman internal — jangan disebarluaskan tautannya.</footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let currentFolder = 'foto';
+let sessionToken = '';
+
+const tokenEl = $('token'), ownerEl = $('owner'), repoEl = $('repo'), branchEl = $('branch');
+const rememberEl = $('remember');
+
+// Restore token only from sessionStorage (cleared when tab closes)
+if (sessionStorage.getItem('gh_admin_token')) {
+  tokenEl.value = sessionStorage.getItem('gh_admin_token');
+  rememberEl.checked = true;
+}
+
+function ghHeaders(){
+  return {
+    'Authorization': `Bearer ${sessionToken}`,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+}
+function apiBase(){
+  return `https://api.github.com/repos/${ownerEl.value.trim()}/${repoEl.value.trim()}`;
+}
+function folderPath(){
+  return `kinerja-guru/assets/galeri/${currentFolder}`;
+}
+function showStatus(el, type, msg){
+  el.className = `status show ${type}`;
+  el.textContent = msg;
+}
+
+$('connectBtn').addEventListener('click', async () => {
+  sessionToken = tokenEl.value.trim();
+  if (!sessionToken){ showStatus($('connectStatus'),'err','Token belum diisi.'); return; }
+  if (rememberEl.checked) sessionStorage.setItem('gh_admin_token', sessionToken);
+  else sessionStorage.removeItem('gh_admin_token');
+
+  showStatus($('connectStatus'),'info','Menghubungkan…');
+  try {
+    const res = await fetch(`${apiBase()}`, { headers: ghHeaders() });
+    if (!res.ok) throw new Error(res.status === 401 ? 'Token tidak valid.' : `Gagal (${res.status}). Cek nama repo/owner.`);
+    showStatus($('connectStatus'),'ok','Terhubung ke repo.');
+    $('managerCard').style.display = 'block';
+    $('disconnectBtn').style.display = 'inline-block';
+    loadFileList();
+  } catch (err) {
+    showStatus($('connectStatus'),'err', err.message);
+  }
+});
+
+$('disconnectBtn').addEventListener('click', () => {
+  sessionToken = '';
+  tokenEl.value = '';
+  sessionStorage.removeItem('gh_admin_token');
+  $('managerCard').style.display = 'none';
+  $('disconnectBtn').style.display = 'none';
+  showStatus($('connectStatus'),'info','Token dihapus dari browser ini.');
+});
+
+function switchFolder(folder){
+  currentFolder = folder;
+  $('tabFoto').setAttribute('aria-selected', folder === 'foto');
+  $('tabVideo').setAttribute('aria-selected', folder === 'video');
+  $('folderHint').textContent = `Akan diunggah ke: kinerja-guru/assets/galeri/${folder}/`;
+  loadFileList();
+}
+$('tabFoto').addEventListener('click', () => switchFolder('foto'));
+$('tabVideo').addEventListener('click', () => switchFolder('video'));
+
+$('realFileInput').addEventListener('change', () => {
+  const f = $('realFileInput').files[0];
+  $('uploadBtn').disabled = !f;
+  if (f && !$('targetName').value) $('targetName').value = f.name.replace(/\s+/g,'-').toLowerCase();
+});
+
+async function loadFileList(){
+  const listStatus = $('listStatus'), fileList = $('fileList');
+  fileList.innerHTML = '';
+  showStatus(listStatus,'info','Memuat daftar file…');
+  try {
+    const res = await fetch(`${apiBase()}/contents/${folderPath()}?ref=${branchEl.value}`, { headers: ghHeaders() });
+    if (res.status === 404){
+      listStatus.className = 'status show info';
+      listStatus.textContent = 'Folder ini belum ada isinya. Unggah file pertama di atas.';
+      return;
+    }
+    if (!res.ok) throw new Error(`Gagal memuat (${res.status})`);
+    const items = await res.json();
+    listStatus.classList.remove('show');
+    const files = items.filter(i => i.type === 'file');
+    if (files.length === 0){
+      listStatus.className = 'status show info';
+      listStatus.textContent = 'Belum ada file di folder ini.';
+      return;
+    }
+    files.forEach(f => {
+      const isImg = /\.(jpe?g|png|webp)$/i.test(f.name);
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      div.innerHTML = `
+        <div class="file-thumb" style="${isImg ? `background-image:url('${f.download_url}')` : ''}">${isImg ? '' : '🎬'}</div>
+        <div class="file-meta"><b>${f.name}</b>${(f.size/1024).toFixed(0)} KB</div>
+        <div class="file-actions">
+          <button class="secondary" onclick="window.open('${f.download_url}','_blank')">Lihat</button>
+          <button class="danger" data-sha="${f.sha}" data-name="${f.name}">Hapus</button>
+        </div>`;
+      div.querySelector('.danger').addEventListener('click', (e) => deleteFile(f.name, f.sha, e.target));
+      fileList.appendChild(div);
+    });
+  } catch (err) {
+    listStatus.className = 'status show err';
+    listStatus.textContent = err.message;
+  }
+}
+
+async function deleteFile(name, sha, btn){
+  if (!confirm(`Hapus "${name}" secara permanen dari repo?`)) return;
+  btn.disabled = true; btn.textContent = 'Menghapus…';
+  try {
+    const res = await fetch(`${apiBase()}/contents/${folderPath()}/${name}`, {
+      method: 'DELETE',
+      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Hapus ${name} via admin-galeri`, sha, branch: branchEl.value })
+    });
+    if (!res.ok) throw new Error(`Gagal menghapus (${res.status})`);
+    loadFileList();
+  } catch (err) {
+    alert(err.message);
+    btn.disabled = false; btn.textContent = 'Hapus';
+  }
+}
+
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+$('uploadBtn').addEventListener('click', async () => {
+  const file = $('realFileInput').files[0];
+  const targetName = $('targetName').value.trim();
+  if (!file || !targetName) return;
+  const progress = $('uploadProgress'), status = $('uploadStatus');
+  $('uploadBtn').disabled = true;
+  progress.textContent = 'Membaca file…';
+  status.classList.remove('show');
+  try {
+    const content = await fileToBase64(file);
+    progress.textContent = 'Mengunggah ke GitHub…';
+
+    // Check if file already exists (need sha to overwrite)
+    let sha = undefined;
+    const existing = await fetch(`${apiBase()}/contents/${folderPath()}/${targetName}?ref=${branchEl.value}`, { headers: ghHeaders() });
+    if (existing.ok){ const data = await existing.json(); sha = data.sha; }
+
+    const res = await fetch(`${apiBase()}/contents/${folderPath()}/${targetName}`, {
+      method: 'PUT',
+      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `${sha ? 'Perbarui' : 'Tambah'} ${targetName} via admin-galeri`,
+        content, branch: branchEl.value, ...(sha ? { sha } : {})
+      })
+    });
+    if (!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.message || `Gagal unggah (${res.status})`); }
+
+    progress.textContent = '';
+    showStatus(status,'ok', `Berhasil ${sha ? 'memperbarui' : 'mengunggah'} "${targetName}".`);
+    $('realFileInput').value = '';
+    $('targetName').value = '';
+    $('uploadBtn').disabled = true;
+    loadFileList();
+  } catch (err) {
+    progress.textContent = '';
+    showStatus(status,'err', err.message);
+  } finally {
+    $('uploadBtn').disabled = false;
+  }
+});
+</script>
+</body>
+</html>
