@@ -315,11 +315,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['kelas','absen','nilai','rekap','pengumuman','jurnal','pengaturan','backup'].forEach(t => {
+    ['kelas','absen','nilai','rekap','pengumuman','fileumum','jurnal','pengaturan','backup'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
     });
     if(btn.dataset.tab === 'jurnal') loadJurnalBulan();
     if(btn.dataset.tab === 'pengumuman') muatPengumuman();
+    if(btn.dataset.tab === 'fileumum') muatInfoFileUmum();
   });
 });
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -721,14 +722,35 @@ async function muatNilai(){
     siswaSnap.forEach(doc => {
       const d = doc.data();
       const v = nilaiMap[doc.id];
-      html += `<div class="attend-row" data-siswa="${doc.id}">
+      const sudahAda = v !== undefined ? '1' : '0';
+      html += `<div class="attend-row" data-siswa="${doc.id}" data-sudah-ada="${sudahAda}">
         <span class="nm">${escapeHtml(d.nama)}</span>
-        <input type="number" min="0" max="100" style="width:90px;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;" value="${v!==undefined?v:''}" placeholder="0-100">
+        <div class="row" style="gap:8px;margin:0;">
+          <input type="number" min="0" max="100" style="width:90px;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;" value="${v!==undefined?v:''}" placeholder="0-100">
+          ${v!==undefined ? `<button type="button" class="icon-btn danger btn-hapus-nilai" data-siswa="${doc.id}">Hapus</button>` : ''}
+        </div>
       </div>`;
     });
     html += `<button class="btn btn-solid" id="btnSimpanNilai" style="margin-top:14px;">Simpan Nilai ${tp}</button>`;
     box.innerHTML = html;
     document.getElementById('btnSimpanNilai').addEventListener('click', () => simpanNilaiBulk(kelasId, tp));
+    box.querySelectorAll('.btn-hapus-nilai').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const siswaId = btn.dataset.siswa;
+        const row = box.querySelector(`.attend-row[data-siswa="${siswaId}"]`);
+        const namaSiswa = row.querySelector('.nm').textContent;
+        if(!confirm(`Hapus nilai ${tp} untuk "${namaSiswa}"? Tindakan ini langsung tersimpan, tidak perlu klik Simpan lagi.`)) return;
+        try{
+          await db.collection('nilai').doc(`${kelasId}_${siswaId}_${tp}`).delete();
+          row.querySelector('input').value = '';
+          row.dataset.sudahAda = '0';
+          btn.remove();
+          bannerOk(banner, `Nilai ${namaSiswa} berhasil dihapus.`);
+        }catch(err){
+          bannerErr(banner, 'Gagal menghapus: ' + escapeHtml(err.message));
+        }
+      });
+    });
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
   }
@@ -740,16 +762,24 @@ async function simpanNilaiBulk(kelasId, tp){
   try{
     const batch = db.batch();
     const tanggal = new Date().toISOString().slice(0,10);
+    let jumlahDihapus = 0, jumlahDisimpan = 0;
     rows.forEach(row => {
       const siswaId = row.dataset.siswa;
       const input = row.querySelector('input');
       const val = input.value.trim();
-      if(val === '') return;
       const ref = db.collection('nilai').doc(`${kelasId}_${siswaId}_${tp}`);
+      if(val === ''){
+        // PERBAIKAN: field yang dikosongkan padahal sebelumnya sudah punya nilai -> hapus dari database,
+        // bukan dibiarkan (sebelumnya nilai lama nyangkut terus meski field dikosongkan).
+        if(row.dataset.sudahAda === '1'){ batch.delete(ref); jumlahDihapus++; }
+        return;
+      }
       batch.set(ref, { kelasId, siswaId, tp, nilai: Number(val), tanggal });
+      jumlahDisimpan++;
     });
     await batch.commit();
-    bannerOk(banner, `Nilai ${tp} tersimpan.`);
+    bannerOk(banner, `${jumlahDisimpan} nilai ${tp} tersimpan${jumlahDihapus ? `, ${jumlahDihapus} nilai dihapus (field dikosongkan)` : ''}.`);
+    muatNilai();
   }catch(err){
     bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
   }
@@ -812,6 +842,62 @@ document.getElementById('btnSimpanPengumuman').addEventListener('click', async (
     bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
   }
 });
+
+/* ---------------- ADMIN: Jadwal & Kalender (upload PDF) ---------------- */
+const FILE_UMUM_CONFIG = {
+  'jadwal-pelajaran': { infoEl: 'infoJadwalPelajaran', fileEl: 'fileJadwalPelajaran', btnEl: 'btnUploadJadwalPelajaran', bannerEl: 'bannerJadwalPelajaran', label: 'Jadwal Pelajaran' },
+  'kalender-pendidikan': { infoEl: 'infoKalenderPendidikan', fileEl: 'fileKalenderPendidikan', btnEl: 'btnUploadKalenderPendidikan', bannerEl: 'bannerKalenderPendidikan', label: 'Kalender Pendidikan' }
+};
+
+async function muatInfoFileUmum(){
+  for(const key of Object.keys(FILE_UMUM_CONFIG)){
+    const cfg = FILE_UMUM_CONFIG[key];
+    const infoEl = document.getElementById(cfg.infoEl);
+    try{
+      const doc = await db.collection('file_umum').doc(key).get();
+      if(doc.exists && doc.data().url){
+        const d = doc.data();
+        const tgl = d.diperbarui && d.diperbarui.toDate ? d.diperbarui.toDate().toLocaleString('id-ID') : '-';
+        infoEl.innerHTML = `File saat ini: <a href="${d.url}" target="_blank" style="text-decoration:underline;">${escapeHtml(d.namaFile||'lihat file')}</a> · diupload ${tgl}`;
+      } else {
+        infoEl.textContent = 'Belum pernah diupload lewat sini — beranda masih pakai file PDF default di repo.';
+      }
+    }catch(err){
+      infoEl.textContent = 'Gagal memuat info: ' + err.message;
+    }
+  }
+}
+
+function pasangUploadHandler(key){
+  const cfg = FILE_UMUM_CONFIG[key];
+  document.getElementById(cfg.btnEl).addEventListener('click', async () => {
+    const fileInput = document.getElementById(cfg.fileEl);
+    const banner = document.getElementById(cfg.bannerEl);
+    const file = fileInput.files[0];
+    if(!file){ bannerErr(banner, 'Pilih file PDF dahulu.'); return; }
+    if(file.type !== 'application/pdf'){ bannerErr(banner, 'File harus berformat PDF.'); return; }
+    if(file.size > 15 * 1024 * 1024){ bannerErr(banner, 'Ukuran file maksimal 15MB.'); return; }
+    const btn = document.getElementById(cfg.btnEl);
+    btn.disabled = true; btn.textContent = 'Mengupload…';
+    try{
+      const ref = storage.ref().child(`file-umum/${key}-${Date.now()}.pdf`);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+      await db.collection('file_umum').doc(key).set({
+        url, namaFile: file.name, diperbarui: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      bannerOk(banner, `${cfg.label} berhasil diupload. Tautan di beranda otomatis diperbarui.`);
+      fileInput.value = '';
+      muatInfoFileUmum();
+    }catch(err){
+      bannerErr(banner, 'Gagal upload: ' + escapeHtml(err.message));
+    }finally{
+      btn.disabled = false; btn.textContent = 'Upload / Ganti File';
+    }
+  });
+}
+pasangUploadHandler('jadwal-pelajaran');
+pasangUploadHandler('kalender-pendidikan');
 
 /* ---------------- ADMIN: Pengaturan (Nama & NIP Guru + Kepala Madrasah) ---------------- */
 async function muatPengaturan(uid){
@@ -1137,7 +1223,7 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 const KOLEKSI_BACKUP = [
   'topik','soal','hasil_ujian',
   'kelas_absensi','siswa','pertemuan','nilai',
-  'jurnal_guru','materi_item','pengumuman',
+  'jurnal_guru','materi_item','pengumuman','file_umum',
   'pengaturan_guru','pengaturan_sekolah'
 ];
 
