@@ -165,6 +165,7 @@
       <button class="tab-btn" data-tab="nilai">Input Nilai</button>
       <button class="tab-btn" data-tab="rekap">Rekap</button>
       <button class="tab-btn" data-tab="pengumuman">Pengumuman</button>
+      <button class="tab-btn" data-tab="fileumum">Jadwal &amp; Kalender</button>
       <button class="tab-btn" data-tab="jurnal">Jurnal Guru</button>
       <button class="tab-btn" data-tab="pengaturan">Pengaturan</button>
       <button class="tab-btn" data-tab="backup">Backup</button>
@@ -238,6 +239,27 @@
       </div>
       <div id="pengumumanBanner"></div>
       <button class="btn btn-solid" id="btnSimpanPengumuman">Simpan Pengumuman</button>
+    </div>
+
+    <!-- Tab: Jadwal & Kalender (upload PDF) -->
+    <div id="tabFileumum" class="hidden">
+      <p class="lead" style="margin:0 0 16px;">Upload/ganti file PDF Jadwal Pelajaran dan Kalender Pendidikan yang tampil di beranda. Upload file baru otomatis menggantikan link lama di beranda (realtime, tanpa perlu edit kode).</p>
+
+      <div class="list-item" style="margin-bottom:16px;">
+        <h4 style="margin-bottom:8px;">Jadwal Pelajaran</h4>
+        <div id="infoJadwalPelajaran" class="hint" style="margin-bottom:10px;">Memuat info file…</div>
+        <div class="field" style="max-width:420px;"><input type="file" id="fileJadwalPelajaran" accept="application/pdf"></div>
+        <button class="btn btn-gold btn-sm" id="btnUploadJadwalPelajaran">Upload / Ganti File</button>
+        <div id="bannerJadwalPelajaran"></div>
+      </div>
+
+      <div class="list-item">
+        <h4 style="margin-bottom:8px;">Kalender Pendidikan</h4>
+        <div id="infoKalenderPendidikan" class="hint" style="margin-bottom:10px;">Memuat info file…</div>
+        <div class="field" style="max-width:420px;"><input type="file" id="fileKalenderPendidikan" accept="application/pdf"></div>
+        <button class="btn btn-gold btn-sm" id="btnUploadKalenderPendidikan">Upload / Ganti File</button>
+        <div id="bannerKalenderPendidikan"></div>
+      </div>
     </div>
 
     <!-- Tab: Jurnal Guru -->
@@ -349,6 +371,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
 <script>
 /* Gunakan firebaseConfig yang SAMA seperti di ruang-ujian.html (satu project Firebase untuk seluruh situs) */
 const firebaseConfig = {
@@ -362,6 +385,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const storage = firebase.storage();
 const CONFIG_BELUM_DIISI = firebaseConfig.apiKey === "GANTI_DENGAN_API_KEY";
 </script>
 <script src="absensi.js"></script>
