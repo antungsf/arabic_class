@@ -240,6 +240,17 @@
   .pdf-block:last-child{margin-bottom:0;}
   .pdf-block-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
   .pdf-block-head h3{font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;color:var(--green-deep);margin:0;}
+
+  .today-schedule{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-top:20px;max-width:560px;}
+  .today-schedule-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .today-schedule-day{font-family:'Poppins',sans-serif;font-weight:800;font-size:17px;color:var(--green-deep);}
+  .today-schedule-date{font-size:12px;color:var(--muted);}
+  .today-schedule-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);}
+  .today-schedule-item:first-child{border-top:none;}
+  .today-schedule-item .ts-kelas{font-weight:700;font-size:14px;color:var(--ink);}
+  .today-schedule-item .ts-catatan{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .today-schedule-item .ts-jam{font-family:'Poppins',sans-serif;font-weight:700;font-size:13px;color:var(--gold-deep);white-space:nowrap;}
+  .today-schedule-empty, .today-schedule-loading{color:var(--muted);font-size:13.5px;padding:4px 0;}
   .btn-sm{padding:8px 16px;font-size:12.5px;}
   .pdf-embed{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 2px 14px rgba(15,54,39,.06);}
   .pdf-embed iframe{width:100%;height:600px;border:0;display:block;}
@@ -420,14 +431,19 @@
 <section class="section-wrap alt" id="jadwal">
   <div class="section-head">
     <h2>Jadwal &amp; Kalender</h2>
-    <p>Jadwal mengajar (khusus guru) dan kalender pendidikan tahun ajaran berjalan.</p>
+    <p>Jadwal mengajar hari ini, realtime.</p>
   </div>
 
-  <div class="pdf-block">
-    <div class="action-row">
-      <a class="btn btn-solid" href="jadwal-mengajar.html">Buka Jadwal Mengajar</a>
-      <a class="btn btn-solid" href="kalender-pendidikan.pdf" id="linkKalenderPendidikan" target="_blank">Buka Kalender Pendidikan (PDF)</a>
+  <div class="action-row">
+    <a class="btn btn-solid" href="jadwal-mengajar.html">Kelola Jadwal (Guru)</a>
+  </div>
+
+  <div class="today-schedule">
+    <div class="today-schedule-head">
+      <span class="today-schedule-day" id="todayDayName">—</span>
+      <span class="today-schedule-date" id="todayDateStr"></span>
     </div>
+    <div id="todayScheduleList"><div class="today-schedule-loading">Memuat jadwal…</div></div>
   </div>
 </section>
 
@@ -726,15 +742,43 @@
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
 
-    // ============ Link Kalender Pendidikan (dinamis) ============
-    // Firestore: koleksi 'file_umum', doc 'kalender-pendidikan' -> { url, namaFile }
-    // Kalau belum pernah diupload admin, tombol tetap pakai link statis default (file PDF lama di repo).
-    db.collection('file_umum').doc('kalender-pendidikan').get().then(function(doc){
-      if(doc.exists && doc.data().url){
-        const el = document.getElementById('linkKalenderPendidikan');
-        if(el) el.href = doc.data().url;
+    // ============ Jadwal Mengajar Hari Ini (realtime, publik/tanpa login) ============
+    // Firestore: koleksi 'jadwal_mengajar' { hari, kelasNama, jamMulai, jamSelesai, catatan }
+    (function(){
+      const HARI_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+      const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      const esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]; }); };
+      const now = new Date();
+      const namaHari = HARI_ID[now.getDay()];
+      document.getElementById('todayDayName').textContent = namaHari;
+      document.getElementById('todayDateStr').textContent = `${now.getDate()} ${BULAN_ID[now.getMonth()]} ${now.getFullYear()}`;
+
+      const listEl = document.getElementById('todayScheduleList');
+      if(namaHari === 'Minggu'){
+        listEl.innerHTML = '<div class="today-schedule-empty">Tidak ada jadwal mengajar (hari Minggu).</div>';
+        return;
       }
-    }).catch(function(){});
+      db.collection('jadwal_mengajar').where('hari', '==', namaHari).get().then(function(snap){
+        if(snap.empty){
+          listEl.innerHTML = '<div class="today-schedule-empty">Tidak ada jadwal mengajar hari ini.</div>';
+          return;
+        }
+        const items = [];
+        snap.forEach(function(doc){ items.push(doc.data()); });
+        items.sort(function(a, b){ return (a.jamMulai || '').localeCompare(b.jamMulai || ''); });
+        listEl.innerHTML = items.map(function(j){
+          return `<div class="today-schedule-item">
+            <div>
+              <div class="ts-kelas">${esc(j.kelasNama || '-')}</div>
+              ${j.catatan ? `<div class="ts-catatan">${esc(j.catatan)}</div>` : ''}
+            </div>
+            <div class="ts-jam">${esc(j.jamMulai || '-')}–${esc(j.jamSelesai || '-')}</div>
+          </div>`;
+        }).join('');
+      }).catch(function(){
+        listEl.innerHTML = '<div class="today-schedule-empty">Gagal memuat jadwal.</div>';
+      });
+    })();
 
     // ============ Widget: Pengumuman (manual, admin-editable) ============
     // Firestore: koleksi 'pengumuman', doc id 'ujian' -> { jenis, judul, isi, sumber, aktif }
