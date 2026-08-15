@@ -52,7 +52,7 @@
   .sidebar-foot{padding:16px 22px 22px;font-size:11px;color:#9db8ab;flex-shrink:0;}
 
   .nav-toggle{
-    display:none;position:fixed;top:16px;left:16px;z-index:90;
+    display:none;position:fixed;top:16px;right:16px;z-index:90;
     width:42px;height:42px;border-radius:10px;background:var(--green-deep);
     border:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;
     cursor:pointer;box-shadow:0 4px 14px rgba(15,54,39,.35);
@@ -420,12 +420,12 @@
 <section class="section-wrap alt" id="jadwal">
   <div class="section-head">
     <h2>Jadwal &amp; Kalender</h2>
-    <p>Jadwal pelajaran dan kalender pendidikan tahun ajaran berjalan.</p>
+    <p>Jadwal mengajar (khusus guru) dan kalender pendidikan tahun ajaran berjalan.</p>
   </div>
 
   <div class="pdf-block">
     <div class="action-row">
-      <a class="btn btn-solid" href="jadwal-pelajaran.pdf" id="linkJadwalPelajaran" target="_blank">Buka Jadwal Pelajaran (PDF)</a>
+      <a class="btn btn-solid" href="jadwal-mengajar.html">Buka Jadwal Mengajar</a>
       <a class="btn btn-solid" href="kalender-pendidikan.pdf" id="linkKalenderPendidikan" target="_blank">Buka Kalender Pendidikan (PDF)</a>
     </div>
   </div>
@@ -726,15 +726,9 @@
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
 
-    // ============ Link Jadwal Pelajaran & Kalender Pendidikan (dinamis) ============
-    // Firestore: koleksi 'file_umum', doc 'jadwal-pelajaran' & 'kalender-pendidikan' -> { url, namaFile }
+    // ============ Link Kalender Pendidikan (dinamis) ============
+    // Firestore: koleksi 'file_umum', doc 'kalender-pendidikan' -> { url, namaFile }
     // Kalau belum pernah diupload admin, tombol tetap pakai link statis default (file PDF lama di repo).
-    db.collection('file_umum').doc('jadwal-pelajaran').get().then(function(doc){
-      if(doc.exists && doc.data().url){
-        const el = document.getElementById('linkJadwalPelajaran');
-        if(el) el.href = doc.data().url;
-      }
-    }).catch(function(){});
     db.collection('file_umum').doc('kalender-pendidikan').get().then(function(doc){
       if(doc.exists && doc.data().url){
         const el = document.getElementById('linkKalenderPendidikan');
