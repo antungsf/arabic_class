@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>كنز اللغة — Kanzul Lughah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A2233;
+    --ink-2:#0F3247;
+    --panel:#123A50;
+    --panel-2:#164460;
+    --gold:#D4A72C;
+    --gold-bright:#F1C94C;
+    --gold-dim:#8A701F;
+    --parchment:#F7EFDC;
+    --parchment-2:#EFE3C4;
+    --ivory:#F6F1E4;
+    --emerald:#2F8F6B;
+    --emerald-bright:#3EB086;
+    --rust:#C4453A;
+    --rust-bright:#DE5C50;
+    --shadow: 0 18px 40px -14px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 15% -10%, #164B67 0%, transparent 60%),
+      radial-gradient(1000px 600px at 110% 10%, #0E3548 0%, transparent 55%),
+      linear-gradient(180deg, var(--ink) 0%, var(--ink-2) 100%);
+    color: var(--ivory);
+    font-family:'Cairo', system-ui, sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  /* subtle geometric star texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='none' stroke='%23D4A72C' stroke-width='0.6' opacity='0.08'><path d='M60 10 L74 46 L110 46 L81 68 L92 104 L60 82 L28 104 L39 68 L10 46 L46 46 Z'/></g></svg>");
+    background-size: 220px 220px;
+    pointer-events:none;
+    opacity:.5;
+    z-index:0;
+  }
+  .wrap{ position:relative; z-index:1; max-width:960px; margin:0 auto; padding:28px 20px 80px; }
+
+  /* ---------- HEADER ---------- */
+  .app-header{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:26px; }
+  .brand{ display:flex; align-items:center; gap:14px; cursor:pointer; user-select:none; }
+  .brand-star{ width:44px; height:44px; flex:none; }
+  .brand-text h1{
+    font-family:'Amiri', serif; font-weight:700; font-size:26px; margin:0; color:var(--gold-bright);
+    letter-spacing:.5px;
+  }
+  .brand-text p{ margin:2px 0 0; font-size:12px; color:#B9CCDA; letter-spacing:.4px; }
+  .back-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:transparent; border:1px solid rgba(212,167,44,.45); color:var(--gold-bright);
+    padding:9px 16px; border-radius:999px; font-family:'Cairo'; font-weight:600; font-size:13.5px;
+    cursor:pointer; transition:.2s ease;
+  }
+  .back-btn:hover{ background:rgba(212,167,44,.12); border-color:var(--gold-bright); }
+  .back-btn:focus-visible, button:focus-visible, .opt:focus-visible, .class-link:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:2px; }
+
+  .header-actions{ display:flex; align-items:center; gap:10px; }
+  .class-link{
+    display:inline-flex; align-items:center; gap:7px;
+    background:transparent; border:1px solid rgba(212,167,44,.3); color:#B9CCDA;
+    text-decoration:none; padding:9px 15px; border-radius:999px; font-family:'Cairo'; font-weight:600; font-size:12.5px;
+    transition:.2s ease;
+  }
+  .class-link:hover{ border-color:var(--gold-bright); color:var(--gold-bright); background:rgba(212,167,44,.1); }
+  .class-link svg{ width:15px; height:15px; flex:none; }
+  @media (max-width:520px){ .class-link span.txt{ display:none; } }
+
+  /* ---------- HOME ---------- */
+  .hero{ text-align:center; padding:26px 10px 8px; }
+  .hero-eyebrow{
+    font-size:12.5px; letter-spacing:2.5px; text-transform:uppercase; color:var(--gold);
+    font-weight:700; margin-bottom:18px;
+  }
+  .hero h2{
+    font-family:'Amiri', serif; font-size:44px; line-height:1.9; margin:0 0 14px; padding-top:.25em; color:var(--ivory);
+    direction:rtl;
+  }
+  .hero p.lead{ color:#C7D6E1; font-size:15.5px; max-width:560px; margin:0 auto; line-height:1.7; }
+
+  .level-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:34px; }
+  @media (max-width:720px){ .level-grid{ grid-template-columns:1fr; } }
+
+  .level-card{
+    position:relative; border-radius:20px; padding:26px 20px 22px;
+    background: linear-gradient(160deg, var(--panel-2) 0%, var(--panel) 100%);
+    border:1px solid rgba(212,167,44,.22);
+    box-shadow: var(--shadow);
+    cursor:pointer; transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    text-align:center;
+    overflow:hidden;
+  }
+  .level-card::after{
+    content:""; position:absolute; inset:0; border-radius:20px; padding:1px;
+    background: linear-gradient(160deg, rgba(241,201,76,.5), transparent 40%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events:none;
+  }
+  .level-card:hover{ transform: translateY(-6px); border-color:rgba(241,201,76,.55); box-shadow:0 24px 50px -16px rgba(0,0,0,.65); }
+  .level-kicker{ font-size:11.5px; letter-spacing:2px; color:var(--gold); font-weight:700; text-transform:uppercase; }
+  .level-card h3{ font-family:'Amiri',serif; font-size:26px; margin:8px 0 4px; color:var(--gold-bright); }
+  .level-card .sub{ font-size:12.5px; color:#B9CCDA; margin-bottom:14px; }
+  .level-count{ font-size:12px; color:#9FB6C6; }
+  .level-star{ width:54px; height:54px; margin:6px auto 10px; opacity:.9; }
+
+  .foot-note{ text-align:center; margin-top:40px; font-size:12px; color:#7E93A2; line-height:1.8; }
+
+  /* ---------- BILIK (BOOK BOOTHS) ---------- */
+  .bilik-section{ margin-top:38px; }
+  .bilik-label{
+    text-align:center; font-size:11.5px; letter-spacing:2px; text-transform:uppercase;
+    color:#7E93A2; margin-bottom:14px; font-weight:700;
+  }
+  .bilik-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:640px){ .bilik-row{ grid-template-columns:1fr; } }
+  .bilik{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    text-decoration:none;
+    background: repeating-linear-gradient(135deg, rgba(212,167,44,.05) 0 10px, rgba(212,167,44,.09) 10px 20px), var(--ink-2);
+    border:1px dashed rgba(212,167,44,.4);
+    border-radius:14px; padding:16px 10px; text-align:center;
+    transition:.2s ease; cursor:pointer;
+  }
+  .bilik:hover{ border-style:solid; border-color:var(--gold-bright); background-color:var(--panel); transform:translateY(-3px); }
+  .bilik svg{ width:22px; height:22px; opacity:.85; }
+  .bilik .bilik-text{ font-family:'Cairo'; font-weight:700; font-size:12.5px; color:var(--gold-bright); letter-spacing:.3px; }
+  .bilik .bilik-sub{ font-size:10px; color:#8CA2B2; }
+
+  /* ---------- UNIT LIST ---------- */
+  .section-title{ display:flex; align-items:baseline; gap:12px; margin:6px 0 20px; }
+  .section-title h2{ font-family:'Amiri',serif; font-size:28px; color:var(--gold-bright); margin:0; }
+  .section-title span{ font-size:13px; color:#9FB6C6; }
+
+  .unit-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:640px){ .unit-grid{ grid-template-columns:1fr; } }
+
+  .unit-card{
+    background: linear-gradient(155deg, var(--panel-2), var(--panel));
+    border:1px solid rgba(212,167,44,.18);
+    border-radius:16px; padding:18px 18px 16px;
+    cursor:pointer; transition:.2s ease; position:relative;
+  }
+  .unit-card:hover{ border-color:rgba(241,201,76,.5); transform:translateY(-3px); box-shadow:var(--shadow); }
+  .unit-num{
+    position:absolute; top:14px; left:14px; font-family:'Amiri',serif; font-weight:700;
+    color:var(--gold-dim); font-size:13px; background:rgba(0,0,0,.18); padding:3px 9px; border-radius:999px;
+  }
+  .unit-card h3{ font-family:'Amiri',serif; direction:rtl; text-align:right; font-size:22px; line-height:1.8; margin:10px 0 4px; padding-top:.2em; color:var(--ivory); }
+  .unit-card .id-title{ font-size:14.5px; font-weight:700; color:var(--gold-bright); margin-bottom:6px; }
+  .unit-card .focus{ font-size:12px; color:#AABECD; direction:rtl; text-align:right; line-height:1.6; }
+  .unit-meta{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:11.5px; color:#88A0B0; }
+  .best-badge{ color:var(--emerald-bright); font-weight:700; }
+
+  /* ---------- QUIZ ---------- */
+  .quiz-head{ display:flex; align-items:center; gap:16px; margin-bottom:22px; }
+  .star-meter{ width:58px; height:58px; flex:none; position:relative; }
+  .quiz-progress-text{ font-size:12px; color:#AABECD; }
+  .quiz-title{ font-family:'Amiri',serif; font-size:19px; line-height:1.8; color:var(--gold-bright); margin:2px 0 6px; padding-top:.2em; direction:rtl; }
+  .progress-track{ height:7px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; margin-top:8px; }
+  .progress-fill{ height:100%; background:linear-gradient(90deg, var(--gold-dim), var(--gold-bright)); transition:width .35s ease; }
+
+  .card{
+    background: linear-gradient(155deg, var(--parchment) 0%, var(--parchment-2) 100%);
+    color:#25201A;
+    border-radius:20px; padding:30px 26px; box-shadow:var(--shadow);
+    position:relative; overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:6px;
+    background:linear-gradient(90deg, var(--gold-dim), var(--gold-bright), var(--gold-dim));
+  }
+  .q-count{ font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#8A701F; margin-bottom:16px; }
+  .q-text{ font-family:'Amiri', serif; font-size:21px; line-height:2; direction:rtl; text-align:right; margin:.15em 0 22px; color:#241E17; }
+  .q-text.mixed{ direction:rtl; }
+
+  .opts{ display:flex; flex-direction:column; gap:10px; }
+  .opt{
+    display:flex; align-items:center; gap:12px;
+    background:#fff; border:1.5px solid #E4D6AE; border-radius:13px; padding:13px 16px;
+    font-family:'Amiri', serif; font-size:17px; direction:rtl; text-align:right; cursor:pointer;
+    transition:.15s ease; color:#2B241B; width:100%;
+  }
+  .opt .lbl{
+    flex:none; width:26px; height:26px; border-radius:50%; background:#F2E7C6; color:#7A5F14;
+    display:flex; align-items:center; justify-content:center; font-family:'Cairo'; font-weight:800; font-size:12.5px;
+    direction:ltr;
+  }
+  .opt:hover:not(.locked){ border-color:var(--gold-dim); background:#FFFBEF; }
+  .opt.correct{ background:#E4F5EC; border-color:var(--emerald); }
+  .opt.correct .lbl{ background:var(--emerald); color:#fff; }
+  .opt.wrong{ background:#FBE7E5; border-color:var(--rust); }
+  .opt.wrong .lbl{ background:var(--rust); color:#fff; }
+  .opt.locked{ cursor:default; }
+  .opt.dim{ opacity:.55; }
+
+  .feedback{ margin-top:18px; font-size:14px; font-weight:700; display:none; align-items:center; gap:8px; }
+  .feedback.show{ display:flex; }
+  .feedback.ok{ color:#1F6E4F; }
+  .feedback.bad{ color:#A6362C; }
+
+  .quiz-actions{ display:flex; justify-content:flex-end; margin-top:22px; }
+  .next-btn{
+    background:linear-gradient(160deg, var(--gold-bright), var(--gold-dim));
+    color:#2A2205; border:none; padding:12px 26px; border-radius:999px;
+    font-family:'Cairo'; font-weight:800; font-size:14.5px; cursor:pointer;
+    box-shadow:0 10px 24px -8px rgba(212,167,44,.55);
+    transition:.2s ease; opacity:0; pointer-events:none; transform:translateY(4px);
+  }
+  .next-btn.show{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  .next-btn:hover{ filter:brightness(1.06); }
+
+  /* ---------- RESULT ---------- */
+  .result-wrap{ text-align:center; padding:14px 6px; }
+  .result-star{ width:120px; height:120px; margin:10px auto 6px; }
+  .result-score{ font-family:'Amiri',serif; font-size:52px; color:var(--gold-bright); margin:6px 0 2px; }
+  .result-pct{ font-size:14px; color:#B9CCDA; margin-bottom:6px; }
+  .result-msg{ font-family:'Amiri',serif; font-size:22px; line-height:1.8; color:var(--ivory); direction:rtl; margin:20px 0 8px; padding-top:.2em; }
+  .result-msg-id{ font-size:14px; color:#B9CCDA; margin-bottom:26px; }
+  .result-actions{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .btn-ghost{
+    background:transparent; border:1.5px solid rgba(212,167,44,.5); color:var(--gold-bright);
+    padding:11px 22px; border-radius:999px; font-family:'Cairo'; font-weight:700; font-size:13.5px; cursor:pointer;
+    transition:.2s ease;
+  }
+  .btn-ghost:hover{ background:rgba(212,167,44,.14); }
+  .btn-solid{
+    background:linear-gradient(160deg, var(--gold-bright), var(--gold-dim)); color:#2A2205; border:none;
+    padding:11px 24px; border-radius:999px; font-family:'Cairo'; font-weight:800; font-size:13.5px; cursor:pointer;
+    box-shadow:0 10px 24px -8px rgba(212,167,44,.5);
+  }
+
+  .hidden{ display:none !important; }
+  ::selection{ background:var(--gold); color:#241E17; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app-header">
+    <div class="brand" id="brandHome">
+      <svg class="brand-star" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="50,4 62,36 96,36 68,56 79,90 50,70 21,90 32,56 4,36 38,36"
+          fill="none" stroke="#F1C94C" stroke-width="3" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand-text">
+        <h1>كنز اللغة</h1>
+        <p>Kanzul Lughah — Kuis Bahasa Arab MA</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a class="class-link" href="https://antungsf.github.io/arabic_class/index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5A1 1 0 0 0 6.5 20.5h11a1 1 0 0 0 1-1V10"/></svg>
+        <span class="txt">Arabic Class</span>
+      </a>
+      <button class="back-btn hidden" id="backBtn">→ Kembali</button>
+    </div>
+  </header>
+
+  <!-- ============ HOME VIEW ============ -->
+  <section id="view-home">
+    <div class="hero">
+      <div class="hero-eyebrow">Kelas X · XI · XII — Madrasah Aliyah</div>
+      <h2>اِخْتَبِرْ كَنْزَكَ اللُّغَوِيَّ</h2>
+      <p class="lead">Uji pemahaman mufradat dan qawa'id-mu dari Buku Siswa Bahasa Arab Kemenag RI. Pilih jenjang kelas untuk mulai menggali harta bahasa Arabmu.</p>
+    </div>
+
+    <div class="level-grid" id="levelGrid"></div>
+
+    <div class="bilik-section">
+      <div class="bilik-label">مَكْتَبَة · Bilik Buku Sumber</div>
+      <div class="bilik-row">
+        <a class="bilik" href="Buku_Bahasa_Arab_Kelas_X.pdf" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F1C94C" stroke-width="1.6"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17.5H6.5A2.5 2.5 0 0 0 4 22V4.5Z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
+          <span class="bilik-text">Buku X</span>
+          <span class="bilik-sub">Kelas X MA</span>
+        </a>
+        <a class="bilik" href="Buku_Bahasa_Arab_Kelas_XI.pdf" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F1C94C" stroke-width="1.6"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17.5H6.5A2.5 2.5 0 0 0 4 22V4.5Z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
+          <span class="bilik-text">Buku XI</span>
+          <span class="bilik-sub">Kelas XI MA</span>
+        </a>
+        <a class="bilik" href="Buku_Bahasa_Arab_Kelas_XII.pdf" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F1C94C" stroke-width="1.6"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17.5H6.5A2.5 2.5 0 0 0 4 22V4.5Z"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
+          <span class="bilik-text">Buku XII</span>
+          <span class="bilik-sub">Kelas XII MA</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="foot-note">Disusun berdasarkan Buku Siswa Bahasa Arab Madrasah Aliyah Kelas X, XI &amp; XII — Kementerian Agama RI, serta Soal Pilihan Ganda Kelas XII MA 2025.<br>176 soal dalam bank · 5 soal acak per sesi kuis · 13 bab/unit/tema · 3 jenjang</p>
+  </section>
+
+  <!-- ============ UNIT LIST VIEW ============ -->
+  <section id="view-units" class="hidden">
+    <div class="section-title">
+      <h2 id="unitsTitle"></h2>
+      <span id="unitsSub"></span>
+    </div>
+    <div class="unit-grid" id="unitGrid"></div>
+  </section>
+
+  <!-- ============ QUIZ VIEW ============ -->
+  <section id="view-quiz" class="hidden">
+    <div class="quiz-head">
+      <div class="star-meter">
+        <svg viewBox="0 0 100 100" width="100%" height="100%">
+          <polygon points="50,4 62,36 96,36 68,56 79,90 50,70 21,90 32,56 4,36 38,36"
+            fill="none" stroke="rgba(255,255,255,.15)" stroke-width="4" stroke-linejoin="round"/>
+          <polygon id="starFill" points="50,4 62,36 96,36 68,56 79,90 50,70 21,90 32,56 4,36 38,36"
+            fill="none" stroke="#F1C94C" stroke-width="4" stroke-linejoin="round"
+            stroke-dasharray="400" stroke-dashoffset="400"/>
+        </svg>
+      </div>
+      <div style="flex:1;">
+        <div class="quiz-title" id="quizUnitTitle"></div>
+        <div class="quiz-progress-text" id="quizProgressText"></div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="q-count" id="qCount"></div>
+      <p class="q-text" id="qText"></p>
+      <div class="opts" id="optsWrap"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="quiz-actions"><button class="next-btn" id="nextBtn">التَّالِي · Lanjut →</button></div>
+    </div>
+  </section>
+
+  <!-- ============ RESULT VIEW ============ -->
+  <section id="view-result" class="hidden">
+    <div class="card result-wrap">
+      <svg class="result-star" viewBox="0 0 100 100">
+        <polygon points="50,4 62,36 96,36 68,56 79,90 50,70 21,90 32,56 4,36 38,36"
+          fill="#F6EFC9" stroke="#D4A72C" stroke-width="3" stroke-linejoin="round"/>
+        <polygon points="50,18 58,40 82,40 62,54 70,76 50,62 30,76 38,54 18,40 42,40"
+          fill="#D4A72C" opacity=".85"/>
+      </svg>
+      <div class="result-score" id="resultScore"></div>
+      <div class="result-pct" id="resultPct"></div>
+      <div class="result-msg" id="resultMsgAr"></div>
+      <div class="result-msg-id" id="resultMsgId"></div>
+      <div class="result-actions">
+        <button class="btn-ghost" id="retryBtn">إعادة · Ulangi Bab Ini</button>
+        <button class="btn-solid" id="menuBtn">القائمة · Kembali ke Menu</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script type="application/json" id="quizData">{"X": {"label": "Kelas X", "subtitle": "Fase E — Enam Wahdah", "units": [{"id": "x1", "ar": "التَّعَارُف", "id_title": "Ta'aruf — Perkenalan", "focus": "الضمائر (Dhamir) و أدوات الاستفهام (Kata Tanya)", "q": [{"q": "Dhamir (kata ganti) untuk orang pertama tunggal 'saya' adalah...", "o": ["أَنَا", "أَنْتَ", "هُوَ", "نَحْنُ", "هِيَ"], "a": 0}, {"q": "'هُوَ' adalah dhamir yang digunakan untuk...", "o": ["Dia (laki-laki, tunggal)", "Dia (perempuan, tunggal)", "Kamu (laki-laki)", "Kami", "Mereka"], "a": 0}, {"q": "Kata tanya untuk menanyakan tempat adalah...", "o": ["مَتَى", "أَيْنَ", "كَيْفَ", "مَنْ", "لِمَاذَا"], "a": 1}, {"q": "'مَنِ اسْمُكَ؟' biasanya ditujukan kepada lawan bicara...", "o": ["Laki-laki (mudzakkar)", "Perempuan (muannats)", "Jamak laki-laki", "Jamak perempuan", "Dua orang"], "a": 0}, {"q": "Arti dari 'مَا هِوَايَتُكَ؟' adalah...", "o": ["Siapa namamu?", "Di mana rumahmu?", "Apa hobimu?", "Berapa umurmu?", "Kapan kamu lahir?"], "a": 2}, {"q": "Dhamir muttashil pada kata 'كِتَابُكِ' (bukumu) menunjukkan lawan bicara adalah...", "o": ["Laki-laki tunggal", "Perempuan tunggal", "Laki-laki jamak", "Perempuan jamak", "Dua orang"], "a": 1}, {"q": "Jawaban yang tepat untuk 'كَيْفَ حَالُكَ؟' adalah...", "o": ["نَعَمْ، شُكْرًا", "بِخَيْرٍ، الْحَمْدُ لِلَّهِ", "لَا أَعْرِفُ", "إِلَى اللِّقَاءِ", "تَفَضَّلْ"], "a": 1}, {"q": "Kata tanya 'لِمَاذَا' berarti...", "o": ["Bagaimana", "Kapan", "Mengapa", "Siapa", "Berapa"], "a": 2}, {"q": "'نَحْنُ طَالِبَاتٌ' artinya...", "o": ["Kami adalah para siswa (lk)", "Kami adalah para siswi (pr)", "Mereka siswi", "Kalian siswi", "Dia siswi"], "a": 1}, {"q": "Dhamir untuk 'mereka (perempuan)' adalah...", "o": ["هُمْ", "هُنَّ", "أَنْتُنَّ", "نَحْنُ", "هُمَا"], "a": 1}]}, {"id": "x2", "ar": "الأُسْرَة", "id_title": "Al-Usrah — Keluarga", "focus": "المذكر والمؤنث (Mudzakkar-Muannats) و حروف الجر (Huruf Jar)", "q": [{"q": "Kata 'أُخْت' berarti...", "o": ["Saudara laki-laki", "Saudara perempuan", "Paman", "Bibi", "Kakek"], "a": 1}, {"q": "Bentuk muannats (perempuan) dari 'طَالِب' adalah...", "o": ["طَالِبَة", "طَالِبُونَ", "طَالِبَانِ", "طُلَّاب", "طَالِبِي"], "a": 0}, {"q": "'أَبٌ' artinya...", "o": ["Ibu", "Ayah", "Anak laki-laki", "Anak perempuan", "Kakak"], "a": 1}, {"q": "Huruf jar yang berarti 'di dalam' adalah...", "o": ["إِلَى", "عَنْ", "فِي", "عَلَى", "مَعَ"], "a": 2}, {"q": "Pada kalimat 'الْكِتَابُ عَلَى الْمَكْتَبِ', huruf jar 'عَلَى' berarti...", "o": ["Di bawah", "Di atas", "Di depan", "Di belakang", "Di dalam"], "a": 1}, {"q": "'جَدّ' berarti...", "o": ["Nenek", "Kakek", "Paman", "Bibi", "Cucu"], "a": 1}, {"q": "Bentuk mudzakkar (laki-laki) dari 'مُدَرِّسَة' adalah...", "o": ["مُدَرِّس", "مُدَرِّسُونَ", "مُدَرِّسَتَانِ", "طَالِب", "مُدَرِّسَاتٌ"], "a": 0}, {"q": "Huruf jar 'مِنْ' berarti...", "o": ["Ke", "Dari", "Tentang", "Dengan", "Untuk"], "a": 1}, {"q": "'عَمّ' adalah sebutan untuk saudara laki-laki dari...", "o": ["Ibu", "Ayah", "Kakek", "Nenek", "Istri"], "a": 1}, {"q": "'زَوْجَة' berarti...", "o": ["Suami", "Istri", "Anak perempuan", "Menantu", "Ibu mertua"], "a": 1}]}, {"id": "x3", "ar": "الْمَدْرَسَة", "id_title": "Al-Madrasah — Sekolah", "focus": "الجمع (Bentuk Jamak) و الظرف والعطف", "q": [{"q": "Bentuk jamak (plural) dari 'كِتَاب' adalah...", "o": ["كِتَابَانِ", "كُتُب", "كِتَابُونَ", "كِتَابِي", "كِتَابَاتٌ"], "a": 1}, {"q": "'مُدَرِّسُونَ' adalah bentuk jamak mudzakkar salim, bentuk tunggalnya (mufrad) adalah...", "o": ["مُدَرِّس", "مُدَرِّسَة", "مُدَرِّسَانِ", "مُدَرِّسَاتٌ", "طَالِب"], "a": 0}, {"q": "Bentuk mutsanna (dua) dari 'طَالِب' adalah...", "o": ["طُلَّاب", "طَالِبَانِ", "طَالِبُونَ", "طَالِبَاتٌ", "طَالِب"], "a": 1}, {"q": "Zharf makan (keterangan tempat) 'أَمَامَ' berarti...", "o": ["Di belakang", "Di depan", "Di bawah", "Di atas", "Di samping"], "a": 1}, {"q": "Huruf 'athf (kata sambung) yang berarti 'atau' adalah...", "o": ["وَ", "ثُمَّ", "أَوْ", "لَكِنْ", "فَ"], "a": 2}, {"q": "'الْكُرَّاسَة' berarti...", "o": ["Pulpen", "Buku tulis", "Papan tulis", "Penggaris", "Tas"], "a": 1}, {"q": "Jamak taksir dari 'مَكْتَب' (meja) adalah...", "o": ["مَكَاتِب", "مَكْتَبَانِ", "مَكْتَبُونَ", "مَكْتَبَاتٌ", "مَكْتَبِي"], "a": 0}, {"q": "Zharf makan 'تَحْتَ' berarti...", "o": ["Di atas", "Di bawah", "Di depan", "Di belakang", "Di dalam"], "a": 1}, {"q": "Huruf 'athf 'وَ' berarti...", "o": ["Atau", "Kemudian", "Dan", "Tetapi", "Maka"], "a": 2}, {"q": "'مَعْمَل' berarti...", "o": ["Perpustakaan", "Laboratorium", "Kantin", "Lapangan", "Kantor"], "a": 1}]}, {"id": "x4", "ar": "الْهِوَايَة", "id_title": "Al-Hiwayah — Hobi", "focus": "تقسيم الكلمة (Pembagian Kata) و أقسام الفعل", "q": [{"q": "Kalimah (kata) dalam bahasa Arab terbagi menjadi tiga: isim, fi'il, dan...", "o": ["ضمير", "حرف", "فاعل", "مفعول", "مبتدأ"], "a": 1}, {"q": "'قَرَأَ' tergolong jenis kalimah...", "o": ["اسم", "فعل", "حرف", "ضمير", "ظرف"], "a": 1}, {"q": "Fi'il yang menunjukkan pekerjaan sudah terjadi (lampau) disebut fi'il...", "o": ["مضارع", "أمر", "ماضٍ", "مصدر", "مبني للمجهول"], "a": 2}, {"q": "'يَلْعَبُ' adalah bentuk fi'il...", "o": ["ماضٍ", "مضارع", "أمر", "اسم فاعل", "اسم مفعول"], "a": 1}, {"q": "'اِقْرَأْ!' (Bacalah!) adalah bentuk fi'il...", "o": ["ماضٍ", "مضارع", "أمر", "مصدر", "اسم"], "a": 2}, {"q": "Kata 'كِتَاب' tergolong kalimah...", "o": ["اسم", "فعل", "حرف", "ظرف", "عدد"], "a": 0}, {"q": "'فِي' tergolong kalimah...", "o": ["اسم", "فعل", "حرف", "ضمير", "نعت"], "a": 2}, {"q": "Hobi 'السِّبَاحَة' berarti...", "o": ["Membaca", "Berenang", "Menggambar", "Memasak", "Menyanyi"], "a": 1}, {"q": "'الرَّسْم' berarti...", "o": ["Menulis", "Menggambar", "Membaca", "Bermain", "Memasak"], "a": 1}, {"q": "'يُحِبُّ' berarti...", "o": ["Dia (lk) membenci", "Dia (lk) menyukai", "Dia (pr) menyukai", "Saya menyukai", "Kami menyukai"], "a": 1}]}, {"id": "x5", "ar": "الْمِهْنَة", "id_title": "Al-Mihnah — Profesi", "focus": "الجملة الاسمية والجملة الفعلية", "q": [{"q": "Kalimat yang diawali dengan isim disebut jumlah...", "o": ["فعلية", "اسمية", "شرطية", "استفهامية", "ندائية"], "a": 1}, {"q": "Kalimat yang diawali dengan fi'il disebut jumlah...", "o": ["اسمية", "فعلية", "ندائية", "تعجبية", "شرطية"], "a": 1}, {"q": "'الطَّبِيبُ يُعَالِجُ الْمَرِيضَ' adalah contoh jumlah...", "o": ["فعلية", "اسمية", "شرطية", "ندائية", "تعجبية"], "a": 1}, {"q": "'يَعْمَلُ الْمُهَنْدِسُ فِي الْمَصْنَعِ' adalah contoh jumlah...", "o": ["اسمية", "فعلية", "ندائية", "استفهامية", "شرطية"], "a": 1}, {"q": "'طَبِيب' berarti...", "o": ["Guru", "Dokter", "Insinyur", "Petani", "Polisi"], "a": 1}, {"q": "'مُهَنْدِس' berarti...", "o": ["Dokter", "Pedagang", "Insinyur", "Petani", "Nelayan"], "a": 2}, {"q": "'فَلَّاح' berarti...", "o": ["Nelayan", "Petani", "Pedagang", "Polisi", "Pilot"], "a": 1}, {"q": "'شُرْطِيّ' berarti...", "o": ["Tentara", "Polisi", "Pilot", "Dokter", "Petani"], "a": 1}, {"q": "Mubtada' pada kalimat 'الْمُعَلِّمُ مُجْتَهِدٌ' adalah...", "o": ["مجتهد", "المعلم", "الـ", "tidak ada", "keduanya khabar"], "a": 1}, {"q": "'تَاجِر' berarti...", "o": ["Petani", "Pedagang", "Dokter", "Guru", "Sopir"], "a": 1}]}, {"id": "x6", "ar": "الْحَيَاة الْيَوْمِيَّة", "id_title": "Al-Hayah Al-Yaumiyah — Kehidupan Sehari-hari", "focus": "الأرقام (Angka) والعدد والمعدود", "q": [{"q": "Angka 3 dalam bahasa Arab adalah...", "o": ["اِثْنَانِ", "ثَلَاثَة", "أَرْبَعَة", "خَمْسَة", "وَاحِد"], "a": 1}, {"q": "'وَاحِد' berarti angka...", "o": ["1", "2", "3", "4", "5"], "a": 0}, {"q": "'أَسْتَيْقِظُ' berarti...", "o": ["Saya tidur", "Saya bangun tidur", "Saya makan", "Saya pergi", "Saya pulang"], "a": 1}, {"q": "Kegiatan 'أَتَنَاوَلُ الطَّعَامَ' berarti...", "o": ["Saya minum", "Saya makan", "Saya mandi", "Saya belajar", "Saya tidur"], "a": 1}, {"q": "'الآنَ السَّاعَةُ الثَّامِنَةُ' berarti...", "o": ["Sekarang jam tujuh", "Sekarang jam delapan", "Sekarang jam sembilan", "Sekarang jam enam", "Sekarang jam sepuluh"], "a": 1}, {"q": "Angka 5 dalam bahasa Arab adalah...", "o": ["أَرْبَعَة", "خَمْسَة", "سِتَّة", "سَبْعَة", "ثَمَانِيَة"], "a": 1}, {"q": "'أَذْهَبُ إِلَى الْمَدْرَسَةِ صَبَاحًا' berarti aktivitas dilakukan pada waktu...", "o": ["Sore", "Malam", "Pagi", "Siang", "Tengah malam"], "a": 2}, {"q": "'عَشَرَة' berarti angka...", "o": ["8", "9", "10", "11", "12"], "a": 2}, {"q": "'أَنَامُ' berarti...", "o": ["Saya bangun", "Saya tidur", "Saya makan", "Saya belajar", "Saya bekerja"], "a": 1}, {"q": "'يَوْم الْجُمُعَة' adalah nama hari...", "o": ["Senin", "Kamis", "Jumat", "Sabtu", "Minggu"], "a": 2}]}]}, "XI": {"label": "Kelas XI", "subtitle": "Fase F — Empat Tema", "units": [{"id": "xi1", "ar": "السِّيَاحَة", "id_title": "Wisata", "focus": "التصريف اللغوي للفعل الماضي (Tashrif Fi'il Madhi)", "q": [{"q": "Fi'il madhi untuk dhamir 'هُوَ' dari 'ذَهَبَ' adalah...", "o": ["ذَهَبَ", "ذَهَبْتُ", "ذَهَبَتْ", "ذَهَبُوا", "ذَهَبْنَا"], "a": 0}, {"q": "Bentuk fi'il madhi untuk 'أَنَا' dari 'كَتَبَ' adalah...", "o": ["كَتَبَ", "كَتَبْتُ", "كَتَبْتَ", "كَتَبَتْ", "كَتَبُوا"], "a": 1}, {"q": "Fi'il madhi untuk 'هِيَ' dari 'سَافَرَ' adalah...", "o": ["سَافَرَ", "سَافَرَتْ", "سَافَرْتُ", "سَافَرُوا", "سَافَرْنَا"], "a": 1}, {"q": "Fi'il madhi untuk 'أَنْتَ' dari 'زَارَ' adalah...", "o": ["زَارَ", "زَارَتْ", "زُرْتَ", "زُرْتِ", "زَارُوا"], "a": 2}, {"q": "Fi'il madhi untuk 'هُمْ' dari 'رَجَعَ' adalah...", "o": ["رَجَعَ", "رَجَعَتْ", "رَجَعْنَا", "رَجَعُوا", "رَجَعْتُمْ"], "a": 3}, {"q": "'زَارَ' berarti...", "o": ["Pergi", "Mengunjungi", "Pulang", "Naik", "Membeli"], "a": 1}, {"q": "'السِّيَاحَة' berarti...", "o": ["Kesehatan", "Wisata/pariwisata", "Pendidikan", "Perdagangan", "Pertanian"], "a": 1}, {"q": "Fi'il madhi untuk 'نَحْنُ' dari 'شَاهَدَ' adalah...", "o": ["شَاهَدَ", "شَاهَدْتُ", "شَاهَدْنَا", "شَاهَدُوا", "شَاهَدَتْ"], "a": 2}, {"q": "'الْفُنْدُق' berarti...", "o": ["Bandara", "Hotel", "Pelabuhan", "Museum", "Pasar"], "a": 1}, {"q": "Fi'il madhi untuk 'أَنْتِ' dari 'ذَهَبَ' adalah...", "o": ["ذَهَبْتَ", "ذَهَبْتِ", "ذَهَبَتْ", "ذَهَبْنَ", "ذَهَبْتُمَا"], "a": 1}, {"q": "'الْمَتْحَف' berarti...", "o": ["Kebun binatang", "Museum", "Taman", "Danau", "Gunung"], "a": 1}]}, {"id": "xi2", "ar": "الصِّحَّة", "id_title": "Kesehatan", "focus": "التصريف اللغوي للفعل المضارع (Tashrif Fi'il Mudhari')", "q": [{"q": "Fi'il mudhari' untuk 'أَنَا' dari 'يَذْهَبُ' adalah...", "o": ["يَذْهَبُ", "أَذْهَبُ", "تَذْهَبُ", "نَذْهَبُ", "يَذْهَبُونَ"], "a": 1}, {"q": "Fi'il mudhari' untuk 'نَحْنُ' dari 'يَكْتُبُ' adalah...", "o": ["أَكْتُبُ", "تَكْتُبُ", "نَكْتُبُ", "يَكْتُبُ", "يَكْتُبُونَ"], "a": 2}, {"q": "Fi'il mudhari' untuk 'أَنْتِ' dari 'يَقْرَأُ' adalah...", "o": ["تَقْرَأُ", "تَقْرَئِينَ", "يَقْرَأُ", "أَقْرَأُ", "تَقْرَؤُونَ"], "a": 1}, {"q": "'مَرِيض' berarti...", "o": ["Sehat", "Sakit/orang sakit", "Dokter", "Perawat", "Obat"], "a": 1}, {"q": "'طَبِيب' berarti...", "o": ["Perawat", "Dokter", "Pasien", "Apoteker", "Bidan"], "a": 1}, {"q": "Fi'il mudhari' untuk 'هُنَّ' dari 'يَشْرَبُ' adalah...", "o": ["يَشْرَبُ", "يَشْرَبْنَ", "تَشْرَبُ", "نَشْرَبُ", "يَشْرَبُونَ"], "a": 1}, {"q": "'دَوَاء' berarti...", "o": ["Penyakit", "Obat", "Dokter", "Rumah sakit", "Suntik"], "a": 1}, {"q": "Fi'il mudhari' untuk 'أَنْتُمْ' dari 'يَأْكُلُ' adalah...", "o": ["تَأْكُلُ", "تَأْكُلُونَ", "يَأْكُلُونَ", "نَأْكُلُ", "تَأْكُلِينَ"], "a": 1}, {"q": "'الْمُسْتَشْفَى' berarti...", "o": ["Klinik", "Rumah sakit", "Apotek", "Puskesmas", "Laboratorium"], "a": 1}, {"q": "'صُدَاع' berarti...", "o": ["Demam", "Sakit kepala", "Batuk", "Pilek", "Sakit gigi"], "a": 1}]}, {"id": "xi3", "ar": "الْحَجّ وَالْعُمْرَة", "id_title": "Haji dan Umrah", "focus": "تصريف فعل الأمر و أحكام المنادى", "q": [{"q": "Fi'il amr dari 'يَذْهَبُ' untuk dhamir 'أَنْتَ' adalah...", "o": ["اِذْهَبْ", "اِذْهَبِي", "اِذْهَبُوا", "تَذْهَبُ", "يَذْهَبُ"], "a": 0}, {"q": "Fi'il amr dari 'يَكْتُبُ' untuk dhamir 'أَنْتِ' adalah...", "o": ["اُكْتُبْ", "اُكْتُبِي", "اُكْتُبُوا", "تَكْتُبِينَ", "اُكْتُبْنَ"], "a": 1}, {"q": "Pada 'يَا مُحَمَّدُ', kata 'مُحَمَّدُ' berkedudukan sebagai...", "o": ["Fa'il", "Munada (yang dipanggil)", "Maf'ul bih", "Khabar", "Na'at"], "a": 1}, {"q": "Munada mufrad 'alam umumnya di-i'rab dengan harakat...", "o": ["Fathah", "Kasrah", "Dhammah", "Sukun", "Tanwin"], "a": 2}, {"q": "'الإِحْرَام' berarti...", "o": ["Tawaf", "Ihram", "Sa'i", "Tahallul", "Wukuf"], "a": 1}, {"q": "'الطَّوَاف' berarti...", "o": ["Sa'i", "Tawaf (mengelilingi Ka'bah)", "Ihram", "Wukuf", "Melempar jumrah"], "a": 1}, {"q": "Fi'il amr dari 'يَقْرَأُ' untuk dhamir jamak 'أَنْتُمْ' adalah...", "o": ["اِقْرَأْ", "اِقْرَئِي", "اِقْرَؤُوا", "اِقْرَأْنَ", "تَقْرَؤُونَ"], "a": 2}, {"q": "'السَّعْي' berarti...", "o": ["Tawaf", "Sa'i (berlari kecil Shafa-Marwah)", "Ihram", "Wukuf di Arafah", "Melontar jumrah"], "a": 1}, {"q": "'الْحَاجّ' berarti...", "o": ["Orang yang berumrah", "Orang yang berhaji", "Pemandu wisata", "Imam masjid", "Jamaah shalat"], "a": 1}, {"q": "Huruf nida' (panggilan) yang paling umum digunakan adalah...", "o": ["يَا", "هَلْ", "مَا", "إِنَّ", "لَا"], "a": 0}]}, {"id": "xi4", "ar": "الأَدْيَان فِي إِنْدُونِيسِيَا", "id_title": "Agama-agama di Indonesia", "focus": "النعت (Na'at) و الإضافة (Idhafah)", "q": [{"q": "Na'at (kata sifat) harus sesuai dengan man'ut-nya dalam hal...", "o": ["Waktu", "Jenis, jumlah, dan i'rab", "Tempat", "Harakat akhir saja", "Jumlah huruf"], "a": 1}, {"q": "Pada 'كِتَابٌ جَدِيدٌ', kata 'جَدِيدٌ' berkedudukan sebagai...", "o": ["Man'ut", "Na'at", "Mudhaf", "Mudhaf ilaih", "Khabar"], "a": 1}, {"q": "Susunan idhafah terdiri dari mudhaf dan...", "o": ["Na'at", "Man'ut", "Mudhaf ilaih", "Khabar", "Fa'il"], "a": 2}, {"q": "Pada 'كِتَابُ الطَّالِبِ', mudhaf ilaih-nya adalah...", "o": ["كِتَابُ", "الطَّالِبِ", "keduanya", "tidak ada", "الكتاب"], "a": 1}, {"q": "Mudhaf (kata pertama dalam idhafah) tidak boleh menggunakan...", "o": ["Harakat dhammah", "ال (alif lam) dan tanwin", "Huruf jar", "Dhamir", "Isim isyarah"], "a": 1}, {"q": "'مَسْجِد' berarti...", "o": ["Gereja", "Masjid", "Pura", "Vihara", "Kelenteng"], "a": 1}, {"q": "'دِيَانَة' berarti...", "o": ["Suku", "Bahasa", "Agama", "Budaya", "Adat"], "a": 2}, {"q": "Pada 'بَيْتُ الْمُعَلِّمِ', kata 'بَيْتُ' berkedudukan sebagai...", "o": ["Na'at", "Man'ut", "Mudhaf", "Mudhaf ilaih", "Khabar"], "a": 2}, {"q": "'كَنِيسَة' berarti...", "o": ["Masjid", "Gereja", "Pura", "Vihara", "Kuil"], "a": 1}, {"q": "Pada 'الطَّالِبَةُ الذَّكِيَّةُ', kata 'الذَّكِيَّةُ' berkedudukan sebagai...", "o": ["Man'ut", "Mudhaf", "Na'at", "Mudhaf ilaih", "Khabar"], "a": 2}]}]}, "XII": {"label": "Kelas XII", "subtitle": "Fase F — Tiga Wahdah (Soal Resmi Kemenag 2025)", "units": [{"id": "xii1", "ar": "تِكْنُولُوجِيَا الْإِعْلَامِ وَالِاتِّصَالِ", "id_title": "Teknologi Informasi dan Komunikasi", "focus": "اسم التفضيل + Teks Argumentatif", "q": [{"q": "Perhatikan gambar: seorang siswa bermain game sepanjang waktu, siswa lain belajar mandiri. Manakah pernyataan yang tepat menggunakan اسم تفضيل?", "o": ["اللَّعِبُ أَفْضَلُ مِنَ التَّعَلُّمِ الذَّاتِّيِ", "التَّعَلُّمُ الذَّاتِّيُ أَفْضَلُ مِنَ اللَّعِبِ طُوْلَ الْوَقْتِ", "اللَّعِبُ أَسْهَلُ مِنَ التَّعَلُّمِ", "التَّعَلُّمُ أَصْعَبُ مِنَ اللَّعِبِ فَقَطْ", "كِلَاهُمَا مُتَسَاوِيَانِ فِي الْفَائِدَةِ"], "a": 1}, {"q": "Bentuk اسم تفضيل dari kata (حَسُنَ) adalah...", "o": ["أَحْسَنُ", "حَاسِنٌ", "مَحْسُوْنٌ", "حَسَّانٌ", "أَحَاسِنُ"], "a": 0}, {"q": "Manakah yang termasuk perangkat teknologi informasi dan komunikasi?", "o": ["حَاسُوْبٌ مَحْمُوْلٌ، هَاتِفٌ ذَكِيٌّ، تِلْفَازٌ ذَكِيٌّ", "كِتَابٌ، قَلَمٌ، دَفْتَرٌ", "سَيَّارَةٌ، دَرَّاجَةٌ، طَائِرَةٌ", "مِلْعَقَةٌ، صَحْنٌ، كُوْبٌ", "سَرِيْرٌ، كُرْسِيٌّ، مَكْتَبٌ"], "a": 0}, {"q": "Dalam dialog Yusuf berkata: أَظُنُّ أَنَّ هَذَا الْحَاسُوْبَ أَحْسَنُ لِلطُّلَّابِ. Bentuk اسم تفضيل yang digunakan adalah...", "o": ["أَحْسَنُ", "حَسَنٌ", "أَحْسَنَ", "حُسْنٌ", "مُحْسِنٌ"], "a": 0}, {"q": "Syarat pembentukan اسم تفضيل dari fi'il adalah, kecuali...", "o": ["Fi'il harus tsulatsi (tiga huruf)", "Fi'il harus mutasharrif (dapat ditasrif)", "Fi'il harus mabni li al-ma'lum (aktif)", "Fi'il harus menunjukkan warna (لون)", "Fi'il harus tamm (sempurna maknanya)"], "a": 3}, {"q": "Manakah ikon yang menunjukkan 'بَرِيْد إِلِكْتْرُوْنِي' (email)?", "o": ["Ikon amplop/@", "Ikon kamera", "Ikon mikrofon", "Ikon kalender", "Ikon peta"], "a": 0}, {"q": "Arti dari ungkapan 'أَهَمُّ مِنَ الْمَوَاضِيْعِ الْأُخْرَى' adalah...", "o": ["Lebih penting daripada topik-topik lainnya", "Lebih mudah daripada topik-topik lainnya", "Lebih sulit daripada topik-topik lainnya", "Sama pentingnya dengan topik-topik lainnya", "Tidak lebih penting dari topik lainnya"], "a": 0}, {"q": "Dalam teks argumentatif, unsur yang berisi pernyataan utama/isu disebut...", "o": ["الْأُطْرُوْحَةُ (Tesis)", "الْحِجَاجُ (Argumen)", "النَّتِيْجَةُ (Kesimpulan)", "الْأَدِلَّةُ (Alasan)", "الْبَرَاهِيْنُ (Bukti)"], "a": 0}, {"q": "Kalimat yang menggunakan اسم تفضيل dengan benar adalah...", "o": ["هَذَا الْحَاسُوْبُ أَفْضَلُ مِنْ غَيْرِهِ", "هَذَا الْحَاسُوْبُ فَضْلٌ مِنْ غَيْرِهِ", "هَذَا الْحَاسُوْبُ يُفَضِّلُ غَيْرَهُ", "هَذَا الْحَاسُوْبُ مَفْضُوْلٌ", "هَذَا الْحَاسُوْبُ فَاضِلٌ"], "a": 0}, {"q": "Perhatikan gambar ruang kelas dengan proyektor dan laptop. Manfaat teknologi modern dalam pendidikan menurut gambar adalah...", "o": ["لِعَرْضِ الْمَادَّةِ التَّعْلِيْمِيَّةِ", "لِلَعِبِ الْأَلْعَابِ فَقَطْ", "لِلطَّبْخِ فِي الْمَطْبَخِ", "لِلسَّفَرِ إِلَى الْخَارِجِ", "لِلنَّوْمِ فِي الْغُرْفَةِ"], "a": 0}, {"q": "Bentuk اسم تفضيل untuk mu'annats dari (أَفْضَلُ) adalah...", "o": ["فُضْلَى", "فَضْلَاءُ", "أَفْضَلَةٌ", "فَاضِلَةٌ", "مُفَضَّلَةٌ"], "a": 0}, {"q": "Arti kosakata 'قَمَرٌ صِنَاعِيٌّ' adalah...", "o": ["Satelit buatan", "Bulan sabit", "Bintang jatuh", "Matahari terbit", "Planet Mars"], "a": 0}, {"q": "Dalam kalimat 'الشَّبَكَةُ الدُّوَلِيَّةُ أَسْرَعُ وَسِيْلَةٍ', kata 'أَسْرَعُ' berfungsi sebagai...", "o": ["اسم تفضيل", "فعل ماض", "اسم فاعل", "مصدر", "صفة مشبهة"], "a": 0}, {"q": "Perhatikan gambar harga tiga smartphone: Yusuf Rp6.000.000, Maryam Rp5.000.000, Khalid Rp4.000.000. Manakah pernyataan yang benar?", "o": ["جَوَّالُ يُوْسُفَ أَغْلَى مِنْ جَوَّالِ مَرْيَمَ", "جَوَّالُ مَرْيَمَ أَغْلَى مِنْ جَوَّالِ يُوْسُفَ", "جَوَّالُ خَالِدٍ أَغْلَى مِنْ جَوَّالِ يُوْسُفَ", "جَوَّالُ يُوْسُفَ أَرْخَصُ مِنْ جَوَّالِ خَالِدٍ", "جَوَّالُ مَرْيَمَ أَرْخَصُ مِنْ جَوَّالِ خَالِدٍ"], "a": 0}, {"q": "Ungkapan yang menunjukkan ketidaksetujuan adalah...", "o": ["أَنَا غَيْرُ مُوَافِقٍ", "أَنَا مُوَافِقٌ", "أَنَا مَعَكَ فِي هَذَا الرَّأْيِ", "هَذِهِ فِكْرَةٌ جَيِّدَةٌ", "أَحْسَنْتَ"], "a": 0}, {"q": "Menurut teks bacaan, teknologi informasi dan komunikasi modern diibaratkan sebagai 'سِلَاحٌ ذُوْ حَدَّيْنِ' yang berarti...", "o": ["Senjata bermata dua", "Pohon yang berbuah", "Sungai yang mengalir", "Gunung yang tinggi", "Lautan yang dalam"], "a": 0}, {"q": "Ism at-Tafdil yang berdiri sendiri (mujarrad) harus disertai dengan...", "o": ["مِنْ + isim yang dibandingkan", "إِلَى + isim yang dibandingkan", "فِي + isim yang dibandingkan", "عَلَى + isim yang dibandingkan", "بِ + isim yang dibandingkan"], "a": 0}, {"q": "Arti dari 'وَسَائِلُ التَّوَاصُلِ الِاجْتِمَاعِيِّ' adalah...", "o": ["Media sosial / sarana komunikasi sosial", "Alat transportasi umum", "Peralatan dapur modern", "Instrumen musik tradisional", "Peralatan olahraga"], "a": 0}, {"q": "Manakah yang BUKAN unsur teks argumentatif (النص الحجاجي)?", "o": ["الْعُقْدَةُ (Konflik)", "الْأُطْرُوْحَةُ (Tesis)", "الْحِجَاجُ (Argumen)", "النَّتِيْجَةُ (Kesimpulan)", "الْأَدِلَّةُ (Alasan)"], "a": 0}, {"q": "Kalimat 'الْإِنْتِرْنِتُ أَسْهَلُ وَأَسْرَعُ مِنْ أَيِّ وَقْتٍ مَضَى' mengandung berapa اسم تفضيل?", "o": ["Dua (أَسْهَلُ dan أَسْرَعُ)", "Satu saja", "Tiga", "Empat", "Tidak ada"], "a": 0}, {"q": "Bentuk اسم تفضيل dari fi'il yang tidak memenuhi syarat (seperti warna) menggunakan kata bantu...", "o": ["أَشَدُّ / أَكْثَرُ + mashdar", "أَقَلُّ saja", "أَجْمَلُ saja", "أَكْبَرُ saja", "أَصْغَرُ saja"], "a": 0}, {"q": "Arti kosakata 'مُسْتَعْرِضٌ' adalah...", "o": ["Browser / peramban web", "Printer / pencetak", "Keyboard / papan ketik", "Mouse / tetikus", "Monitor / layar"], "a": 0}, {"q": "Dalam dialog tentang teknologi, guru menekankan pentingnya...", "o": ["الْحِمَايَةُ عِنْدَ اسْتِخْدَامِ الْأَجْهِزَةِ", "اللَّعِبُ طُوْلَ الْوَقْتِ", "تَرْكُ التِّكْنُوْلُوْجِيَا نِهَائِيًّا", "شِرَاءُ أَجْهِزَةٍ كَثِيْرَةٍ", "إِهْمَالُ الْوَاجِبَاتِ"], "a": 0}, {"q": "Pola wazn اسم تفضيل untuk mudzakkar adalah...", "o": ["أَفْعَلُ", "فَاعِلٌ", "مَفْعُوْلٌ", "فَعِيْلٌ", "فَعَّالٌ"], "a": 0}, {"q": "Kesimpulan utama dari teks argumentatif tentang TIK adalah...", "o": ["Teknologi bermanfaat besar jika digunakan dengan perlindungan yang kuat", "Teknologi harus ditinggalkan sepenuhnya", "Teknologi hanya untuk hiburan saja", "Teknologi tidak memiliki manfaat sama sekali", "Teknologi hanya untuk orang dewasa"], "a": 0}]}, {"id": "xii2", "ar": "عُظَمَاءُ الْإِسْلَامِ", "id_title": "Tokoh-tokoh Islam", "focus": "الفعل المبني للمعلوم والفعل المبني للمجهول + Teks Naratif", "q": [{"q": "Siapakah yang membebaskan kota Al-Quds (Yerusalem)?", "o": ["صَلَاحُ الدِّيْنِ الْأَيُّوْبِيُّ", "اِبْنُ خَلْدُوْنَ", "اِبْنُ بَطُوْطَةَ", "فَاطِمَةُ الْفِهْرِيَّةُ", "أَبُوْ بَكْرٍ الرَّازِيُّ"], "a": 0}, {"q": "Dalam kalimat 'مَدِيْنَةُ الْقُدْسِ حُرِّرَتْ', kata 'حُرِّرَتْ' adalah bentuk...", "o": ["الفعل المبني للمجهول (pasif)", "الفعل المبني للمعلوم (aktif)", "اسم الفاعل", "اسم المفعول", "المصدر"], "a": 0}, {"q": "Siapakah pendiri universitas tertua di dunia (جامعة القرويين)?", "o": ["فَاطِمَةُ الْفِهْرِيَّةُ", "عَائِشَةُ بِنْتُ أَبِيْ بَكْرٍ", "خَدِيْجَةُ بِنْتُ خُوَيْلِدٍ", "فَاطِمَةُ الزَّهْرَاءُ", "رَابِعَةُ الْعَدَوِيَّةُ"], "a": 0}, {"q": "Tokoh Islam manakah yang dikenal sebagai pendiri ilmu sosiologi?", "o": ["اِبْنُ خَلْدُوْنَ", "اِبْنُ رُشْدٍ", "اِبْنُ سِيْنَا", "الْخَوَارِزْمِيُّ", "اِبْنُ الْهَيْثَمِ"], "a": 0}, {"q": "Perubahan dari 'بَنَى النَّبِيُّ الْمَسْجِدَ' menjadi bentuk majhul adalah...", "o": ["بُنِيَ الْمَسْجِدُ", "بَنَى الْمَسْجِدُ", "يَبْنِي الْمَسْجِدَ", "الْمَسْجِدُ بَانٍ", "بِنَاءُ الْمَسْجِدِ"], "a": 0}, {"q": "Arti kosakata 'رَحَّالَةٌ' adalah...", "o": ["Pengembara / penjelajah", "Dokter", "Penyair", "Raja", "Tentara"], "a": 0}, {"q": "Universitas Al-Qarawiyyin dibangun pada abad...", "o": ["الْقَرْنِ الثَّالِثِ الْهِجْرِيِّ", "الْقَرْنِ الْأَوَّلِ الْهِجْرِيِّ", "الْقَرْنِ الْعَاشِرِ الْهِجْرِيِّ", "الْقَرْنِ الْخَامِسِ الْهِجْرِيِّ", "الْقَرْنِ السَّابِعِ الْهِجْرِيِّ"], "a": 0}, {"q": "Dalam pembentukan fi'il madhi majhul, huruf pertama di-dhammah dan huruf sebelum akhir di-...", "o": ["Kasrah", "Fathah", "Dhammah", "Sukun", "Tanwin"], "a": 0}, {"q": "Tokoh Islam dari Indonesia yang disebutkan dalam dialog adalah, kecuali...", "o": ["اِبْنُ سِيْنَا", "الشَّيْخُ يُوْسُفُ الْمَكَاسَرِيُّ", "الشَّيْخُ مُحَمَّدٌ نَوَوِيٌّ الْبَنْتَنِيُّ", "الشَّيْخُ هَاشِمٌ الْأَشْعَرِيُّ", "أَحْمَدُ دَحْلَانَ"], "a": 0}, {"q": "Kalimat 'كُتِبَ كِتَابُ التَّارِيْخِ الْإِسْلَامِيَّةِ' bentuknya adalah...", "o": ["الفعل الماضي المبني للمجهول", "الفعل الماضي المبني للمعلوم", "الفعل المضارع المبني للمجهول", "الفعل المضارع المبني للمعلوم", "اسم المفعول"], "a": 0}, {"q": "Perhatikan gambar! Manakah yang menunjukkan 'عَالِمَةُ رِيَاضِيَّاتٍ' (ahli matematika perempuan)?", "o": ["Gambar perempuan dengan buku matematika/papan tulis", "Gambar tentara berkuda", "Gambar raja di atas tahta", "Gambar penyair dengan gendang", "Gambar dokter bedah"], "a": 0}, {"q": "Unsur teks naratif (النص السردي) yang memperkenalkan latar belakang disebut...", "o": ["الْمُقَدِّمَةُ (Orientasi)", "الْعُقْدَةُ (Konflik)", "الْحَلُّ (Resolusi)", "الْخَاتِمَةُ (Penutup)", "الْحِجَاجُ (Argumen)"], "a": 0}, {"q": "Perubahan 'قَالَ' menjadi bentuk majhul adalah...", "o": ["قِيْلَ", "قُوْلَ", "قَالَا", "يَقُوْلُ", "مَقُوْلٌ"], "a": 0}, {"q": "Fatimah al-Fihriyyah lahir di kota...", "o": ["الْقَيْرَوَانِ (Tunisia, Kairouan)", "مَكَّةَ الْمُكَرَّمَةِ", "الْمَدِيْنَةِ الْمُنَوَّرَةِ", "بَغْدَادَ", "دِمَشْقَ"], "a": 0}, {"q": "Perhatikan gambar! Apa yang dilakukan Fatimah al-Fihriyyah setelah mewarisi kekayaan besar?", "o": ["نَذَرَتْ أَنْ تَبْنِيَ مَسْجِدًا كَبِيْرًا", "اِشْتَرَتْ قَصْرًا فَخْمًا", "سَافَرَتْ إِلَى أُوْرُوْبَا", "تَرَكَتِ الْمَالَ دُوْنَ اسْتِفَادَةٍ", "بَنَتْ سُوْقًا كَبِيْرًا فَقَطْ"], "a": 0}, {"q": "Arti dari 'مُؤَرِّخٌ' adalah...", "o": ["Sejarawan", "Dokter", "Insinyur", "Pilot", "Petani"], "a": 0}, {"q": "Dalam fi'il mudhari' majhul, huruf pertama di-dhammah dan huruf sebelum akhir di-...", "o": ["Fathah", "Kasrah", "Dhammah", "Sukun", "Tanwin"], "a": 0}, {"q": "Kalimat aktif 'رَحِمَ اللَّهُ الْمُؤْمِنَاتِ' diubah ke bentuk majhul menjadi...", "o": ["رُحِمَتِ الْمُؤْمِنَاتُ", "رَحِمَتِ الْمُؤْمِنَاتُ", "يَرْحَمُ الْمُؤْمِنَاتِ", "الْمُؤْمِنَاتُ مَرْحُوْمَةٌ", "رَحْمَةُ الْمُؤْمِنَاتِ"], "a": 0}, {"q": "Tokoh yang menulis 'الطب في القانون' adalah...", "o": ["اِبْنُ سِيْنَا", "اِبْنُ خَلْدُوْنَ", "اِبْنُ بَطُوْطَةَ", "الْخَوَارِزْمِيُّ", "اِبْنُ رُشْدٍ"], "a": 0}, {"q": "Manakah yang termasuk unsur teks naratif?", "o": ["الْمُقَدِّمَةُ، الْعُقْدَةُ، الْحَلُّ، الْخَاتِمَةُ", "الْأُطْرُوْحَةُ، الْحِجَاجُ، النَّتِيْجَةُ", "الْمُقَدِّمَةُ، الْأَدِلَّةُ، الْخَاتِمَةُ", "الْعُقْدَةُ، الْحِجَاجُ، النَّتِيْجَةُ", "الْأُطْرُوْحَةُ، الْعُقْدَةُ، الْحَلُّ"], "a": 0}, {"q": "Arti dari 'فَيْلَسُوْفٌ' adalah...", "o": ["Filsuf", "Tentara", "Pedagang", "Nelayan", "Petani"], "a": 0}, {"q": "Kalimat 'يُعَلِّمُ الْغَزَالِيُّ النَّاسَ' diubah ke bentuk majhul menjadi...", "o": ["يُعَلَّمُ النَّاسُ", "يُعَلِّمُ النَّاسُ", "عَلَّمَ النَّاسَ", "النَّاسُ مُعَلَّمٌ", "تَعْلِيْمُ النَّاسِ"], "a": 0}, {"q": "Pesan moral dari kisah Fatimah al-Fihriyyah adalah...", "o": ["Wanita muslimah mampu membawa perubahan besar dalam peradaban", "Wanita tidak boleh berkontribusi dalam pendidikan", "Kekayaan harus disimpan tanpa dimanfaatkan", "Hanya laki-laki yang boleh membangun masjid", "Ilmu pengetahuan tidak penting bagi umat"], "a": 0}, {"q": "Dalam dialog, Idris menyebutkan tokoh-tokoh Islam klasik seperti...", "o": ["اِبْنُ رُشْدٍ، اِبْنُ خَلْدُوْنَ، اِبْنُ بَطُوْطَةَ", "سُوْكَارْنُوْ، هَاتَّا، سُوْتُوْمُوْ", "نَابُلْيُوْنَ، قَيْصَرَ، الْإِسْكَنْدَرَ", "أَيْنْشْتَايْنَ، نِيُوْتُنَ، غَالِيْلِيُوْ", "شِكْسْبِيْرَ، دَانْتِي، هُوْمِيْرُوْسَ"], "a": 0}, {"q": "Ketika fi'il madhi majhul memiliki 'ain fi'il berupa huruf illat, maka huruf tersebut diganti dengan...", "o": ["Ya' dan huruf sebelumnya di-kasrah", "Waw dan huruf sebelumnya di-dhammah", "Alif dan huruf sebelumnya di-fathah", "Hamzah", "Tetap tidak berubah"], "a": 0}]}, {"id": "xii3", "ar": "الدِّرَاسَةُ فِي الْجَامِعَةِ", "id_title": "Studi di Perguruan Tinggi", "focus": "الفعل المضارع المرفوع والمنصوب والمجزوم + Teks Prosedur", "q": [{"q": "Perhatikan gambar mahasiswa di depan kampus. Ungkapan yang tepat untuk situasi tersebut adalah...", "o": ["هَيَّا نَسْتَعِدُّ لِلِالْتِحَاقِ بِالْجَامِعَةِ مَعًا", "هَيَّا نَلْعَبْ كُرَةَ الْقَدَمِ", "هَيَّا نَذْهَبْ إِلَى السُّوْقِ", "هَيَّا نَنَمْ فِي الْبَيْتِ", "هَيَّا نَأْكُلْ فِي الْمَطْعَمِ"], "a": 0}, {"q": "Langkah pertama untuk mendaftar ke perguruan tinggi menurut dialog adalah...", "o": ["تَبْحَثَ الْمَعْلُوْمَاتِ عَنِ الْجَامِعَةِ", "تَشْتَرِيَ سَيَّارَةً جَدِيْدَةً", "تُسَافِرَ مُبَاشَرَةً إِلَى الْخَارِجِ", "تَتْرُكَ الدِّرَاسَةَ نِهَائِيًّا", "تَلْعَبَ الْأَلْعَابَ الْإِلِكْتْرُوْنِيَّةَ"], "a": 0}, {"q": "Dalam kalimat 'يَنْبَغِي لَكَ أَنْ تَبْحَثَ', kata 'تَبْحَثَ' berkedudukan sebagai...", "o": ["الفعل المضارع المنصوب (karena أَنْ)", "الفعل المضارع المرفوع", "الفعل المضارع المجزوم", "الفعل الماضي", "فعل الأمر"], "a": 0}, {"q": "Manakah yang menunjukkan 'كُلِّيَّةٌ' (fakultas)?", "o": ["Gedung fakultas/departemen di kampus", "Sertifikat kelulusan", "Ruang ujian saja", "Perpustakaan umum kota", "Rumah sakit umum"], "a": 0}, {"q": "Arti kosakata 'رُسُوْمٌ دِرَاسِيَّةٌ' adalah...", "o": ["Biaya kuliah / SPP", "Buku pelajaran", "Ruang kelas", "Jadwal kuliah", "Seragam kampus"], "a": 0}, {"q": "Fi'il mudhari' yang didahului oleh 'لَمْ' menjadi...", "o": ["مجزوم", "منصوب", "مرفوع", "مبني", "معرب بالضمة"], "a": 0}, {"q": "Perhatikan gambar pejabat kampus! Siapakah 'مُدِيْرُ الْجَامِعَةِ'?", "o": ["Rektor / pemimpin universitas", "Dekan fakultas", "Ketua program studi", "Dosen biasa", "Mahasiswa tingkat akhir"], "a": 0}, {"q": "Dalam dialog, Abrar ingin mendaftar ke...", "o": ["جَامِعَةُ مَالَانْج رَاجَا / كُلِّيَّةُ الطِّبِّ", "جَامِعَةُ الْأَزْهَرِ فَقَطْ", "مَدْرَسَةٌ اِبْتِدَائِيَّةٌ", "مَعْهَدٌ مِهْنِيٌّ", "حَضَانَةٌ لِلْأَطْفَالِ"], "a": 0}, {"q": "Dokumen yang dibutuhkan untuk pendaftaran universitas meliputi...", "o": ["الشَّهَادَةُ، نُسْخَةٌ مِنْ بِطَاقَةِ الْهُوِيَّةِ، صُوْرَةٌ شَخْصِيَّةٌ", "سَيَّارَةٌ، دَرَّاجَةٌ، طَائِرَةٌ", "طَعَامٌ، شَرَابٌ، فَاكِهَةٌ", "كُرَةٌ، مَلْعَبٌ، حِذَاءٌ", "سَرِيْرٌ، وِسَادَةٌ، بَطَّانِيَّةٌ"], "a": 0}, {"q": "Kalimat 'أُرِيْدُ أَنْ أُوَاصِلَ دِرَاسَتِيْ' mengandung fi'il mudhari' yang...", "o": ["منصوب karena أَنْ", "مرفوع", "مجزوم", "مبني على الفتح", "مبني على السكون"], "a": 0}, {"q": "Manakah yang menunjukkan 'حَفْلَةُ التَّخَرُّجِ' (wisuda)?", "o": ["Mahasiswa memakai toga di upacara", "Mahasiswa bermain bola", "Mahasiswa makan di kantin", "Mahasiswa tidur di asrama", "Mahasiswa belanja di mall"], "a": 0}, {"q": "Arti dari 'اِخْتِبَارُ الْقَبُوْلِ' adalah...", "o": ["Ujian masuk / seleksi penerimaan", "Ujian tengah semester", "Ujian akhir semester", "Ujian praktek laboratorium", "Ujian skripsi"], "a": 0}, {"q": "Fi'il mudhari' yang didahului oleh 'لَنْ' menjadi...", "o": ["منصوب", "مجزوم", "مرفوع", "مبني", "ممنوع من الصرف"], "a": 0}, {"q": "Jalur penerimaan tanpa ujian masuk disebut...", "o": ["مَسَارُ التَّفَوُّقِ الدِّرَاسِيِّ", "الِاخْتِبَارُ الْوَطَنِيُّ", "الِاخْتِبَارُ الْمُسْتَقِلُّ", "الِامْتِحَانُ الشَّفَوِيُّ", "الِامْتِحَانُ التَّحْرِيْرِيُّ"], "a": 0}, {"q": "Perhatikan gambar ruang kuliah! Kegiatan yang sedang berlangsung adalah...", "o": ["مُحَاضَرَةٌ (Kuliah)", "حَفْلَةُ التَّخَرُّجِ", "مُبَارَاةُ كُرَةِ الْقَدَمِ", "سَفَرٌ سِيَاحِيٌّ", "طَبْخٌ فِي الْمَطْبَخِ"], "a": 0}, {"q": "Dalam kalimat 'لَمْ أَعْرِفْ خُطُوَاتِ الِالْتِحَاقِ', kata 'أَعْرِفْ' adalah...", "o": ["الفعل المضارع المجزوم", "الفعل المضارع المرفوع", "الفعل المضارع المنصوب", "الفعل الماضي", "فعل الأمر"], "a": 0}, {"q": "Arti kosakata 'عَمِيْدُ الْكُلِّيَّةِ' adalah...", "o": ["Dekan fakultas", "Rektor universitas", "Ketua jurusan", "Sekretaris kampus", "Petugas keamanan"], "a": 0}, {"q": "Tanda i'rab fi'il mudhari' marfu' (jika shahih akhir) adalah...", "o": ["Dhammah (ـُ)", "Fathah (ـَ)", "Kasrah (ـِ)", "Sukun (ـْ)", "Tanwin"], "a": 0}, {"q": "Juwairiyah ingin melanjutkan studi di...", "o": ["جَامِعَةُ مَوْلَانَا مَالِكٍ إِبْرَاهِيْمَ بِمَالَانْج / قِسْمُ تَعْلِيْمِ اللُّغَةِ الْعَرَبِيَّةِ", "جَامِعَةُ الْقَاهِرَةِ فَقَطْ", "مَدْرَسَةٌ ثَانَوِيَّةٌ", "مَصْنَعٌ لِلسَّيَّارَاتِ", "مَزْرَعَةٌ كَبِيْرَةٌ"], "a": 0}, {"q": "Teks prosedur (النص الإجرائي/الإرشادي) bertujuan untuk...", "o": ["Memberikan petunjuk langkah-langkah melakukan sesuatu", "Menceritakan kisah tokoh secara kronologis", "Meyakinkan pembaca dengan argumen dan bukti", "Mendeskripsikan keindahan alam", "Mengungkapkan perasaan pribadi"], "a": 0}, {"q": "Kalimat 'يَجِبُ عَلَيْكَ أَنْ تُلَبِّيَ جَمِيْعَ الشُّرُوْطِ' mengandung fi'il yang...", "o": ["منصوب بـ أَنْ", "مرفوع", "مجزوم بـ لَمْ", "مبني على الفتح", "مبني على الضم"], "a": 0}, {"q": "Arti dari 'رِسَالَةٌ جَامِعِيَّةٌ' adalah...", "o": ["Skripsi / tesis", "Surat cinta", "Surat resmi kantor", "Kartu undangan", "Buku catatan harian"], "a": 0}, {"q": "Ayat yang memotivasi menuntut ilmu dalam bab ini, يَرْفَعِ اللَّهُ الَّذِيْنَ آمَنُوْا مِنْكُمْ وَالَّذِيْنَ أُوْتُوا الْعِلْمَ دَرَجَاتٍ, terdapat dalam surat...", "o": ["QS. Al-Mujadalah: 11", "QS. Al-Insyirah: 7-8", "QS. Al-Bayyinah: 5", "QS. Al-'Alaq: 1-5", "QS. Al-Fatihah: 1-7"], "a": 0}, {"q": "Fi'il mudhari' marfu' terjadi apabila...", "o": ["Tidak didahului oleh amil nashab atau amil jazm", "Didahului oleh أَنْ، لَنْ، كَيْ", "Didahului oleh لَمْ، لَمَّا، لَا النَّاهِيَة", "Selalu dalam bentuk majhul", "Selalu dalam bentuk perintah"], "a": 0}, {"q": "Nilai utama yang ingin dicapai dalam bab Studi di Perguruan Tinggi adalah...", "o": ["Kesadaran menumbuhkan potensi diri untuk belajar sepanjang hayat", "Meninggalkan pendidikan formal sepenuhnya", "Hanya fokus pada hiburan di kampus", "Menghindari interaksi sosial", "Menolak teknologi dalam pembelajaran"], "a": 0}]}]}}</script>
+<script>
+(function(){
+  "use strict";
+  var DATA = JSON.parse(document.getElementById('quizData').textContent);
+  var LEVEL_META = {
+    X:   { kicker:"جامع", star:true },
+    XI:  { kicker:"متوسط", star:true },
+    XII: { kicker:"متقدم", star:true }
+  };
+  var LEVEL_ORDER = ["X","XI","XII"];
+
+  var state = {
+    view: "home",
+    levelKey: null,
+    unit: null,
+    qIndex: 0,
+    score: 0,
+    answered: false
+  };
+
+  var els = {
+    home: document.getElementById('view-home'),
+    units: document.getElementById('view-units'),
+    quiz: document.getElementById('view-quiz'),
+    result: document.getElementById('view-result'),
+    backBtn: document.getElementById('backBtn'),
+    brandHome: document.getElementById('brandHome'),
+    levelGrid: document.getElementById('levelGrid'),
+    unitsTitle: document.getElementById('unitsTitle'),
+    unitsSub: document.getElementById('unitsSub'),
+    unitGrid: document.getElementById('unitGrid'),
+    quizUnitTitle: document.getElementById('quizUnitTitle'),
+    quizProgressText: document.getElementById('quizProgressText'),
+    progressFill: document.getElementById('progressFill'),
+    starFill: document.getElementById('starFill'),
+    qCount: document.getElementById('qCount'),
+    qText: document.getElementById('qText'),
+    optsWrap: document.getElementById('optsWrap'),
+    feedback: document.getElementById('feedback'),
+    nextBtn: document.getElementById('nextBtn'),
+    resultScore: document.getElementById('resultScore'),
+    resultPct: document.getElementById('resultPct'),
+    resultMsgAr: document.getElementById('resultMsgAr'),
+    resultMsgId: document.getElementById('resultMsgId'),
+    retryBtn: document.getElementById('retryBtn'),
+    menuBtn: document.getElementById('menuBtn')
+  };
+
+  var LETTERS = ["A","B","C","D","E"];
+  var QUIZ_LEN = 5;
+
+  function shuffle(arr){
+    var a = arr.slice();
+    for (var i=a.length-1; i>0; i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  // ---------- storage (best scores) ----------
+  var bestCache = {};
+  async function getBest(unitId){
+    if (bestCache.hasOwnProperty(unitId)) return bestCache[unitId];
+    try{
+      var res = await window.storage.get('best:'+unitId, false);
+      var val = res ? parseInt(res.value,10) : null;
+      bestCache[unitId] = val;
+      return val;
+    }catch(e){
+      bestCache[unitId] = null;
+      return null;
+    }
+  }
+  async function setBest(unitId, score, total){
+    try{
+      var cur = await getBest(unitId);
+      if (cur === null || score > cur){
+        await window.storage.set('best:'+unitId, String(score), false);
+        bestCache[unitId] = score;
+      }
+    }catch(e){ /* storage unavailable, ignore */ }
+  }
+
+  function showView(name){
+    els.home.classList.add('hidden');
+    els.units.classList.add('hidden');
+    els.quiz.classList.add('hidden');
+    els.result.classList.add('hidden');
+    els.backBtn.classList.toggle('hidden', name === 'home');
+    if (name === 'home') els.home.classList.remove('hidden');
+    if (name === 'units') els.units.classList.remove('hidden');
+    if (name === 'quiz') els.quiz.classList.remove('hidden');
+    if (name === 'result') els.result.classList.remove('hidden');
+    state.view = name;
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  // ---------- HOME ----------
+  function renderHome(){
+    els.levelGrid.innerHTML = "";
+    LEVEL_ORDER.forEach(function(key){
+      var lvl = DATA[key];
+      var totalQ = lvl.units.reduce(function(a,u){return a+u.q.length;},0);
+      var card = document.createElement('div');
+      card.className = 'level-card';
+      card.innerHTML =
+        '<svg class="level-star" viewBox="0 0 100 100"><polygon points="50,4 62,36 96,36 68,56 79,90 50,70 21,90 32,56 4,36 38,36" fill="none" stroke="#F1C94C" stroke-width="4" stroke-linejoin="round"/></svg>' +
+        '<div class="level-kicker">'+ (key==='X' ? 'Fase E' : 'Fase F') +'</div>' +
+        '<h3>'+ lvl.label +'</h3>' +
+        '<div class="sub">'+ lvl.subtitle +'</div>' +
+        '<div class="level-count">'+ lvl.units.length +' bab · '+ totalQ +' soal</div>';
+      card.addEventListener('click', function(){ openLevel(key); });
+      els.levelGrid.appendChild(card);
+    });
+  }
+
+  // ---------- UNIT LIST ----------
+  async function openLevel(key){
+    state.levelKey = key;
+    var lvl = DATA[key];
+    els.unitsTitle.textContent = lvl.label;
+    els.unitsSub.textContent = lvl.subtitle;
+    els.unitGrid.innerHTML = "";
+    for (var i=0;i<lvl.units.length;i++){
+      (function(u, idx){
+        var card = document.createElement('div');
+        card.className = 'unit-card';
+        card.innerHTML =
+          '<div class="unit-num">'+ (idx+1) +'</div>' +
+          '<h3>'+ u.ar +'</h3>' +
+          '<div class="id-title">'+ u.id_title +'</div>' +
+          '<div class="focus">'+ u.focus +'</div>' +
+          '<div class="unit-meta"><span>5 dari '+ u.q.length +' soal · acak</span><span class="best" id="best-'+u.id+'"></span></div>';
+        card.addEventListener('click', function(){ startQuiz(key, u); });
+        els.unitGrid.appendChild(card);
+        var qn = Math.min(QUIZ_LEN, u.q.length);
+        getBest(u.id).then(function(b){
+          var el = document.getElementById('best-'+u.id);
+          if (el && b !== null) el.innerHTML = '<span class="best-badge">Terbaik: '+b+'/'+qn+'</span>';
+        });
+      })(lvl.units[i], i);
+    }
+    showView('units');
+  }
+
+  // ---------- QUIZ ----------
+  function startQuiz(levelKey, unit){
+    state.levelKey = levelKey;
+    state.unit = unit;
+    state.qIndex = 0;
+    state.score = 0;
+    var n = Math.min(QUIZ_LEN, unit.q.length);
+    state.questions = shuffle(unit.q).slice(0, n);
+    els.quizUnitTitle.textContent = unit.ar + " — " + unit.id_title;
+    renderQuestion();
+    showView('quiz');
+  }
+
+  function renderQuestion(){
+    var total = state.questions.length;
+    var q = state.questions[state.qIndex];
+    state.answered = false;
+
+    els.qCount.textContent = "السؤال " + (state.qIndex+1) + " / " + total + "  ·  Soal " + (state.qIndex+1) + " dari " + total;
+    els.qText.textContent = q.q;
+    els.quizProgressText.textContent = "Skor: " + state.score + " / " + total;
+    els.progressFill.style.width = Math.round((state.qIndex/total)*100) + "%";
+
+    var starPerimeterApprox = 400;
+    var starProgress = total>0 ? (state.qIndex/total) : 0;
+    els.starFill.style.strokeDashoffset = String(Math.round(starPerimeterApprox * (1-starProgress)));
+
+    els.optsWrap.innerHTML = "";
+    q.o.forEach(function(optText, idx){
+      var btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.innerHTML = '<span class="lbl">'+ LETTERS[idx] +'</span><span>'+ optText +'</span>';
+      btn.addEventListener('click', function(){ selectAnswer(idx, q, btn); });
+      els.optsWrap.appendChild(btn);
+    });
+
+    els.feedback.className = 'feedback';
+    els.feedback.textContent = '';
+    els.nextBtn.className = 'next-btn';
+    els.nextBtn.textContent = (state.qIndex === total-1) ? "النَّتِيجَة · Lihat Hasil →" : "التَّالِي · Lanjut →";
+  }
+
+  function selectAnswer(idx, q, btnEl){
+    if (state.answered) return;
+    state.answered = true;
+    var correct = q.a;
+    var allBtns = els.optsWrap.querySelectorAll('.opt');
+    allBtns.forEach(function(b, i){
+      b.classList.add('locked');
+      if (i === correct) b.classList.add('correct');
+      else if (i === idx) b.classList.add('wrong');
+      else b.classList.add('dim');
+    });
+    if (idx === correct){
+      state.score++;
+      els.feedback.className = 'feedback show ok';
+      els.feedback.textContent = "✓ صَحِيحٌ! — Benar!";
+    } else {
+      els.feedback.className = 'feedback show bad';
+      els.feedback.textContent = "✗ خَطَأٌ — Kurang tepat. Jawaban benar: " + LETTERS[correct] + ".";
+    }
+    els.quizProgressText.textContent = "Skor: " + state.score + " / " + state.questions.length;
+    els.nextBtn.classList.add('show');
+  }
+
+  function goNext(){
+    var total = state.questions.length;
+    if (state.qIndex < total-1){
+      state.qIndex++;
+      renderQuestion();
+    } else {
+      finishQuiz();
+    }
+  }
+
+  // ---------- RESULT ----------
+  function finishQuiz(){
+    var total = state.questions.length;
+    var score = state.score;
+    var pct = Math.round((score/total)*100);
+    els.resultScore.textContent = score + " / " + total;
+    els.resultPct.textContent = pct + "% jawaban benar";
+    els.progressFill.style.width = "100%";
+    els.starFill.style.strokeDashoffset = "0";
+
+    var msgAr, msgId;
+    if (pct >= 90){ msgAr = "مُمْتَازٌ! بَارَكَ اللَّهُ فِيكَ"; msgId = "Luar biasa! Kekayaan bahasamu berkilau."; }
+    else if (pct >= 70){ msgAr = "أَحْسَنْتَ جِدًّا!"; msgId = "Bagus sekali! Sedikit lagi menuju sempurna."; }
+    else if (pct >= 50){ msgAr = "جَيِّدٌ، وَاصِلْ!"; msgId = "Cukup baik — teruslah menggali kanzul lughah-mu."; }
+    else { msgAr = "لَا تَيْأَسْ، حَاوِلْ مَرَّةً أُخْرَى"; msgId = "Jangan menyerah, coba lagi untuk mengasah hafalanmu."; }
+    els.resultMsgAr.textContent = msgAr;
+    els.resultMsgId.textContent = msgId;
+
+    setBest(state.unit.id, score, total);
+    showView('result');
+  }
+
+  // ---------- NAV ----------
+  els.brandHome.addEventListener('click', function(){ showView('home'); });
+  els.backBtn.addEventListener('click', function(){
+    if (state.view === 'units') showView('home');
+    else if (state.view === 'quiz') openLevel(state.levelKey);
+    else if (state.view === 'result') openLevel(state.levelKey);
+    else showView('home');
+  });
+  els.nextBtn.addEventListener('click', goNext);
+  els.retryBtn.addEventListener('click', function(){ startQuiz(state.levelKey, state.unit); });
+  els.menuBtn.addEventListener('click', function(){ openLevel(state.levelKey); });
+
+  renderHome();
+  showView('home');
+})();
+
+</script>
+</body>
+</html>
