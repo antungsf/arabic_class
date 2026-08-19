@@ -247,6 +247,37 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
     alert('Gagal memeriksa jadwal: ' + err.message);
     return;
   }
+  // PERBAIKAN BUG: cek dulu apakah siswa ini SUDAH PERNAH menyelesaikan ujian untuk materi ini
+  // sebelumnya (status belum_dinilai/sudah_dinilai/didiskualifikasi). Kalau ada, JANGAN buat
+  // percobaan baru — sebelumnya sistem selalu membuat entri "berlangsung" baru setiap kali tombol
+  // "Mulai Mengerjakan" diklik, sehingga muncul entri duplikat yang terlihat "belum dinilai" padahal
+  // siswa itu sebenarnya sudah pernah mengumpulkan (dan mungkin sudah dinilai) di percobaan lain.
+  btn.textContent = 'Memeriksa riwayat ujian…';
+  try{
+    const snapSelesai = await db.collection('hasil_ujian')
+      .where('topikId','==', state.topik.id)
+      .where('siswaId','==', state.siswaTerpilihId)
+      .where('status','in', ['belum_dinilai','sudah_dinilai','didiskualifikasi'])
+      .limit(1).get();
+    if(!snapSelesai.empty){
+      const dataLama = snapSelesai.docs[0].data();
+      btn.disabled = false; btn.textContent = 'Mulai Mengerjakan';
+      if(dataLama.status === 'didiskualifikasi'){
+        alert('Kamu sebelumnya didiskualifikasi dari ujian ini. Hubungi guru untuk membuka kembali kesempatanmu.');
+      } else if(dataLama.status === 'sudah_dinilai'){
+        alert(`Kamu sudah pernah mengerjakan & mendapat nilai untuk materi ini (Nilai: ${dataLama.nilai ?? '-'}). Kalau menurutmu ini keliru, hubungi guru.`);
+      } else {
+        alert('Jawabanmu untuk materi ini sudah pernah dikumpulkan dan sedang menunggu penilaian guru. Kamu tidak bisa mengerjakan ulang.');
+      }
+      return;
+    }
+  }catch(err){
+    // Kalau query gagal (misal index Firestore composite belum ada / index masih dibuat otomatis),
+    // jangan blokir siswa yang sah — lanjut seperti biasa. Firestore biasanya akan menampilkan
+    // link "create index" di console browser saat query ini pertama kali dijalankan; klik link
+    // itu sekali agar pengecekan ini berjalan optimal ke depannya.
+  }
+
   btn.textContent = 'Mulai Mengerjakan';
 
   document.getElementById('ujianEyebrow').textContent = 'Kelas ' + state.topik.kelas + ' · ' + state.topik.nama;
@@ -1523,6 +1554,12 @@ async function bukaHasilDetail(id, r){
       <button class="btn btn-gold" id="mBukaKembali">Buka Kembali Kesempatan (izinkan lanjut)</button>
     </div>
     <div id="mBukaKembaliBanner"></div>` : ''}
+    ${r.status === 'berlangsung' ? `
+    <div class="row" style="margin-bottom:14px;">
+      <button class="btn btn-gold btn-sm" id="mSelesaikanPaksa">Selesaikan Sekarang &amp; Beri Nilai</button>
+    </div>
+    <p class="hint" style="margin:-8px 0 14px;">Pakai ini kalau siswa sudah tidak aktif (menutup browser/HP sebelum sempat klik "Kumpulkan Jawaban"), sehingga statusnya nyangkut "Sedang Berlangsung" selamanya. Jawaban terakhir yang ter-autosave akan dipakai, lalu kamu bisa langsung beri nilai.</p>
+    <div id="mSelesaikanBanner"></div>` : ''}
     ${r.status === 'berlangsung' ? '' : `
     <div class="field"><label>Nilai</label>
       <input type="number" id="mNilai" min="0" max="100" value="${nilaiAwal}"></div>
@@ -1547,8 +1584,51 @@ async function bukaHasilDetail(id, r){
   if(r.status === 'didiskualifikasi'){
     document.getElementById('mBukaKembali').addEventListener('click', () => bukaKembaliKesempatan(id, r));
   }
+  if(r.status === 'berlangsung'){
+    document.getElementById('mSelesaikanPaksa').addEventListener('click', () => selesaikanPaksaUjian(id, r));
+  }
   if(r.status === 'sudah_dinilai'){
     document.getElementById('mHapusNilaiAbsensi').addEventListener('click', () => hapusNilaiDariAbsensi(id, r));
+  }
+}
+
+// PERBAIKAN BUG: siswa yang menutup browser/HP sebelum sempat klik "Kumpulkan Jawaban" akan
+// nyangkut selamanya di status "berlangsung" — karena auto-submit saat waktu habis jalan lewat
+// timer di browser SISWA, jadi kalau browsernya sudah tertutup, timer itu tidak pernah berjalan.
+// Fungsi ini memberi guru jalan manual: finalisasi pakai jawaban terakhir yang ter-autosave,
+// lalu status berubah jadi "belum_dinilai" supaya form Nilai bisa langsung dipakai.
+async function selesaikanPaksaUjian(id, r){
+  if(!confirm(`Tandai ujian "${r.namaSiswa}" sebagai selesai sekarang?\n\nJawaban terakhir yang ter-autosave akan dipakai sebagai jawaban final. Gunakan ini hanya kalau siswa sudah tidak aktif lagi mengerjakan.`)) return;
+  const banner = document.getElementById('mSelesaikanBanner');
+  try{
+    let daftarJawabanFinal = [];
+    if(r.soalUrutan && r.soalUrutan.length){
+      const hasilFetchSoal = await Promise.all(r.soalUrutan.map(sid => db.collection('soal').doc(sid).get()));
+      const jawabanSementara = r.jawabanSementara || {};
+      daftarJawabanFinal = hasilFetchSoal
+        .filter(doc => doc.exists)
+        .map(doc => ({
+          soalId: doc.id,
+          pertanyaan: doc.data().pertanyaan,
+          tipe: doc.data().tipe,
+          jawabanSiswa: jawabanSementara[doc.id] ?? null
+        }));
+    }
+    await db.collection('hasil_ujian').doc(id).update({
+      jawaban: daftarJawabanFinal,
+      waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'belum_dinilai'
+    });
+    bannerOk(banner, 'Ujian ditandai selesai. Membuka ulang untuk penilaian…');
+    setTimeout(async () => {
+      try{
+        const doc = await db.collection('hasil_ujian').doc(id).get();
+        if(doc.exists) bukaHasilDetail(id, {id:doc.id, ...doc.data()});
+      }catch(e){ closeModal(); }
+      loadHasilAdmin();
+    }, 900);
+  }catch(err){
+    bannerErr(banner, 'Gagal menyelesaikan: ' + escapeHtml(err.message));
   }
 }
 
