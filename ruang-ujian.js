@@ -462,7 +462,9 @@ function renderSoalHalaman(){
   if(d.audioUrl){
     inner += `<audio controls preload="none" style="width:100%;margin-bottom:14px;" src="${escapeHtml(d.audioUrl)}"></audio>`;
   }
-  inner += `<p class="soal-text">${escapeHtml(d.pertanyaan)}</p>`;
+  // PERBAIKAN: highlightArabic() membungkus otomatis bagian teks Arab di dalam
+  // kalimat campuran Indonesia+Arab dengan span.arabic-inline (font & ukuran lebih besar).
+  inner += `<p class="soal-text">${highlightArabic(escapeHtml(d.pertanyaan))}</p>`;
   if(d.tipe === 'pilihan_ganda'){
     if(!d._kunciAcak){
       const kunciTersedia = ['A','B','C','D','E'].filter(k => d.pilihan && d.pilihan[k]);
@@ -473,7 +475,7 @@ function renderSoalHalaman(){
       inner += `
         <label class="opsi${sudahDipilih ? ' checked' : ''}" data-key="${k}" data-soal="${d.id}">
           <input type="radio" name="soal_${d.id}" value="${k}" ${sudahDipilih ? 'checked' : ''}>
-          <span>${escapeHtml(d.pilihan[k])}</span>
+          <span>${highlightArabic(escapeHtml(d.pilihan[k]))}</span>
         </label>`;
     });
   } else {
@@ -1682,6 +1684,18 @@ function escapeHtml(str){
   return String(str)
     .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
     .replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+
+// PERBAIKAN: bungkus otomatis segmen teks Arab (dalam string campuran Indonesia+Arab)
+// dengan span .arabic-inline supaya tampil lebih besar & pakai font Arab yang jelas.
+// PENTING: fungsi ini dipanggil SETELAH escapeHtml(), bukan sebelum — supaya karakter
+// HTML aman (&amp; dst) tidak terpecah oleh regex, dan supaya HTML span yang disisipkan
+// di sini tidak ikut ter-escape.
+function highlightArabic(escapedText){
+  return escapedText.replace(
+    /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+(?:[\s]+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+)*/g,
+    (match) => `<span class="arabic-inline">${match}</span>`
+  );
 }
 
 if(CONFIG_BELUM_DIISI){

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ruang Ujian — Asesmen Bahasa Arab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --green-deep:#0f3627;
@@ -83,13 +83,29 @@
 
   .soal-block{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:16px;}
   .soal-no{font-size:11.5px;font-weight:700;color:var(--gold-deep);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
-  .soal-text{font-size:15px;font-weight:600;color:var(--ink);margin:0 0 14px;}
+  .soal-text{font-size:15px;font-weight:600;color:var(--ink);margin:0 0 14px;line-height:1.9;}
   .soal-block audio{border-radius:6px;}
   .opsi{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1.5px solid var(--line);border-radius:6px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;}
   .opsi:hover{border-color:var(--green);}
   .opsi.checked{border-color:var(--green);background:#f2f7f4;}
   .opsi input{margin-top:3px;}
-  .opsi span{font-size:14px;}
+  .opsi span{font-size:14px;line-height:1.9;}
+
+  /* PERBAIKAN: teks Arab yang ada di dalam kalimat campuran (Indonesia+Arab)
+     otomatis dibungkus span.arabic-inline oleh fungsi highlightArabic() di ruang-ujian.js,
+     lalu diperbesar & diberi font khusus di sini supaya lebih mudah dibaca siswa. */
+  .arabic-inline{
+    font-family:'Noto Naskh Arabic','Amiri',serif;
+    font-size:1.45em;
+    line-height:2.1;
+    direction:rtl;
+    unicode-bidi:embed;
+    display:inline-block;
+    vertical-align:middle;
+  }
+  @media (max-width:480px){
+    .arabic-inline{font-size:1.3em;}
+  }
 
   .banner{padding:12px 16px;border-radius:6px;font-size:13px;margin-bottom:18px;}
   .banner-error{background:var(--red-bg);color:var(--red);border:1px solid rgba(179,49,31,.25);}
