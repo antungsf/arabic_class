@@ -99,6 +99,18 @@
   .modal-box h3{margin:0 0 18px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
 
   footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;font-size:12px;color:var(--muted);}
+
+  /* Statistik Pengunjung */
+  .stat-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+  .stat-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 20px;min-width:150px;}
+  .stat-card .sc-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;}
+  .stat-card .sc-value{font-family:'Poppins',sans-serif;font-weight:800;font-size:24px;color:var(--green-deep);}
+  .chart-box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px;overflow-x:auto;}
+  .chart-bars{display:flex;align-items:flex-end;gap:8px;height:220px;min-width:100%;}
+  .chart-bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1 1 0;min-width:28px;height:100%;}
+  .chart-bar{width:100%;max-width:34px;background:linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);border-radius:4px 4px 0 0;transition:height .3s;}
+  .chart-bar-val{font-size:10.5px;font-weight:700;color:var(--green-deep);margin-bottom:3px;}
+  .chart-bar-lbl{font-size:9.5px;color:var(--muted);margin-top:6px;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -167,6 +179,7 @@
       <button class="tab-btn" data-tab="pengumuman">Pengumuman</button>
       <button class="tab-btn" data-tab="fileumum">Jadwal &amp; Kalender</button>
       <button class="tab-btn" data-tab="jurnal">Jurnal Guru</button>
+      <button class="tab-btn" data-tab="pengunjung">Statistik Pengunjung</button>
       <button class="tab-btn" data-tab="pengaturan">Pengaturan</button>
       <button class="tab-btn" data-tab="backup">Backup</button>
     </div>
@@ -319,6 +332,13 @@
         </div>
       </div>
       <div id="jurnalTable" style="margin-top:16px;"><div class="loading">Memuat…</div></div>
+    </div>
+
+    <!-- Tab: Statistik Pengunjung (hidden dari publik, hanya admin) -->
+    <div id="tabPengunjung" class="hidden">
+      <p class="lead" style="margin:0 0 16px;">Grafik jumlah pengunjung situs. Data ini tidak ditampilkan ke publik di beranda — hanya bisa dilihat di sini.</p>
+      <div id="pengunjungRingkasan" class="stat-cards"><div class="loading">Memuat…</div></div>
+      <div id="pengunjungChartWrap"></div>
     </div>
 
     <!-- Tab: Pengaturan -->

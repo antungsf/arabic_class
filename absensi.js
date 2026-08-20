@@ -9,6 +9,8 @@
    - nilai         { kelasId, siswaId, tp, nilai, tanggal }
      doc id = `${kelasId}_${siswaId}_${tp}` (upsert per siswa+tp)
    - pengumuman    { judul, isi, aktif }  doc id = 'ujian' (dipakai di beranda index.html)
+   - statistik     { total }              doc id = 'pengunjung' (total kunjungan, tidak publik)
+   - statistik_harian { tanggal, jumlah } doc id = 'YYYY-MM-DD' (kunjungan per hari, tidak publik)
    ============================================================ */
 
 const TP_LIST = ['TP1','TP2','TP3','TP4','TP5','TP6','TP7','TP8'];
@@ -315,12 +317,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    ['kelas','absen','nilai','rekap','pengumuman','fileumum','jurnal','pengaturan','backup'].forEach(t => {
+    ['kelas','absen','nilai','rekap','pengumuman','fileumum','jurnal','pengunjung','pengaturan','backup'].forEach(t => {
       document.getElementById('tab'+capitalize(t)).classList.toggle('hidden', t !== btn.dataset.tab);
     });
     if(btn.dataset.tab === 'jurnal') loadJurnalBulan();
     if(btn.dataset.tab === 'pengumuman') muatPengumuman();
     if(btn.dataset.tab === 'fileumum') muatInfoFileUmum();
+    if(btn.dataset.tab === 'pengunjung') loadStatistikPengunjung();
   });
 });
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -899,6 +902,90 @@ function pasangUploadHandler(key){
 pasangUploadHandler('jadwal-pelajaran');
 pasangUploadHandler('kalender-pendidikan');
 
+/* ---------------- ADMIN: Statistik Pengunjung (grafik, hidden dari publik) ---------------- */
+const NAMA_HARI_SINGKAT_ID = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+
+async function loadStatistikPengunjung(){
+  const ringkasan = document.getElementById('pengunjungRingkasan');
+  const chartWrap = document.getElementById('pengunjungChartWrap');
+  ringkasan.innerHTML = '<div class="loading">Memuat…</div>';
+  chartWrap.innerHTML = '';
+  try{
+    // Total keseluruhan
+    const totalDoc = await db.collection('statistik').doc('pengunjung').get();
+    const total = totalDoc.exists ? (totalDoc.data().total || 0) : 0;
+
+    // Ambil s/d 30 hari terakhir dari statistik_harian
+    const JUMLAH_HARI = 30;
+    const tanggalList = [];
+    const now = new Date();
+    for(let i = JUMLAH_HARI - 1; i >= 0; i--){
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      tanggalList.push(d.toISOString().slice(0,10));
+    }
+
+    const awal = tanggalList[0];
+    const snap = await db.collection('statistik_harian')
+      .where('tanggal','>=',awal)
+      .get();
+
+    const dataHarian = {};
+    snap.forEach(doc => {
+      const d = doc.data();
+      dataHarian[d.tanggal] = d.jumlah || 0;
+    });
+
+    const series = tanggalList.map(tgl => ({ tanggal: tgl, jumlah: dataHarian[tgl] || 0 }));
+    const totalPeriode = series.reduce((a,b) => a + b.jumlah, 0);
+    const hariAktif = series.filter(s => s.jumlah > 0).length;
+    const rataRataHarian = hariAktif ? Math.round(totalPeriode / JUMLAH_HARI * 10) / 10 : 0;
+    const puncak = series.reduce((max, s) => s.jumlah > max.jumlah ? s : max, {jumlah:0, tanggal:'-'});
+
+    ringkasan.innerHTML = `
+      <div class="stat-card"><div class="sc-label">Total Pengunjung (Sepanjang Waktu)</div><div class="sc-value">${total.toLocaleString('id-ID')}</div></div>
+      <div class="stat-card"><div class="sc-label">30 Hari Terakhir</div><div class="sc-value">${totalPeriode.toLocaleString('id-ID')}</div></div>
+      <div class="stat-card"><div class="sc-label">Rata-rata / Hari</div><div class="sc-value">${rataRataHarian}</div></div>
+      <div class="stat-card"><div class="sc-label">Hari Tersibuk</div><div class="sc-value">${puncak.jumlah}</div><div class="hint" style="margin-top:2px;">${puncak.tanggal !== '-' ? formatTanggalPendek(puncak.tanggal) : '-'}</div></div>
+    `;
+
+    renderChartPengunjung(series, chartWrap);
+  }catch(err){
+    ringkasan.innerHTML = `<div class="empty">Gagal memuat statistik. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function formatTanggalPendek(tglStr){
+  const [y,m,d] = tglStr.split('-').map(Number);
+  const dateObj = new Date(y, m-1, d);
+  return `${d} ${NAMA_BULAN_ID[m-1].substring(0,3)}`;
+}
+
+function renderChartPengunjung(series, wrap){
+  if(!series.length || series.every(s => s.jumlah === 0)){
+    wrap.innerHTML = '<div class="empty">Belum ada data kunjungan tercatat pada periode ini.</div>';
+    return;
+  }
+  const maxVal = Math.max(...series.map(s => s.jumlah), 1);
+  let bars = '';
+  series.forEach(s => {
+    const heightPct = Math.max((s.jumlah / maxVal) * 100, s.jumlah > 0 ? 4 : 0);
+    const [y,m,d] = s.tanggal.split('-').map(Number);
+    const dateObj = new Date(y, m-1, d);
+    const lbl = `${d}/${m}`;
+    bars += `<div class="chart-bar-col" title="${lbl}: ${s.jumlah} pengunjung">
+        <div class="chart-bar-val">${s.jumlah > 0 ? s.jumlah : ''}</div>
+        <div class="chart-bar" style="height:${heightPct}%;"></div>
+        <div class="chart-bar-lbl">${lbl}</div>
+      </div>`;
+  });
+  wrap.innerHTML = `
+    <div class="chart-box">
+      <p class="hint" style="margin:0 0 14px;">Kunjungan harian, 30 hari terakhir (1 kunjungan dihitung 1x per sesi browser).</p>
+      <div class="chart-bars">${bars}</div>
+    </div>`;
+}
+
 /* ---------------- ADMIN: Pengaturan (Nama & NIP Guru + Kepala Madrasah) ---------------- */
 async function muatPengaturan(uid){
   try{
@@ -1224,6 +1311,7 @@ const KOLEKSI_BACKUP = [
   'topik','soal','hasil_ujian',
   'kelas_absensi','siswa','pertemuan','nilai',
   'jurnal_guru','materi_item','pengumuman','file_umum',
+  'statistik','statistik_harian',
   'pengaturan_guru','pengaturan_sekolah'
 ];
 

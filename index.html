@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -277,6 +276,15 @@
   .footer-col ul{list-style:none;margin:0;padding:0;}
   .footer-col li{margin-bottom:9px;font-size:13.5px;opacity:.85;}
   .footer-col a:hover{color:var(--gold);}
+  .social-icons{display:flex;gap:10px;flex-wrap:wrap;}
+  .social-icons a{
+    width:36px;height:36px;border-radius:50%;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
+    display:flex;align-items:center;justify-content:center;
+    color:#dce9e2;transition:background .2s,color .2s,border-color .2s,transform .15s;
+  }
+  .social-icons a svg{width:17px;height:17px;}
+  .social-icons a:hover{background:var(--gold);border-color:var(--gold);color:var(--green-deep);transform:translateY(-2px);}
   .footer-bottom{border-top:1px solid rgba(255,255,255,.12);padding-top:20px;font-size:12px;opacity:.6;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 
   @media (max-width:700px){
@@ -509,19 +517,26 @@
         </div>
         <div class="footer-col">
           <h4>Media Sosial</h4>
-          <ul>
-            <li><a href="https://instagram.com/as_fattah" target="_blank">Instagram — as_fattah</a></li>
-            <li><a href="https://facebook.com/4ntungSF" target="_blank">Facebook — Abi Ghani</a></li>
-            <li><a href="https://youtube.com/@asf747" target="_blank">YouTube — @asf747</a></li>
-            <li><a href="https://tiktok.com/@asf_130li" target="_blank">TikTok — @asf_130li</a></li>
-          </ul>
+          <div class="social-icons">
+            <a href="https://instagram.com/as_fattah" target="_blank" rel="noopener" aria-label="Instagram" title="Instagram">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
+            </a>
+            <a href="https://facebook.com/4ntungSF" target="_blank" rel="noopener" aria-label="Facebook" title="Facebook">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 8.5h2.5V5H14c-2 0-3.5 1.6-3.5 3.5V11H8v3h2.5v6H14v-6h2.3l.7-3h-3V8.7c0-.4.3-.2.5-.2Z"/></svg>
+            </a>
+            <a href="https://youtube.com/@asf747" target="_blank" rel="noopener" aria-label="YouTube" title="YouTube">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M10.5 9.5v5l4.5-2.5-4.5-2.5Z" fill="currentColor" stroke="none"/></svg>
+            </a>
+            <a href="https://tiktok.com/@asf_130li" target="_blank" rel="noopener" aria-label="TikTok" title="TikTok">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 4v10.2a2.8 2.8 0 1 1-2.2-2.75"/><path d="M14 4c.3 2.1 1.9 3.7 4 4"/></svg>
+            </a>
+          </div>
         </div>
       </div>
     </div>
     <div class="footer-bottom">
       <span>&copy; 2026 Arabic Class</span>
-      <span>&copy; antungsf</span>
-      <span id="visitorCounter" style="opacity:.85;"></span>
+      <span>Dibuat dengan &#9829; &amp; &#9749; oleh antungsf</span>
     </div>
   </div>
 </footer>
@@ -701,28 +716,23 @@
   try{
     firebase.initializeApp(firebaseConfig);
 
-    // Penghitung pengunjung: hitung 1x per sesi browser, tampilkan totalnya di footer
+    // Penghitung pengunjung: dihitung 1x per sesi browser, TIDAK ditampilkan
+    // ke publik (sesuai revisi). Data (total & harian) disimpan ke Firestore
+    // dan hanya bisa dilihat sebagai grafik di Panel Admin -> Ruang Absensi &
+    // Jurnal Nilai -> tab "Statistik Pengunjung".
     const db = firebase.firestore();
-    const counterEl = document.getElementById('visitorCounter');
     const statRef = db.collection('statistik').doc('pengunjung');
     const sudahDihitung = sessionStorage.getItem('sudahDihitungKunjungan');
 
-    function tampilkanTotal(n){
-      if(counterEl) counterEl.textContent = `\u{1F441} ${Number(n).toLocaleString('id-ID')} pengunjung`;
-    }
-
     if(!sudahDihitung){
-      statRef.set({ total: firebase.firestore.FieldValue.increment(1) }, { merge:true })
-        .then(function(){
-          sessionStorage.setItem('sudahDihitungKunjungan', '1');
-          return statRef.get();
-        })
-        .then(function(doc){ if(doc.exists) tampilkanTotal(doc.data().total || 0); })
-        .catch(function(){ if(counterEl) counterEl.textContent = ''; });
-    } else {
-      statRef.get()
-        .then(function(doc){ if(doc.exists) tampilkanTotal(doc.data().total || 0); })
-        .catch(function(){ if(counterEl) counterEl.textContent = ''; });
+      const todayKey = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+      const harianRef = db.collection('statistik_harian').doc(todayKey);
+      const batch = db.batch();
+      batch.set(statRef, { total: firebase.firestore.FieldValue.increment(1) }, { merge:true });
+      batch.set(harianRef, { tanggal: todayKey, jumlah: firebase.firestore.FieldValue.increment(1) }, { merge:true });
+      batch.commit()
+        .then(function(){ sessionStorage.setItem('sudahDihitungKunjungan', '1'); })
+        .catch(function(){ /* gagal diam-diam, tidak mengganggu tampilan publik */ });
     }
 
     function escapeHtmlHome(str){
