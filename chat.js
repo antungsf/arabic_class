@@ -37,6 +37,7 @@ function bannerErr(el, msg){ el.innerHTML = `<div class="banner banner-error">${
 function showView(id){
   document.querySelectorAll('main > div').forEach(el => el.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
+  document.body.classList.toggle('chat-mode', id === 'viewChat');
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -153,6 +154,11 @@ function bukaRuangChat(kelasAbsensiId, kelasAbsensiNama){
   document.getElementById('chatEyebrow').textContent = kelasAbsensiNama;
   document.getElementById('chatNamaSaya').textContent = state.namaSaya + (state.tipeSaya === 'guru' ? ' (Guru)' : '');
   document.getElementById('chatAdminTools').classList.toggle('hidden', !state.isAdmin);
+
+  const siswaMode = state.tipeSaya === 'siswa';
+  document.getElementById('chatBox').classList.toggle('siswa-lock', siswaMode);
+  document.getElementById('lockHint').classList.toggle('tampak', siswaMode);
+
   showView('viewChat');
   dengarkanChat(kelasAbsensiId);
   mulaiPresence(kelasAbsensiId);
@@ -405,3 +411,32 @@ async function loadAdminKelasList(){
   if(!logo) return;
   logo.style.cursor = "default";
 })();
+
+/* ---------------- Kunci salin/tempel khusus siswa ---------------- */
+function targetTerkunci(target){
+  return state.tipeSaya === 'siswa' && target && target.closest &&
+    (target.closest('#chatBox') || target.id === 'chatInput');
+}
+document.addEventListener('copy', (e) => { if(targetTerkunci(e.target)) e.preventDefault(); });
+document.addEventListener('cut', (e) => { if(targetTerkunci(e.target)) e.preventDefault(); });
+document.addEventListener('paste', (e) => {
+  if(e.target && e.target.id === 'chatInput' && state.tipeSaya === 'siswa') e.preventDefault();
+});
+document.addEventListener('contextmenu', (e) => { if(targetTerkunci(e.target)) e.preventDefault(); });
+
+/* ---------------- Layar penuh ---------------- */
+const btnFullscreenChat = document.getElementById('btnFullscreenChat');
+if(btnFullscreenChat){
+  btnFullscreenChat.addEventListener('click', () => {
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen().catch(() => {
+        alert('Layar penuh tidak didukung di browser ini.');
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    btnFullscreenChat.textContent = document.fullscreenElement ? '⤡' : '⛶';
+  });
+}

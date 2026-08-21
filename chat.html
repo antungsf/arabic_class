@@ -102,6 +102,29 @@
   .chat-counter{font-size:10.5px;color:var(--muted);text-align:right;margin-top:3px;}
 
   footer{border-top:1px solid var(--line);padding:24px 20px;text-align:center;font-size:12px;color:var(--muted);}
+
+  /* ---- Mode "app" saat ruang chat aktif: kolom ketik selalu terlihat, tak perlu scroll halaman ---- */
+  body.chat-mode{height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+  body.chat-mode header{flex:0 0 auto;position:static;}
+  body.chat-mode footer{display:none;}
+  body.chat-mode main{
+    flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column;
+    max-width:800px;margin:0 auto;width:100%;padding:16px 20px 12px;min-height:0;
+  }
+  body.chat-mode #viewChat{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;}
+  body.chat-mode .chat-box{flex:1 1 auto;height:auto;max-height:none;min-height:0;}
+  body.chat-mode .chat-form{flex:0 0 auto;}
+  body.chat-mode .chat-counter{flex:0 0 auto;}
+  @media (max-width:640px){ body.chat-mode main{padding:12px 14px 10px;} }
+
+  /* ---- Kunci salin/tempel untuk siswa ---- */
+  .chat-box.siswa-lock, .chat-box.siswa-lock *{-webkit-user-select:none;user-select:none;}
+  .lock-hint{font-size:11px;color:var(--red);background:var(--red-bg);padding:6px 10px;border-radius:6px;margin-top:6px;display:none;}
+  .lock-hint.tampak{display:block;}
+
+  .chat-head-actions{display:flex;align-items:center;gap:8px;}
+  .fs-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--line);background:#fff;color:var(--green-deep);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .fs-btn:hover{border-color:var(--green);}
 </style>
 </head>
 <body>
@@ -156,7 +179,10 @@
         <span class="eyebrow" id="chatEyebrow" style="margin-bottom:2px;">Kelas</span>
         <div class="chat-head-info">Kamu masuk sebagai <b id="chatNamaSaya">-</b></div>
       </div>
-      <div class="chat-online-badge" id="chatOnlineBadge"></div>
+      <div class="chat-head-actions">
+        <button class="fs-btn" id="btnFullscreenChat" title="Layar penuh" aria-label="Layar penuh">⛶</button>
+        <div class="chat-online-badge" id="chatOnlineBadge"></div>
+      </div>
     </div>
     <div class="row hidden" id="chatAdminTools" style="margin-bottom:10px;">
       <button class="btn btn-outline btn-sm" id="btnHapusSemuaChat" style="border-color:var(--red);color:var(--red);">Hapus Semua Pesan di Kelas Ini</button>
@@ -166,6 +192,7 @@
       <textarea id="chatInput" placeholder="Tulis pesan… (maks 300 karakter)" maxlength="300"></textarea>
       <button class="btn btn-gold" id="btnKirimChat">Kirim</button>
     </div>
+    <div class="lock-hint" id="lockHint">🔒 Salin dan tempel dinonaktifkan untuk siswa di ruang chat ini.</div>
     <div class="chat-counter"><span id="chatCounter">0</span>/300</div>
   </div>
 
