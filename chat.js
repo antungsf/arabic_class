@@ -23,6 +23,10 @@ const state = {
   isAdmin: false,
   daftarSiswa: [],
   unsubChat: null,
+  unsubPertanyaan: null,
+  pertanyaanVersion: null,
+  jawabanBenar: [],
+  soalTerjawab: false,
   unsubPresence: null,
   presenceHeartbeat: null,
   presenceRenderTick: null,
@@ -40,6 +44,24 @@ function showView(id){
   document.body.classList.toggle('chat-mode', id === 'viewChat');
   window.scrollTo({top:0, behavior:'smooth'});
 }
+
+/* ---------------- Tinggi layar dinamis (mengikuti keyboard di HP) ---------------- */
+function setTinggiApp(){
+  const t = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--app-height', t + 'px');
+}
+setTinggiApp();
+window.addEventListener('resize', setTinggiApp);
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', setTinggiApp);
+  window.visualViewport.addEventListener('scroll', setTinggiApp);
+}
+document.getElementById('chatInput').addEventListener('focus', () => {
+  setTimeout(() => {
+    setTinggiApp();
+    document.getElementById('chatInput').scrollIntoView({block:'end', behavior:'smooth'});
+  }, 300);
+});
 
 /* ---------------- STUDENT: pilih jenjang kelas ---------------- */
 document.querySelectorAll('#viewKelas .card').forEach(card => {
@@ -143,7 +165,9 @@ document.getElementById('crumbChat').addEventListener('click', keluarRuangChat);
 
 function keluarRuangChat(){
   if(state.unsubChat){ state.unsubChat(); state.unsubChat = null; }
+  if(state.unsubPertanyaan){ state.unsubPertanyaan(); state.unsubPertanyaan = null; }
   hentikanPresence();
+  document.getElementById('editPanel').classList.add('hidden');
   if(state.isAdmin) showView('viewAdminKelas');
   else showView('viewKelas');
 }
@@ -154,6 +178,7 @@ function bukaRuangChat(kelasAbsensiId, kelasAbsensiNama){
   document.getElementById('chatEyebrow').textContent = kelasAbsensiNama;
   document.getElementById('chatNamaSaya').textContent = state.namaSaya + (state.tipeSaya === 'guru' ? ' (Guru)' : '');
   document.getElementById('chatAdminTools').classList.toggle('hidden', !state.isAdmin);
+  document.getElementById('taskEditBtn').classList.toggle('hidden', !state.isAdmin);
 
   const siswaMode = state.tipeSaya === 'siswa';
   document.getElementById('chatBox').classList.toggle('siswa-lock', siswaMode);
@@ -162,7 +187,59 @@ function bukaRuangChat(kelasAbsensiId, kelasAbsensiNama){
   showView('viewChat');
   dengarkanChat(kelasAbsensiId);
   mulaiPresence(kelasAbsensiId);
+  dengarkanPertanyaanAktif(kelasAbsensiId);
 }
+
+/* ---------------- Pertanyaan aktif (khusus guru bisa mengubah) ---------------- */
+function dengarkanPertanyaanAktif(kelasAbsensiId){
+  const taskCard = document.getElementById('taskCard');
+  const taskCardText = document.getElementById('taskCardText');
+  if(state.unsubPertanyaan) state.unsubPertanyaan();
+  state.unsubPertanyaan = db.collection('pertanyaan_aktif').doc(kelasAbsensiId)
+    .onSnapshot((snap) => {
+      if(!snap.exists){
+        taskCard.classList.add('hidden');
+        state.jawabanBenar = [];
+        return;
+      }
+      const d = snap.data();
+      taskCard.classList.remove('hidden');
+      taskCardText.innerHTML = '📌 Pertanyaan aktif: <b>' + escapeHtml(d.pertanyaan || '') + '</b><br>Ketik jawabanmu di kolom chat.';
+      if(state.pertanyaanVersion !== null && d.version !== state.pertanyaanVersion){
+        state.soalTerjawab = false;
+      }
+      state.pertanyaanVersion = d.version;
+      state.jawabanBenar = (d.jawaban || []).map(normalisasiJawaban);
+    }, () => { taskCard.classList.add('hidden'); });
+}
+
+function normalisasiJawaban(s){ return String(s).toLowerCase().replace(/\s+/g,'').trim(); }
+
+document.getElementById('taskEditBtn').addEventListener('click', () => {
+  document.getElementById('editQuestionInput').value =
+    document.getElementById('taskCardText').textContent.replace('📌 Pertanyaan aktif: ', '').replace('Ketik jawabanmu di kolom chat.', '').trim();
+  document.getElementById('editAnswersInput').value = state.jawabanBenar.join(', ');
+  document.getElementById('editPanel').classList.remove('hidden');
+});
+document.getElementById('btnCancelEdit').addEventListener('click', () => {
+  document.getElementById('editPanel').classList.add('hidden');
+});
+document.getElementById('btnSaveQuestion').addEventListener('click', async () => {
+  const pertanyaan = document.getElementById('editQuestionInput').value.trim();
+  const jawabanRaw = document.getElementById('editAnswersInput').value.trim();
+  if(!pertanyaan || !jawabanRaw){ alert('Isi pertanyaan dan jawaban dulu.'); return; }
+  const jawaban = jawabanRaw.split(',').map(a => a.trim()).filter(Boolean);
+  try{
+    await db.collection('pertanyaan_aktif').doc(state.kelasAbsensiId).set({
+      pertanyaan, jawaban, version: Date.now(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await kirimTeks('📌 Pertanyaan baru dari guru: ' + pertanyaan, 'sistem');
+    document.getElementById('editPanel').classList.add('hidden');
+  }catch(err){
+    alert('Gagal menyimpan pertanyaan: ' + err.message);
+  }
+});
 
 document.getElementById('btnHapusSemuaChat').addEventListener('click', async () => {
   const kelasAbsensiId = state.kelasAbsensiId;
@@ -266,16 +343,19 @@ function dengarkanChat(kelasAbsensiId){
       snap.forEach(function(doc){
         const d = doc.data();
         const dariGuru = d.pengirimTipe === 'guru';
+        const dariSistem = d.pengirimTipe === 'sistem';
         const milikSendiri = (state.tipeSaya === 'siswa' && d.siswaId === state.siswaTerpilihId) ||
                               (state.tipeSaya === 'guru' && dariGuru && d.pengirimNama === state.namaSaya);
         const waktuStr = d.waktu && d.waktu.toDate ? d.waktu.toDate().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) : '';
-        html += `<div class="chat-msg${dariGuru ? ' dari-guru' : ''}${milikSendiri ? ' milik-sendiri' : ''}">`;
+        html += `<div class="chat-msg${dariGuru ? ' dari-guru' : ''}${dariSistem ? ' dari-sistem' : ''}${(!dariSistem && milikSendiri) ? ' milik-sendiri' : ''}">`;
         if(state.isAdmin){
           html += `<button class="del-btn" data-id="${doc.id}" title="Hapus pesan">&times;</button>`;
         }
-        html += `<span class="nm">${escapeHtml(d.pengirimNama)}${dariGuru ? ' · Guru' : ''}</span>`;
+        if(!dariSistem){
+          html += `<span class="nm">${escapeHtml(d.pengirimNama)}${dariGuru ? ' · Guru' : ''}</span>`;
+        }
         html += `<span class="tx">${escapeHtml(d.teks)}</span>`;
-        html += `<span class="wk">${waktuStr}</span>`;
+        if(!dariSistem){ html += `<span class="wk">${waktuStr}</span>`; }
         html += `</div>`;
       });
       box.innerHTML = html;
@@ -312,28 +392,58 @@ async function kirimPesanChat(){
   const teks = chatInput.value.trim();
   if(!teks) return;
   if(teks.length > MAKS_PANJANG_PESAN) return;
-  const payload = {
-    kelasId: state.kelasAbsensiId,
-    kelasNama: state.kelasAbsensiNama,
-    pengirimNama: state.namaSaya,
-    pengirimTipe: state.tipeSaya,
-    siswaId: state.tipeSaya === 'siswa' ? state.siswaTerpilihId : null,
-    teks,
-    waktu: firebase.firestore.FieldValue.serverTimestamp()
-  };
   const btn = document.getElementById('btnKirimChat');
   btn.disabled = true;
   try{
-    await db.collection('chat_pesan').add(payload);
+    await kirimTeks(teks, state.tipeSaya);
     chatInput.value = '';
     chatCounter.textContent = '0';
     chatInput.focus();
+    cekJawabanOtomatis(teks);
   }catch(err){
     alert('Gagal mengirim pesan: ' + err.message);
   }finally{
     btn.disabled = false;
   }
 }
+
+async function kirimTeks(teks, pengirimTipe){
+  const payload = {
+    kelasId: state.kelasAbsensiId,
+    kelasNama: state.kelasAbsensiNama,
+    pengirimNama: pengirimTipe === 'sistem' ? 'Sistem' : state.namaSaya,
+    pengirimTipe,
+    siswaId: pengirimTipe === 'siswa' ? state.siswaTerpilihId : null,
+    teks,
+    waktu: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  return db.collection('chat_pesan').add(payload);
+}
+
+function cekJawabanOtomatis(teks){
+  if(state.tipeSaya !== 'siswa' || state.soalTerjawab) return;
+  if(!state.jawabanBenar.length) return;
+  if(state.jawabanBenar.includes(normalisasiJawaban(teks))){
+    state.soalTerjawab = true;
+    tampilkanBannerBenar();
+    kirimTeks('🎉 ' + state.namaSaya + ' menjawab dengan benar!', 'sistem').catch(() => {});
+  }
+}
+
+function tampilkanBannerBenar(){
+  const banner = document.getElementById('correctBanner');
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 2600);
+}
+
+document.querySelectorAll('.quick-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try{ await kirimTeks(btn.dataset.txt, state.tipeSaya); }
+    catch(err){ alert('Gagal mengirim: ' + err.message); }
+    finally{ btn.disabled = false; }
+  });
+});
 
 /* ---------------- GURU / ADMIN ---------------- */
 document.getElementById('btnShowAdmin').addEventListener('click', (e) => {

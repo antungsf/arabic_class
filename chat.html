@@ -104,7 +104,12 @@
   footer{border-top:1px solid var(--line);padding:24px 20px;text-align:center;font-size:12px;color:var(--muted);}
 
   /* ---- Mode "app" saat ruang chat aktif: kolom ketik selalu terlihat, tak perlu scroll halaman ---- */
-  body.chat-mode{height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+  body.chat-mode{
+    height:100vh;
+    height:100dvh;
+    height:calc(var(--app-height, 100vh));
+    overflow:hidden;display:flex;flex-direction:column;
+  }
   body.chat-mode header{flex:0 0 auto;position:static;}
   body.chat-mode footer{display:none;}
   body.chat-mode main{
@@ -125,6 +130,48 @@
   .chat-head-actions{display:flex;align-items:center;gap:8px;}
   .fs-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--line);background:#fff;color:var(--green-deep);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .fs-btn:hover{border-color:var(--green);}
+
+  /* ---- Kartu pertanyaan aktif ---- */
+  .task-card{
+    position:relative;background:#fdfbf3;border:1px dashed var(--gold-deep);border-radius:10px;
+    padding:10px 40px 10px 14px;font-size:12.5px;color:var(--green-deep);margin-bottom:10px;flex:0 0 auto;
+  }
+  .task-card b{color:var(--ink);}
+  .task-edit-btn{
+    position:absolute;top:8px;right:8px;border:1px solid var(--line);background:#fff;color:var(--green-deep);
+    font-size:11px;padding:3px 10px;border-radius:999px;cursor:pointer;
+  }
+  .task-edit-btn:hover{border-color:var(--green);}
+
+  .edit-panel{
+    background:#fff;border:1.5px solid var(--green);border-radius:10px;padding:14px;margin-bottom:10px;flex:0 0 auto;
+  }
+  .edit-panel .field{margin-bottom:10px;}
+  .edit-panel .row{justify-content:flex-end;}
+
+  /* ---- Reaksi cepat ---- */
+  .quick-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;flex:0 0 auto;}
+  .quick-btn{
+    border:1px solid var(--line);background:#fff;border-radius:999px;font-size:12.5px;
+    padding:6px 12px;cursor:pointer;color:var(--ink);font-family:'Inter',sans-serif;
+  }
+  .quick-btn:hover{border-color:var(--green);background:var(--bg-alt);}
+
+  /* ---- Notifikasi jawaban benar ---- */
+  .correct-banner{
+    position:fixed;left:50%;top:80px;transform:translateX(-50%) translateY(-10px);
+    background:#eaf5ee;border:1px solid rgba(23,92,65,.3);color:var(--green-deep);
+    font-size:13px;font-weight:700;padding:10px 18px;border-radius:12px;
+    opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+    z-index:80;box-shadow:0 6px 20px rgba(0,0,0,.12);
+  }
+  .correct-banner.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---- Pesan sistem (notifikasi otomatis di chat) ---- */
+  .chat-msg.dari-sistem{
+    align-self:center;background:#eaf5ee;border-color:rgba(23,92,65,.25);color:var(--green-deep);
+    font-weight:600;font-size:12.5px;text-align:center;max-width:92%;
+  }
 </style>
 </head>
 <body>
@@ -187,13 +234,33 @@
     <div class="row hidden" id="chatAdminTools" style="margin-bottom:10px;">
       <button class="btn btn-outline btn-sm" id="btnHapusSemuaChat" style="border-color:var(--red);color:var(--red);">Hapus Semua Pesan di Kelas Ini</button>
     </div>
+
+    <div class="task-card hidden" id="taskCard">
+      <button class="task-edit-btn hidden" id="taskEditBtn">Ubah</button>
+      <span id="taskCardText"></span>
+    </div>
+    <div class="edit-panel hidden" id="editPanel">
+      <div class="field"><label>Pertanyaan</label><input type="text" id="editQuestionInput" placeholder="misal: Apa arti كِتَابٌ?"></div>
+      <div class="field"><label>Jawaban benar (pisahkan koma jika ada beberapa bentuk)</label><input type="text" id="editAnswersInput" placeholder="misal: buku, kitab"></div>
+      <div class="row">
+        <button class="btn btn-outline btn-sm" id="btnCancelEdit">Batal</button>
+        <button class="btn btn-solid btn-sm" id="btnSaveQuestion">Simpan &amp; Kirim ke Kelas</button>
+      </div>
+    </div>
+
     <div class="chat-box" id="chatBox"><div class="loading">Memuat percakapan…</div></div>
+    <div class="quick-row" id="quickRow">
+      <button class="quick-btn" data-txt="👍 Paham">👍 Paham</button>
+      <button class="quick-btn" data-txt="🙋 Mau tanya">🙋 Mau tanya</button>
+      <button class="quick-btn" data-txt="❓ Belum jelas">❓ Belum jelas</button>
+    </div>
     <div class="chat-form">
       <textarea id="chatInput" placeholder="Tulis pesan… (maks 300 karakter)" maxlength="300"></textarea>
       <button class="btn btn-gold" id="btnKirimChat">Kirim</button>
     </div>
     <div class="lock-hint" id="lockHint">🔒 Salin dan tempel dinonaktifkan untuk siswa di ruang chat ini.</div>
     <div class="chat-counter"><span id="chatCounter">0</span>/300</div>
+    <div class="correct-banner" id="correctBanner">🎉 Selamat! Jawaban kamu benar</div>
   </div>
 
   <!-- View: admin/guru pilih kelas -->
