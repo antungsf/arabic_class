@@ -189,6 +189,42 @@
   .section-head h2{font-family:'Poppins',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.01em;margin:0 0 8px;color:var(--green-deep);}
   .section-head p{margin:0;color:var(--muted);font-size:14.5px;max-width:560px;}
 
+  /* ===== MENU UTAMA (grid tombol) ===== */
+  .menu-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+  }
+  @media (min-width:520px){ .menu-grid{grid-template-columns:repeat(3,1fr);} }
+  @media (min-width:820px){ .menu-grid{grid-template-columns:repeat(4,1fr);gap:18px;} }
+  @media (min-width:1080px){ .menu-grid{grid-template-columns:repeat(7,1fr);} }
+
+  .menu-tile{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;text-align:center;
+    background:#fff;border:1.5px solid var(--line);border-radius:18px;
+    padding:22px 12px 18px;
+    transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease;
+  }
+  .menu-tile:hover{
+    transform:translateY(-3px);
+    border-color:var(--gold);
+    box-shadow:0 10px 24px rgba(15,54,39,.12);
+  }
+  .menu-tile .mt-icon{
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg, var(--green) 0%, var(--green-deep) 100%);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .menu-tile .mt-icon svg{width:24px;height:24px;color:var(--gold);}
+  .menu-tile .mt-label{font-family:'Poppins',sans-serif;font-weight:700;font-size:12.5px;color:var(--green-deep);line-height:1.3;}
+  @media (max-width:420px){
+    .menu-tile{padding:18px 8px 14px;border-radius:16px;}
+    .menu-tile .mt-icon{width:48px;height:48px;}
+    .menu-tile .mt-icon svg{width:21px;height:21px;}
+    .menu-tile .mt-label{font-size:11.5px;}
+  }
+
   .class-tabs{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px;}
   .class-tab{
     flex:1 1 0;min-width:170px;
@@ -332,7 +368,7 @@
       <li><a href="#jadwal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="1.5"/><path d="M4 9.5h16M8 3.5v3M16 3.5v3"/></svg>Jadwal &amp; Kalender</a></li>
       <li><a href="#asesmen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2.5L17 21l-1.5-7.5"/></svg>Asesmen</a></li>
       <li><a href="https://antungsf.github.io/Book-Arabic/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12.5 11 14.5 15.5 10"/><circle cx="12" cy="12" r="9"/></svg>Latihan Kuis</a></li>
-      <li><a href="#tugas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.5h9l3 3V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V7H18"/><path d="M8 12h6M8 15.5h6"/></svg>Kolom Tugas</a></li>
+      <li><a href="tugas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.5h9l3 3V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V7H18"/><path d="M8 12h6M8 15.5h6"/></svg>Kolom Tugas</a></li>
       <li><a href="kuesioner.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Kuesioner</a></li>
     </ul>
   </nav>
@@ -405,44 +441,44 @@
       Tugas            : 1cIW-m8XS0rQqoHlzcAkoUzoWsnz7dV4R
 ======================================================== -->
 
-<section class="section-wrap" id="materi">
+<section class="section-wrap" id="menu-utama">
   <div class="section-head">
-    <h2>Materi Belajar</h2>
-    <p>Pilih kelas, semester, dan Maharah (Istima', Qira'ah, Kalam, Qawaid) untuk mulai belajar.</p>
+    <span class="eyebrow-sm">Menu Cepat</span>
+    <h2>Menu Utama</h2>
+    <p>Pilih menu untuk langsung menuju halamannya.</p>
   </div>
-  <div class="action-row">
-    <a class="btn btn-gold" href="materi.html">Buka Materi Belajar</a>
-  </div>
-</section>
 
-<section class="section-wrap alt" id="kelas-live">
-  <div class="section-head">
-    <h2>Kelas Live</h2>
-    <p>Pembelajaran langsung lewat Google Meet, terjadwal per kelas &amp; jam pelajaran.</p>
-  </div>
-  <div class="action-row">
-    <a class="btn btn-gold" href="kelas-live.html">Cek Kelas Live</a>
-  </div>
-</section>
-
-<section class="section-wrap" id="absensi">
-  <div class="section-head">
-    <h2>Absensi &amp; Jurnal</h2>
-    <p>Rekap kehadiran &amp; nilai asesmen formatif realtime per kelas, dan jurnal pembelajaran di folder Drive.</p>
-  </div>
-  <div class="action-row">
-    <a class="btn btn-gold" href="absensi.html">Lihat Absensi &amp; Nilai (Realtime)</a>
+  <div class="menu-grid">
+    <a class="menu-tile" href="materi.html">
+      <span class="mt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H12v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M20 5.5C20 4.67 19.33 4 18.5 4H12v16h6.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg></span>
+      <span class="mt-label">Materi Belajar</span>
+    </a>
+    <a class="menu-tile" href="kelas-live.html">
+      <span class="mt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 18v3"/></svg></span>
+      <span class="mt-label">Kelas Live</span>
+    </a>
+    <a class="menu-tile" href="absensi.html">
+      <span class="mt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 3.5h6v2H9z"/><path d="m9 13 2 2 4-4"/></svg></span>
+      <span class="mt-label">Absensi &amp; Jurnal</span>
+    </a>
+    <a class="menu-tile" href="#jadwal">
+      <span class="mt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="1.5"/><path d="M4 9.5h16M8 3.5v3M16 3.5v3"/></svg></span>
+      <span class="mt-label">Jadwal &amp; Kalender</span>
+    </a>
+    <a class="menu-tile" href="ruang-ujian.html">
+      <span class="mt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2.5L17 21l-1.5-7.5"/></svg></span>
+      <span class="mt-label">Asesmen</span>
+    </a>
+    <a class="menu-tile" href="https://antungsf.github.io/Book-Arabic/" target="_blank" rel="noopener">
+      <span class="mt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12.5 11 14.5 15.5 10"/><circle cx="12" cy="12" r="9"/></svg></span>
+      <span class="mt-label">Kuis Bahasa Arab</span>
+    </a>
   </div>
 </section>
 
 <section class="section-wrap alt" id="jadwal">
   <div class="section-head">
-    <h2>Jadwal &amp; Kalender</h2>
-    <p>Jadwal mengajar hari ini, realtime.</p>
-  </div>
-
-  <div class="action-row">
-    <a class="btn btn-solid" href="jadwal-mengajar.html">Kelola Jadwal (Guru)</a>
+    <h2>Jadwal Mengajar</h2>
   </div>
 
   <div class="today-schedule">
@@ -451,39 +487,6 @@
       <span class="today-schedule-date" id="todayDateStr"></span>
     </div>
     <div id="todayScheduleList"><div class="today-schedule-loading">Memuat jadwal…</div></div>
-  </div>
-</section>
-
-<section class="section-wrap" id="asesmen">
-  <div class="section-head">
-    <h2>Asesmen</h2>
-    <p>Ruang ujian daring: siswa memilih kelas &amp; materi (qawaid, dsb.), lalu mengerjakan soal yang sudah disiapkan guru.</p>
-  </div>
-  <div class="action-row">
-    <a class="btn btn-solid" href="ruang-ujian.html">Masuk Ruang Ujian</a>
-  </div>
-</section>
-
-<section class="section-wrap alt" id="tugas">
-  <div class="section-head">
-    <h2>Kolom Tugas</h2>
-    <p>Daftar tugas yang diberikan, dan tautan tempat pengumpulan jawaban siswa.</p>
-  </div>
-  <div class="action-row">
-    <!-- HAPUS BARIS INI kalau kelas XI sedang tidak ada tugas -->
-    <a class="btn btn-outline" href="https://forms.gle/feA56NoQFti72Mhd7" target="_blank">Kumpulkan Tugas — Kelas XI</a>
-    <!-- HAPUS BARIS INI kalau kelas XII sedang tidak ada tugas -->
-    <a class="btn btn-outline" href="https://forms.gle/fXyGbT3s4vWBgNih6" target="_blank">Kumpulkan Tugas — Kelas XII</a>
-  </div>
-</section>
-
-<section class="section-wrap" id="kuis-eksternal">
-  <div class="section-head">
-    <h2>Kuis Bahasa Arab</h2>
-    <p>Latihan santai berdasarkan materi buku Bahasa Arab MA Kemenag — pilih kelas, kerjakan, jawaban langsung ketahuan benar/salah, bisa diulang sepuasnya.</p>
-  </div>
-  <div class="action-row">
-    <a class="btn btn-gold" href="https://antungsf.github.io/Book-Arabic/" target="_blank" rel="noopener">Mulai Latihan Kuis &rarr;</a>
   </div>
 </section>
 
@@ -504,7 +507,7 @@
             <li><a href="#materi">Materi Belajar</a></li>
             <li><a href="chat.html">Ruang Chat</a></li>
             <li><a href="#absensi">Absensi &amp; Jurnal</a></li>
-            <li><a href="#tugas">Kolom Tugas</a></li>
+            <li><a href="tugas.html">Kolom Tugas</a></li>
             <li><a href="kuesioner.html">Kuesioner</a></li>
           </ul>
         </div>
@@ -752,7 +755,7 @@
 
       const listEl = document.getElementById('todayScheduleList');
       if(namaHari === 'Minggu'){
-        listEl.innerHTML = '<div class="today-schedule-empty">Tidak ada jadwal mengajar (hari Minggu).</div>';
+        listEl.innerHTML = '<div class="today-schedule-empty">Tidak ada jadwal mengajar hari ini.</div>';
         return;
       }
       db.collection('jadwal_mengajar').where('hari', '==', namaHari).get().then(function(snap){

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kolom Tugas — Arabic Class</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green-deep:#0f3627;
+    --green:#175c41;
+    --navy:#15323b;
+    --gold:#eab628;
+    --gold-deep:#c9960a;
+    --ink:#1c2624;
+    --muted:#5c6b66;
+    --line:rgba(15,54,39,.12);
+    --bg-alt:#f2f7f4;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:#ffffff;color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;}
+  a{color:inherit;text-decoration:none;}
+  img{max-width:100%;display:block;}
+
+  /* ===== SIDEBAR NAVIGATION (sama seperti index.html) ===== */
+  .sidebar{
+    position:fixed;top:0;left:0;bottom:0;width:264px;z-index:70;
+    background:linear-gradient(180deg, var(--green-deep) 0%, var(--navy) 100%);
+    display:flex;flex-direction:column;overflow-y:auto;
+    transition:transform .3s ease;
+  }
+  .sidebar-brand{display:flex;align-items:center;gap:12px;padding:24px 22px 18px;flex-shrink:0;}
+  .brand-mark{width:38px;height:38px;border-radius:50%;border:2px solid var(--gold);overflow:hidden;flex-shrink:0;}
+  .brand-mark img{width:100%;height:100%;object-fit:cover;}
+  .sidebar-brand .brand-text{font-family:'Poppins',sans-serif;font-weight:700;letter-spacing:.02em;font-size:16px;color:#ffffff;}
+  .sidebar-divider{height:1px;margin:0 22px 14px;background:linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);flex-shrink:0;}
+  nav{flex:1;}
+  nav ul{list-style:none;display:flex;flex-direction:column;gap:2px;margin:0;padding:0 12px;font-size:13px;font-weight:600;letter-spacing:.02em;}
+  nav a{
+    display:flex;align-items:center;gap:12px;
+    color:#dce9e2;opacity:.9;text-decoration:none;
+    padding:11px 14px;border-radius:8px;border-left:3px solid transparent;
+    transition:background .15s,opacity .2s,color .2s;
+  }
+  nav a svg{width:16px;height:16px;flex-shrink:0;color:var(--gold);opacity:.9;}
+  nav a:hover{opacity:1;background:rgba(255,255,255,.06);color:#fff;}
+  nav a.active{opacity:1;background:rgba(234,182,40,.14);border-left-color:var(--gold);color:#fff;}
+  .sidebar-foot{padding:16px 22px 22px;font-size:11px;color:#9db8ab;flex-shrink:0;}
+
+  .nav-toggle{
+    display:none;position:fixed;top:16px;right:16px;z-index:90;
+    width:42px;height:42px;border-radius:10px;background:var(--green-deep);
+    border:none;flex-direction:column;justify-content:center;align-items:center;gap:5px;
+    cursor:pointer;box-shadow:0 4px 14px rgba(15,54,39,.35);
+  }
+  .nav-toggle span{display:block;width:20px;height:2px;background:#fff;border-radius:2px;transition:transform .25s,opacity .25s;}
+  .nav-toggle.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .nav-toggle.open span:nth-child(2){opacity:0;}
+  .nav-toggle.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+
+  .sidebar-scrim{display:none;position:fixed;inset:0;background:rgba(15,54,39,.5);z-index:65;}
+  .sidebar-scrim.show{display:block;}
+
+  .site-content{margin-left:264px;}
+
+  @media (max-width:900px){
+    .sidebar{transform:translateX(-100%);box-shadow:8px 0 30px rgba(0,0,0,.3);}
+    .sidebar.open{transform:translateX(0);}
+    .nav-toggle{display:flex;}
+    .site-content{margin-left:0;}
+  }
+
+  /* ===== PAGE HEADER ===== */
+  .page-hero{
+    background:linear-gradient(180deg, var(--green-deep) 0%, var(--green) 100%);
+    color:#fff;padding:70px 24px 46px;text-align:center;
+  }
+  .page-hero .eyebrow{font-size:12.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:14px;}
+  .page-hero h1{font-family:'Poppins',sans-serif;font-weight:800;font-size:clamp(26px,5vw,38px);margin:0 0 10px;}
+  .page-hero p{max-width:520px;margin:0 auto;color:#dce9e2;font-size:14.5px;}
+
+  .section-wrap{max-width:900px;margin:0 auto;padding:44px 24px;}
+  .section-head{margin-bottom:20px;}
+  .section-head h2{font-family:'Poppins',sans-serif;font-weight:800;font-size:22px;margin:0 0 8px;color:var(--green-deep);}
+  .section-head p{margin:0;color:var(--muted);font-size:14.5px;}
+
+  .task-card{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    background:#fff;border:1.5px solid var(--line);border-radius:12px;
+    padding:20px 22px;margin-bottom:14px;
+    transition:border-color .2s,box-shadow .2s,transform .15s;
+  }
+  .task-card:hover{border-color:var(--gold);box-shadow:0 8px 20px rgba(15,54,39,.08);transform:translateY(-2px);}
+  .task-card .tc-title{font-family:'Poppins',sans-serif;font-weight:700;font-size:15.5px;color:var(--green-deep);}
+  .task-card .tc-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .btn{font-weight:700;font-size:13.5px;padding:12px 24px;border-radius:6px;display:inline-block;transition:transform .15s,background .15s;letter-spacing:.01em;white-space:nowrap;}
+  .btn-gold{background:var(--gold);color:var(--green-deep);}
+  .btn-gold:hover{background:var(--gold-deep);transform:translateY(-1px);}
+
+  .back-link{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px;color:var(--green);margin-bottom:6px;}
+  .back-link:hover{color:var(--gold-deep);}
+
+  footer{background:var(--green-deep);color:#dce9e2;margin-top:20px;}
+  .footer-wrap{max-width:1180px;margin:0 auto;padding:30px 24px;text-align:center;font-size:12px;opacity:.7;}
+</style>
+</head>
+<body>
+
+<button class="nav-toggle" id="navToggle" aria-label="Buka menu" aria-expanded="false" aria-controls="sidebar">
+  <span></span><span></span><span></span>
+</button>
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-mark"><img src="logo.jpg" alt="Logo"></div>
+    <div class="brand-text">Arabic Class</div>
+  </div>
+  <div class="sidebar-divider"></div>
+  <nav>
+    <ul id="navList">
+      <li><a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V10"/></svg>Beranda</a></li>
+      <li><a href="index.html#menu-utama"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.67 4.67 4 5.5 4H12v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M20 5.5C20 4.67 19.33 4 18.5 4H12v16h6.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg>Materi Belajar</a></li>
+      <li><a href="kelas-live.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 18v3"/></svg>Kelas Live</a></li>
+      <li><a href="chat.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.5 4V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/></svg>Ruang Chat</a></li>
+      <li><a href="absensi.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 3.5h6v2H9z"/><path d="m9 13 2 2 4-4"/></svg>Absensi &amp; Jurnal</a></li>
+      <li><a href="index.html#jadwal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="1.5"/><path d="M4 9.5h16M8 3.5v3M16 3.5v3"/></svg>Jadwal &amp; Kalender</a></li>
+      <li><a href="ruang-ujian.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="5"/><path d="M8.5 13.5 7 21l5-2.5L17 21l-1.5-7.5"/></svg>Asesmen</a></li>
+      <li><a href="https://antungsf.github.io/Book-Arabic/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12.5 11 14.5 15.5 10"/><circle cx="12" cy="12" r="9"/></svg>Latihan Kuis</a></li>
+      <li><a href="tugas.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.5h9l3 3V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14.5 3.5V7H18"/><path d="M8 12h6M8 15.5h6"/></svg>Kolom Tugas</a></li>
+      <li><a href="kuesioner.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Kuesioner</a></li>
+    </ul>
+  </nav>
+  <div class="sidebar-foot">© 2026 Arabic Class</div>
+</aside>
+
+<div class="site-content">
+
+  <section class="page-hero">
+    <div class="eyebrow">Portal Belajar &middot; Kelas Bahasa Arab</div>
+    <h1>Kolom Tugas</h1>
+    <p>Tautan pengumpulan tugas per kelas. Pilih kelasmu, lalu kumpulkan jawaban lewat Google Form.</p>
+  </section>
+
+  <section class="section-wrap">
+    <a class="back-link" href="index.html">&larr; Kembali ke Beranda</a>
+    <div class="section-head" style="margin-top:18px;">
+      <h2>Daftar Tugas</h2>
+      <p>Klik tombol sesuai kelasmu untuk mengumpulkan tugas.</p>
+    </div>
+
+    <!-- HAPUS BLOK INI kalau kelas XI sedang tidak ada tugas -->
+    <div class="task-card">
+      <div>
+        <div class="tc-title">Kumpulkan Tugas — Kelas XI</div>
+        <div class="tc-sub">Google Form pengumpulan jawaban Kelas XI</div>
+      </div>
+      <a class="btn btn-gold" href="https://forms.gle/feA56NoQFti72Mhd7" target="_blank" rel="noopener">Buka Form</a>
+    </div>
+
+    <!-- HAPUS BLOK INI kalau kelas XII sedang tidak ada tugas -->
+    <div class="task-card">
+      <div>
+        <div class="tc-title">Kumpulkan Tugas — Kelas XII</div>
+        <div class="tc-sub">Google Form pengumpulan jawaban Kelas XII</div>
+      </div>
+      <a class="btn btn-gold" href="https://forms.gle/fXyGbT3s4vWBgNih6" target="_blank" rel="noopener">Buka Form</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-wrap">&copy; 2026 Arabic Class</div>
+  </footer>
+
+</div><!-- /.site-content -->
+
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const sidebar = document.getElementById('sidebar');
+  const sidebarScrim = document.getElementById('sidebarScrim');
+
+  function setSidebar(isOpen){
+    sidebar.classList.toggle('open', isOpen);
+    navToggle.classList.toggle('open', isOpen);
+    sidebarScrim.classList.toggle('show', isOpen);
+    navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  navToggle.addEventListener('click', () => setSidebar(!sidebar.classList.contains('open')));
+  sidebarScrim.addEventListener('click', () => setSidebar(false));
+  sidebar.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => setSidebar(false));
+  });
+</script>
+
+</body>
+</html>
