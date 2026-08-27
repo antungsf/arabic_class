@@ -553,7 +553,7 @@ async function loadSiswaList(kelasId){
   }
 }
 
-function openEditSiswaMini(siswaId, nama, jk, kelasId){
+function openEditSiswaMini(siswaId, nama, jk, nisn, tanggalLahir, kelasId){
   const wrap = document.getElementById('siswaListWrap');
   const existing = wrap.querySelector('.edit-siswa-box');
   if(existing) existing.remove();
@@ -563,12 +563,16 @@ function openEditSiswaMini(siswaId, nama, jk, kelasId){
   editBox.style.background = 'var(--bg-alt)';
   editBox.innerHTML = `
     <div class="field" style="margin-bottom:8px;"><label>Nama</label><input type="text" class="editSiswaNamaInput" value="${escapeHtml(nama)}"></div>
-    <div class="field" style="margin-bottom:8px;max-width:140px;"><label>L/P</label>
-      <select class="editSiswaJkInput">
-        <option value="" ${jk===''?'selected':''}>-</option>
-        <option value="L" ${jk==='L'?'selected':''}>L</option>
-        <option value="P" ${jk==='P'?'selected':''}>P</option>
-      </select></div>
+    <div class="row">
+      <div class="field" style="margin-bottom:8px;max-width:100px;"><label>L/P</label>
+        <select class="editSiswaJkInput">
+          <option value="" ${jk===''?'selected':''}>-</option>
+          <option value="L" ${jk==='L'?'selected':''}>L</option>
+          <option value="P" ${jk==='P'?'selected':''}>P</option>
+        </select></div>
+      <div class="field" style="margin-bottom:8px;max-width:160px;"><label>NISN</label><input type="text" class="editSiswaNisnInput" value="${escapeHtml(nisn)}" maxlength="10"></div>
+      <div class="field" style="margin-bottom:8px;max-width:170px;"><label>Tanggal Lahir</label><input type="date" class="editSiswaLahirInput" value="${escapeHtml(tanggalLahir)}"></div>
+    </div>
     <div id="editSiswaBanner"></div>
     <div class="row">
       <button class="btn btn-solid btn-sm" data-act="simpan-edit">Simpan</button>
@@ -577,15 +581,20 @@ function openEditSiswaMini(siswaId, nama, jk, kelasId){
   wrap.prepend(editBox);
   const inputNama = editBox.querySelector('.editSiswaNamaInput');
   const inputJk = editBox.querySelector('.editSiswaJkInput');
+  const inputNisn = editBox.querySelector('.editSiswaNisnInput');
+  const inputLahir = editBox.querySelector('.editSiswaLahirInput');
   const banner = editBox.querySelector('#editSiswaBanner');
 
   editBox.querySelector('[data-act="batal-edit"]').addEventListener('click', () => loadSiswaList(kelasId));
   editBox.querySelector('[data-act="simpan-edit"]').addEventListener('click', async () => {
     const namaBaru = inputNama.value.trim();
     const jkBaru = inputJk.value;
+    const nisnBaru = inputNisn.value.trim();
+    const lahirBaru = inputLahir.value;
     if(!namaBaru){ bannerErr(banner, 'Nama tidak boleh kosong.'); return; }
+    if(nisnBaru && !/^\d{10}$/.test(nisnBaru)){ bannerErr(banner, 'NISN harus 10 digit angka.'); return; }
     try{
-      await db.collection('siswa').doc(siswaId).update({ nama: namaBaru, jk: jkBaru });
+      await db.collection('siswa').doc(siswaId).update({ nama: namaBaru, jk: jkBaru, nisn: nisnBaru, tanggalLahir: lahirBaru });
       loadSiswaList(kelasId);
     }catch(err){
       bannerErr(banner, 'Gagal menyimpan: ' + escapeHtml(err.message));
