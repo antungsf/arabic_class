@@ -199,22 +199,23 @@
 
   <!-- View: isi nama -->
   <div id="viewNama" class="hidden">
-    <span class="crumb" id="crumbTopik">&larr; Pilih materi lain</span>
-    <span class="eyebrow" id="namaEyebrow">Materi</span>
-    <h1 id="namaTitle">Mulai ujian</h1>
-    <p class="lead" id="infoJumlahSoal">Pilih kelasmu, lalu cari namamu dari daftar siswa terdaftar.</p>
-    <div class="field" style="max-width:360px;">
-      <label>Kelas</label>
-      <select id="selectKelasAbsensiUjian"><option value="">— pilih kelas —</option></select>
-    </div>
-    <div class="field" style="max-width:360px;">
-      <label>Cari Nama Kamu</label>
-      <input type="text" id="inputNamaSiswa" placeholder="Ketik minimal 2 huruf…" autocomplete="off" disabled>
-    </div>
-    <div id="hasilCariNamaUjian"></div>
-    <div id="namaTerpilihInfo" class="hint" style="margin-bottom:14px;"></div>
-    <button class="btn btn-solid" id="btnMulaiUjian" disabled>Mulai Mengerjakan</button>
+  <span class="crumb" id="crumbTopik">&larr; Pilih materi lain</span>
+  <span class="eyebrow" id="namaEyebrow">Materi</span>
+  <h1 id="namaTitle">Mulai ujian</h1>
+  <p class="lead" id="infoJumlahSoal">Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.</p>
+  <div class="field" style="max-width:280px;">
+    <label>NISN</label>
+    <input type="text" id="inputNisnSiswa" maxlength="10" placeholder="10 digit NISN" autocomplete="off">
   </div>
+  <div class="field" style="max-width:280px;">
+    <label>Tanggal Lahir</label>
+    <input type="date" id="inputLahirSiswa">
+  </div>
+  <button class="btn btn-outline btn-sm" id="btnCariSiswaUjian" style="margin-bottom:14px;">Cari</button>
+  <div id="hasilCariNamaUjian"></div>
+  <div id="namaTerpilihInfo" class="hint" style="margin-bottom:14px;"></div>
+  <button class="btn btn-solid" id="btnMulaiUjian" disabled>Mulai Mengerjakan</button>
+</div>
 
   <!-- View: ujian -->
   <div id="viewUjian" class="hidden">
