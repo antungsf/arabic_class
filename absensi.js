@@ -530,9 +530,9 @@ async function loadSiswaList(kelasId){
       const d = doc.data();
       html += `<div class="list-item" style="padding:10px 14px;">
         <div class="list-item-head">
-          <div style="font-size:13.5px;"><b>${escapeHtml(d.nama)}</b> <span class="hint">(${escapeHtml(d.jk||'-')})</span></div>
+          <div style="font-size:13.5px;"><b>${escapeHtml(d.nama)}</b> <span class="hint">(${escapeHtml(d.jk||'-')}) &middot; NISN: ${escapeHtml(d.nisn||'belum diisi')} &middot; Lahir: ${escapeHtml(d.tanggalLahir||'-')}</span></div>
           <div>
-            <button class="icon-btn" data-act="edit" data-id="${doc.id}" data-nama="${escapeHtml(d.nama)}" data-jk="${escapeHtml(d.jk||'')}">Edit</button>
+            <button class="icon-btn" data-act="edit" data-id="${doc.id}" data-nama="${escapeHtml(d.nama)}" data-jk="${escapeHtml(d.jk||'')}" data-nisn="${escapeHtml(d.nisn||'')}" data-lahir="${escapeHtml(d.tanggalLahir||'')}">Edit</button>
             <button class="icon-btn danger" data-act="hapus" data-id="${doc.id}">Hapus</button>
           </div>
         </div></div>`;
@@ -546,7 +546,7 @@ async function loadSiswaList(kelasId){
       });
     });
     wrap.querySelectorAll('[data-act="edit"]').forEach(btn => {
-      btn.addEventListener('click', () => openEditSiswaMini(btn.dataset.id, btn.dataset.nama, btn.dataset.jk, kelasId));
+      btn.addEventListener('click', () => openEditSiswaMini(btn.dataset.id, btn.dataset.nama, btn.dataset.jk, btn.dataset.nisn, btn.dataset.lahir, kelasId));
     });
   }catch(err){
     wrap.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
