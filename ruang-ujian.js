@@ -114,9 +114,8 @@ function resetLangkahNama(){
   state.siswaTerpilihId = null;
   state.kelasAbsensiId = null;
   state.kelasAbsensiNama = null;
-  state.daftarSiswaUjian = [];
-  document.getElementById('inputNamaSiswa').value = '';
-  document.getElementById('inputNamaSiswa').disabled = true;
+  document.getElementById('inputNisnSiswa').value = '';
+  document.getElementById('inputLahirSiswa').value = '';
   document.getElementById('hasilCariNamaUjian').innerHTML = '';
   document.getElementById('namaTerpilihInfo').textContent = '';
   document.getElementById('btnMulaiUjian').disabled = true;
