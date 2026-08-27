@@ -596,23 +596,32 @@ function openEditSiswaMini(siswaId, nama, jk, kelasId){
 async function tambahSiswaBulk(kelasId){
   const banner = document.getElementById('mSiswaBanner');
   const raw = document.getElementById('mSiswaBulk').value.trim();
-  if(!raw){ bannerErr(banner, 'Tulis minimal 1 nama.'); return; }
+  if(!raw){ bannerErr(banner, 'Tulis minimal 1 baris data.'); return; }
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
   try{
     const existingSnap = await db.collection('siswa').where('kelasId','==',kelasId).get();
     let urutan = existingSnap.size + 1;
     const batch = db.batch();
+    let dilewati = [];
+    let jumlahOk = 0;
     lines.forEach(line => {
-      // dukung paste dari Excel (pemisah TAB) maupun ketik manual (pemisah koma)
       const parts = line.includes('\t') ? line.split('\t') : line.split(',');
-      const nama = parts[0].trim();
+      const nama = (parts[0]||'').trim();
       const jk = (parts[1]||'').trim().toUpperCase();
+      const nisn = (parts[2]||'').trim();
+      const tanggalLahir = (parts[3]||'').trim();
+      if(!nama) return;
+      if(!/^\d{10}$/.test(nisn)){ dilewati.push(`${nama} (NISN harus 10 digit angka)`); return; }
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(tanggalLahir)){ dilewati.push(`${nama} (format tanggal lahir salah, pakai YYYY-MM-DD)`); return; }
       const ref = db.collection('siswa').doc();
-      batch.set(ref, { kelasId, nama, jk: (jk==='L'||jk==='P') ? jk : '', urutan: urutan++ });
+      batch.set(ref, { kelasId, nama, jk: (jk==='L'||jk==='P') ? jk : '', nisn, tanggalLahir, urutan: urutan++ });
+      jumlahOk++;
     });
     await batch.commit();
     document.getElementById('mSiswaBulk').value = '';
-    bannerOk(banner, `${lines.length} siswa ditambahkan.`);
+    let msg = `${jumlahOk} siswa ditambahkan.`;
+    if(dilewati.length) msg += `<br><b>Dilewati (perlu diperbaiki manual):</b> ${dilewati.map(escapeHtml).join('; ')}`;
+    bannerOk(banner, msg);
     loadSiswaList(kelasId);
   }catch(err){
     bannerErr(banner, 'Gagal menambahkan: ' + escapeHtml(err.message));
