@@ -454,9 +454,9 @@ function openSiswaModal(kelasId, kelasData){
     <div id="mBersihBanner"></div>
     <div id="siswaListWrap"><div class="loading">Memuat…</div></div>
     <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
-    <p class="hint">Tambah cepat: paste langsung dari Excel (kolom Nama + L/P), atau tulis 1 nama per baris (opsional akhiri dengan koma L/P, contoh: <i>Ahmad Fauzan, L</i>).</p>
-    <div class="field"><textarea id="mSiswaBulk" placeholder="Ahmad Fauzan, L
-Siti Aisyah, P"></textarea></div>
+    <p class="hint">Tambah cepat: paste dari Excel urutan kolom <b>Nama | L/P | NISN | Tanggal Lahir (YYYY-MM-DD)</b>. NISN &amp; Tanggal Lahir wajib diisi — dipakai siswa untuk verifikasi identitas saat cek nilai/absensi &amp; ikut ujian.</p>
+    <div class="field"><textarea id="mSiswaBulk" placeholder="Ahmad Fauzan	L	0108745362	2010-07-03
+Siti Aisyah	P	0104882781	2010-02-07"></textarea></div>
     <div id="mSiswaBanner"></div>
     <div class="row">
       <button class="btn btn-gold btn-sm" id="mSiswaTambahBulk">+ Tambahkan Daftar Ini</button>
