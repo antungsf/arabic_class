@@ -102,7 +102,7 @@ async function renderRekapPublikCari(kelasId, box){
       nilaiMap[d2.siswaId][d2.tp] = d2.nilai;
     });
 
-    box.innerHTML = `
+        box.innerHTML = `
       <p class="hint" style="margin-bottom:10px;">Untuk menjaga privasi, ketik namamu untuk melihat rekap kehadiran &amp; nilai milikmu sendiri.</p>
       <div class="field" style="max-width:360px;"><label>Cari Nama Kamu</label><input type="text" id="cariNamaSiswa" placeholder="Ketik minimal 2 huruf…" autocomplete="off"></div>
       <div id="hasilCariSiswa"></div>
