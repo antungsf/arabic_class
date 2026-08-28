@@ -524,18 +524,34 @@ async function loadSiswaList(kelasId){
     const snap = await db.collection('siswa').where('kelasId','==',kelasId).orderBy('nama').get();
     if(snap.empty){ wrap.innerHTML = '<div class="empty">Belum ada siswa.</div>'; return; }
     let html = '';
+    let jumlahBelumLengkap = 0;
     snap.forEach(doc => {
       const d = doc.data();
-      html += `<div class="list-item" style="padding:10px 14px;">
+      const nisnValid = /^\d{10}$/.test(d.nisn || '');
+      const lahirValid = /^\d{4}-\d{2}-\d{2}$/.test(d.tanggalLahir || '');
+      const belumLengkap = !nisnValid || !lahirValid;
+      if(belumLengkap) jumlahBelumLengkap++;
+      const styleBaris = belumLengkap
+        ? 'padding:10px 14px;border-color:#e8b4ab;background:#fbeae7;'
+        : 'padding:10px 14px;';
+      const labelNisn = nisnValid ? escapeHtml(d.nisn) : '<b style="color:var(--red);">belum diisi/tidak valid</b>';
+      const labelLahir = lahirValid ? escapeHtml(d.tanggalLahir) : '<b style="color:var(--red);">belum diisi</b>';
+      const badgePeringatan = belumLengkap
+        ? ' <span class="badge badge-a" style="background:var(--red);color:#fff;">Perlu Dilengkapi</span>'
+        : '';
+      html += `<div class="list-item" style="${styleBaris}">
         <div class="list-item-head">
-          <div style="font-size:13.5px;"><b>${escapeHtml(d.nama)}</b> <span class="hint">(${escapeHtml(d.jk||'-')}) &middot; NISN: ${escapeHtml(d.nisn||'belum diisi')} &middot; Lahir: ${escapeHtml(d.tanggalLahir||'-')}</span></div>
+          <div style="font-size:13.5px;"><b>${escapeHtml(d.nama)}</b>${badgePeringatan} <span class="hint">(${escapeHtml(d.jk||'-')}) &middot; NISN: ${labelNisn} &middot; Lahir: ${labelLahir}</span></div>
           <div>
             <button class="icon-btn" data-act="edit" data-id="${doc.id}" data-nama="${escapeHtml(d.nama)}" data-jk="${escapeHtml(d.jk||'')}" data-nisn="${escapeHtml(d.nisn||'')}" data-lahir="${escapeHtml(d.tanggalLahir||'')}">Edit</button>
             <button class="icon-btn danger" data-act="hapus" data-id="${doc.id}">Hapus</button>
           </div>
         </div></div>`;
     });
-    wrap.innerHTML = html;
+    const ringkasan = jumlahBelumLengkap > 0
+      ? `<div class="hint" style="margin-bottom:10px;color:var(--red);font-weight:700;">⚠️ ${jumlahBelumLengkap} siswa di kelas ini belum lengkap NISN/Tanggal Lahir (ditandai merah di bawah) — mereka belum bisa akses cek nilai atau ikut ujian sebelum dilengkapi.</div>`
+      : `<div class="hint" style="margin-bottom:10px;color:var(--green-deep);">✓ Semua siswa di kelas ini sudah lengkap NISN &amp; Tanggal Lahir.</div>`;
+    wrap.innerHTML = ringkasan + html;
     wrap.querySelectorAll('[data-act="hapus"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         if(!confirm('Hapus siswa ini?')) return;
