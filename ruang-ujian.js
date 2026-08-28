@@ -27,7 +27,6 @@ const state = {
   siswaTerpilihId: null,
   kelasAbsensiId: null,
   kelasAbsensiNama: null,
-  daftarSiswaUjian: [],
   jwEditId: null,
   jwTargetSiswaTerpilih: [],
   semuaSiswaCache: null
@@ -97,15 +96,14 @@ function bukaTopik(id, d){
   document.getElementById('namaTitle').textContent = 'Mulai: ' + d.nama;
   resetLangkahNama();
   showView('viewNama');
-  muatKelasAbsensiUntukUjian(d.kelas);
 
   // PERBAIKAN: tampilkan jumlah soal sebelum siswa mulai mengerjakan
   const infoEl = document.getElementById('infoJumlahSoal');
   infoEl.textContent = 'Memuat info materi…';
   db.collection('soal').where('topikId','==',id).get().then(snap => {
-    infoEl.textContent = `Materi ini berisi ${snap.size} soal. Pilih kelasmu, lalu cari namamu dari daftar siswa terdaftar.`;
+    infoEl.textContent = `Materi ini berisi ${snap.size} soal. Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.`;
   }).catch(() => {
-    infoEl.textContent = 'Pilih kelasmu, lalu cari namamu dari daftar siswa terdaftar.';
+    infoEl.textContent = 'Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.';
   });
 }
 
@@ -121,66 +119,35 @@ function resetLangkahNama(){
   document.getElementById('btnMulaiUjian').disabled = true;
 }
 
-async function muatKelasAbsensiUntukUjian(jenjang){
-  const sel = document.getElementById('selectKelasAbsensiUjian');
-  sel.innerHTML = '<option value="">Memuat kelas…</option>';
-  try{
-    const snap = await db.collection('kelas_absensi')
-      .where('jenjang','==',jenjang).where('aktif','==',true)
-      .orderBy('urutan','asc').get();
-    if(snap.empty){ sel.innerHTML = '<option value="">Belum ada data kelas terdaftar</option>'; return; }
-    let opts = '<option value="">— pilih kelas —</option>';
-    snap.forEach(doc => { opts += `<option value="${doc.id}">${escapeHtml(doc.data().nama)}</option>`; });
-    sel.innerHTML = opts;
-  }catch(err){
-    sel.innerHTML = '<option value="">Gagal memuat kelas</option>';
-  }
-}
-
-document.getElementById('selectKelasAbsensiUjian').addEventListener('change', async (e) => {
-  const kelasAbsensiId = e.target.value;
-  const inputNama = document.getElementById('inputNamaSiswa');
+document.getElementById('btnCariSiswaUjian').addEventListener('click', async () => {
+  const nisn = document.getElementById('inputNisnSiswa').value.trim();
+  const lahir = document.getElementById('inputLahirSiswa').value;
   const hasilCari = document.getElementById('hasilCariNamaUjian');
   document.getElementById('namaTerpilihInfo').textContent = '';
   document.getElementById('btnMulaiUjian').disabled = true;
   state.siswaTerpilihId = null;
-  inputNama.value = '';
   hasilCari.innerHTML = '';
-
-  if(!kelasAbsensiId){ inputNama.disabled = true; return; }
-  state.kelasAbsensiId = kelasAbsensiId;
-  state.kelasAbsensiNama = e.target.selectedOptions[0].textContent;
-  inputNama.disabled = false;
-  inputNama.placeholder = 'Ketik minimal 2 huruf…';
-
+  if(!/^\d{10}$/.test(nisn)){ hasilCari.innerHTML = '<div class="empty">NISN harus 10 digit angka.</div>'; return; }
+  if(!lahir){ hasilCari.innerHTML = '<div class="empty">Pilih tanggal lahir dahulu.</div>'; return; }
+  hasilCari.innerHTML = '<div class="loading">Memeriksa data…</div>';
   try{
-    const snap = await db.collection('siswa').where('kelasId','==',kelasAbsensiId).orderBy('urutan').get();
-    state.daftarSiswaUjian = [];
-    snap.forEach(doc => state.daftarSiswaUjian.push({id:doc.id, nama:doc.data().nama}));
+    const snap = await db.collection('siswa').where('nisn','==',nisn).limit(1).get();
+    if(snap.empty || snap.docs[0].data().tanggalLahir !== lahir){
+      hasilCari.innerHTML = '<div class="empty">NISN / tanggal lahir tidak cocok. Hubungi guru kalau menurutmu ini keliru.</div>';
+      return;
+    }
+    const doc = snap.docs[0];
+    const d = doc.data();
+    const kelasDoc = await db.collection('kelas_absensi').doc(d.kelasId).get();
+    state.siswaTerpilihId = doc.id;
+    state.namaSiswa = d.nama;
+    state.kelasAbsensiId = d.kelasId;
+    state.kelasAbsensiNama = kelasDoc.exists ? kelasDoc.data().nama : '';
+    hasilCari.innerHTML = '';
+    cekEligibilitasUjian();
   }catch(err){
-    state.daftarSiswaUjian = [];
+    hasilCari.innerHTML = `<div class="empty">Gagal memeriksa data. ${escapeHtml(err.message)}</div>`;
   }
-});
-
-document.getElementById('inputNamaSiswa').addEventListener('input', (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  const hasilCari = document.getElementById('hasilCariNamaUjian');
-  document.getElementById('namaTerpilihInfo').textContent = '';
-  document.getElementById('btnMulaiUjian').disabled = true;
-  state.siswaTerpilihId = null;
-  if(q.length < 2){ hasilCari.innerHTML = ''; return; }
-  const cocok = state.daftarSiswaUjian.filter(s => s.nama.toLowerCase().includes(q)).slice(0,6);
-  if(!cocok.length){ hasilCari.innerHTML = '<div class="empty">Nama tidak ditemukan di kelas ini.</div>'; return; }
-  hasilCari.innerHTML = cocok.map(s => `<div class="list-item" data-id="${s.id}" data-nama="${escapeHtml(s.nama)}" style="cursor:pointer;padding:10px 14px;">${escapeHtml(s.nama)}</div>`).join('');
-  hasilCari.querySelectorAll('[data-id]').forEach(el => {
-    el.addEventListener('click', () => {
-      state.siswaTerpilihId = el.dataset.id;
-      state.namaSiswa = el.dataset.nama;
-      document.getElementById('inputNamaSiswa').value = el.dataset.nama;
-      hasilCari.innerHTML = '';
-      cekEligibilitasUjian();
-    });
-  });
 });
 
 async function eligibilitasSekarang(){
@@ -227,7 +194,7 @@ async function cekEligibilitasUjian(){
 }
 
 document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
-  if(!state.siswaTerpilihId || !state.namaSiswa){ alert('Pilih namamu dari daftar pencarian dulu ya.'); return; }
+  if(!state.siswaTerpilihId || !state.namaSiswa){ alert('Cari dan verifikasi NISN kamu dulu ya.'); return; }
 
   const btn = document.getElementById('btnMulaiUjian');
   btn.disabled = true; btn.textContent = 'Memeriksa jadwal…';

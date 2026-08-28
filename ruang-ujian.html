@@ -74,7 +74,7 @@
 
   .field{margin-bottom:18px;}
   .field label{display:block;font-size:12.5px;font-weight:700;color:var(--green-deep);margin-bottom:6px;}
-  .field input[type=text], .field input[type=email], .field input[type=password], .field input[type=number], .field textarea, .field select{
+  .field input[type=text], .field input[type=email], .field input[type=password], .field input[type=number], .field input[type=date], .field textarea, .field select{
     width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:6px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);background:#fff;
   }
   .field textarea{resize:vertical;min-height:70px;}
@@ -197,25 +197,25 @@
     <div id="topikList"><div class="loading">Memuat daftar materi…</div></div>
   </div>
 
-  <!-- View: isi nama -->
+  <!-- View: verifikasi identitas (NISN + tanggal lahir) -->
   <div id="viewNama" class="hidden">
-  <span class="crumb" id="crumbTopik">&larr; Pilih materi lain</span>
-  <span class="eyebrow" id="namaEyebrow">Materi</span>
-  <h1 id="namaTitle">Mulai ujian</h1>
-  <p class="lead" id="infoJumlahSoal">Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.</p>
-  <div class="field" style="max-width:280px;">
-    <label>NISN</label>
-    <input type="text" id="inputNisnSiswa" maxlength="10" placeholder="10 digit NISN" autocomplete="off">
+    <span class="crumb" id="crumbTopik">&larr; Pilih materi lain</span>
+    <span class="eyebrow" id="namaEyebrow">Materi</span>
+    <h1 id="namaTitle">Mulai ujian</h1>
+    <p class="lead" id="infoJumlahSoal">Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.</p>
+    <div class="field" style="max-width:280px;">
+      <label>NISN</label>
+      <input type="text" id="inputNisnSiswa" maxlength="10" placeholder="10 digit NISN" autocomplete="off">
+    </div>
+    <div class="field" style="max-width:280px;">
+      <label>Tanggal Lahir</label>
+      <input type="date" id="inputLahirSiswa">
+    </div>
+    <button class="btn btn-outline btn-sm" id="btnCariSiswaUjian" style="margin-bottom:14px;">Cari</button>
+    <div id="hasilCariNamaUjian"></div>
+    <div id="namaTerpilihInfo" class="hint" style="margin-bottom:14px;"></div>
+    <button class="btn btn-solid" id="btnMulaiUjian" disabled>Mulai Mengerjakan</button>
   </div>
-  <div class="field" style="max-width:280px;">
-    <label>Tanggal Lahir</label>
-    <input type="date" id="inputLahirSiswa">
-  </div>
-  <button class="btn btn-outline btn-sm" id="btnCariSiswaUjian" style="margin-bottom:14px;">Cari</button>
-  <div id="hasilCariNamaUjian"></div>
-  <div id="namaTerpilihInfo" class="hint" style="margin-bottom:14px;"></div>
-  <button class="btn btn-solid" id="btnMulaiUjian" disabled>Mulai Mengerjakan</button>
-</div>
 
   <!-- View: ujian -->
   <div id="viewUjian" class="hidden">

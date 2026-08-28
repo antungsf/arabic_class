@@ -2,7 +2,7 @@
    ABSENSI & NILAI — logic
    Struktur Firestore:
    - kelas_absensi { nama, jenjang, urutan, aktif }
-   - siswa         { kelasId, nama, jk:'L'|'P', urutan }
+   - siswa         { kelasId, nama, jk:'L'|'P', nisn, tanggalLahir:'YYYY-MM-DD', urutan }
    - pertemuan     { kelasId, tanggal:'YYYY-MM-DD', materi,
                       kehadiran: { [siswaId]: 'H'|'S'|'I'|'A' } }
      doc id = `${kelasId}_${tanggal}` (upsert per kelas+tanggal)
@@ -102,31 +102,29 @@ async function renderRekapPublikCari(kelasId, box){
       nilaiMap[d2.siswaId][d2.tp] = d2.nilai;
     });
 
-        box.innerHTML = `
-      <p class="hint" style="margin-bottom:10px;">Untuk menjaga privasi, ketik namamu untuk melihat rekap kehadiran &amp; nilai milikmu sendiri.</p>
-      <div class="field" style="max-width:360px;"><label>Cari Nama Kamu</label><input type="text" id="cariNamaSiswa" placeholder="Ketik minimal 2 huruf…" autocomplete="off"></div>
-      <div id="hasilCariSiswa"></div>
+    box.innerHTML = `
+      <p class="hint" style="margin-bottom:10px;">Masukkan NISN dan tanggal lahirmu untuk melihat rekap kehadiran &amp; nilai milikmu sendiri.</p>
+      <div class="row" style="align-items:flex-end;">
+        <div class="field" style="max-width:220px;margin-bottom:0;"><label>NISN</label><input type="text" id="cariNisn" maxlength="10" placeholder="10 digit NISN" autocomplete="off"></div>
+        <div class="field" style="max-width:200px;margin-bottom:0;"><label>Tanggal Lahir</label><input type="date" id="cariLahir"></div>
+        <button class="btn btn-solid btn-sm" id="btnCariSiswa">Cari</button>
+      </div>
+      <div id="hasilCariSiswa" style="margin-top:12px;"></div>
       <div id="hasilDataSiswa" style="margin-top:16px;"></div>`;
 
-    const inputCari = document.getElementById('cariNamaSiswa');
     const hasilCari = document.getElementById('hasilCariSiswa');
     const hasilData = document.getElementById('hasilDataSiswa');
 
-    inputCari.addEventListener('input', () => {
-      const q = inputCari.value.trim().toLowerCase();
+    document.getElementById('btnCariSiswa').addEventListener('click', () => {
       hasilData.innerHTML = '';
-      if(q.length < 2){ hasilCari.innerHTML = ''; return; }
-      const cocok = siswaList.filter(s => s.nama.toLowerCase().includes(q)).slice(0,6);
-      if(!cocok.length){ hasilCari.innerHTML = '<div class="empty">Nama tidak ditemukan.</div>'; return; }
-      hasilCari.innerHTML = cocok.map(s => `<div class="list-item" data-id="${s.id}" style="cursor:pointer;padding:10px 14px;">${escapeHtml(s.nama)}</div>`).join('');
-      hasilCari.querySelectorAll('[data-id]').forEach(el => {
-        el.addEventListener('click', () => {
-          const s = siswaList.find(x => x.id === el.dataset.id);
-          tampilkanDataSendiri(s, rekapHadir[s.id], nilaiMap[s.id]||{}, jumlahPertemuan, hasilData);
-          hasilCari.innerHTML = '';
-          inputCari.value = s.nama;
-        });
-      });
+      const nisn = document.getElementById('cariNisn').value.trim();
+      const lahir = document.getElementById('cariLahir').value;
+      if(!/^\d{10}$/.test(nisn)){ hasilCari.innerHTML = '<div class="empty">NISN harus 10 digit angka.</div>'; return; }
+      if(!lahir){ hasilCari.innerHTML = '<div class="empty">Pilih tanggal lahir dahulu.</div>'; return; }
+      const s = siswaList.find(x => x.nisn === nisn && x.tanggalLahir === lahir);
+      if(!s){ hasilCari.innerHTML = '<div class="empty">NISN / tanggal lahir tidak cocok dengan data siswa di kelas ini.</div>'; return; }
+      hasilCari.innerHTML = '';
+      tampilkanDataSendiri(s, rekapHadir[s.id], nilaiMap[s.id]||{}, jumlahPertemuan, hasilData);
     });
 
     function tampilkanDataSendiri(s, r, nilaiSiswa, jumlahPertemuan, target){
