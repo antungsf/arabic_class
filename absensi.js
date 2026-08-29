@@ -452,7 +452,15 @@ function openSiswaModal(kelasId, kelasData){
     <div id="mBersihBanner"></div>
     <div id="siswaListWrap"><div class="loading">Memuat…</div></div>
     <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
-    <p class="hint">Tambah cepat: paste dari Excel urutan kolom <b>Nama | L/P | NISN | Tanggal Lahir (YYYY-MM-DD)</b>. NISN &amp; Tanggal Lahir wajib diisi — dipakai siswa untuk verifikasi identitas saat cek nilai/absensi &amp; ikut ujian.</p>
+    <p class="hint"><b>Update Data Siswa yang Sudah Terdaftar</b> — untuk mengisi NISN &amp; Tanggal Lahir siswa yang sudah ada di daftar (tanpa membuat duplikat). Sistem mencocokkan berdasarkan <b>nama persis sama</b> dengan yang sudah terdaftar. Paste dari Excel urutan kolom <b>Nama | L/P | NISN | Tanggal Lahir (YYYY-MM-DD)</b> — kolom L/P boleh dikosongkan kalau tidak mau diubah.</p>
+    <div class="field"><textarea id="mSiswaUpdate" placeholder="Affan Faezha Alfattah	L	0108745362	2010-07-03
+Andi Bau Tenri Batari	P	0104882781	2010-02-07"></textarea></div>
+    <div id="mSiswaUpdateBanner"></div>
+    <div class="row" style="margin-bottom:18px;">
+      <button class="btn btn-gold btn-sm" id="mSiswaUpdateBtn">Update Data yang Cocok</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0;">
+    <p class="hint"><b>Tambah Siswa Baru</b> — untuk siswa yang belum ada sama sekali di daftar. Format kolom sama seperti di atas.</p>
     <div class="field"><textarea id="mSiswaBulk" placeholder="Ahmad Fauzan	L	0108745362	2010-07-03
 Siti Aisyah	P	0104882781	2010-02-07"></textarea></div>
     <div id="mSiswaBanner"></div>
@@ -462,8 +470,77 @@ Siti Aisyah	P	0104882781	2010-02-07"></textarea></div>
     </div>`);
   document.getElementById('mCancel').addEventListener('click', closeModal);
   document.getElementById('mSiswaTambahBulk').addEventListener('click', () => tambahSiswaBulk(kelasId));
+  document.getElementById('mSiswaUpdateBtn').addEventListener('click', () => updateSiswaBulk(kelasId));
   document.getElementById('mBersihkanData').addEventListener('click', () => bersihkanDataSiswa(kelasId));
   loadSiswaList(kelasId);
+}
+
+async function updateSiswaBulk(kelasId){
+  const banner = document.getElementById('mSiswaUpdateBanner');
+  const raw = document.getElementById('mSiswaUpdate').value.trim();
+  if(!raw){ bannerErr(banner, 'Tulis minimal 1 baris data.'); return; }
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const btn = document.getElementById('mSiswaUpdateBtn');
+  btn.disabled = true; btn.textContent = 'Memproses…';
+  try{
+    const snap = await db.collection('siswa').where('kelasId','==',kelasId).get();
+    // peta nama (dinormalisasi: lowercase + trim spasi berlebih) -> daftar dokumen dengan nama itu
+    const petaNama = {};
+    snap.forEach(doc => {
+      const key = (doc.data().nama || '').trim().toLowerCase().replace(/\s+/g,' ');
+      if(!petaNama[key]) petaNama[key] = [];
+      petaNama[key].push({ id: doc.id, ...doc.data() });
+    });
+
+    const batch = db.batch();
+    let jumlahDiupdate = 0;
+    const tidakDitemukan = [];
+    const duplikatNama = [];
+    const formatSalah = [];
+
+    lines.forEach(line => {
+      const parts = line.includes('\t') ? line.split('\t') : line.split(',');
+      const nama = (parts[0]||'').trim();
+      const jk = (parts[1]||'').trim().toUpperCase();
+      const nisn = (parts[2]||'').trim();
+      const tanggalLahir = (parts[3]||'').trim();
+      if(!nama) return;
+
+      if(!/^\d{10}$/.test(nisn) || !/^\d{4}-\d{2}-\d{2}$/.test(tanggalLahir)){
+        formatSalah.push(nama);
+        return;
+      }
+
+      const key = nama.toLowerCase().replace(/\s+/g,' ');
+      const cocok = petaNama[key];
+      if(!cocok || cocok.length === 0){
+        tidakDitemukan.push(nama);
+        return;
+      }
+      if(cocok.length > 1){
+        duplikatNama.push(nama);
+        return;
+      }
+
+      const payload = { nisn, tanggalLahir };
+      if(jk === 'L' || jk === 'P') payload.jk = jk;
+      batch.update(db.collection('siswa').doc(cocok[0].id), payload);
+      jumlahDiupdate++;
+    });
+
+    if(jumlahDiupdate > 0) await batch.commit();
+
+    let msg = `${jumlahDiupdate} siswa berhasil diupdate.`;
+    if(formatSalah.length) msg += `<br><b>Format NISN/Tanggal Lahir salah, dilewati:</b> ${formatSalah.map(escapeHtml).join(', ')}`;
+    if(tidakDitemukan.length) msg += `<br><b>Nama tidak ditemukan di kelas ini (cek ejaan):</b> ${tidakDitemukan.map(escapeHtml).join(', ')}`;
+    if(duplikatNama.length) msg += `<br><b>Ada lebih dari 1 siswa dengan nama sama persis, dilewati (update manual satu-satu):</b> ${duplikatNama.map(escapeHtml).join(', ')}`;
+    bannerOk(banner, msg);
+    if(jumlahDiupdate > 0) loadSiswaList(kelasId);
+  }catch(err){
+    bannerErr(banner, 'Gagal update: ' + escapeHtml(err.message));
+  }finally{
+    btn.disabled = false; btn.textContent = 'Update Data yang Cocok';
+  }
 }
 
 async function bersihkanDataSiswa(kelasId){
