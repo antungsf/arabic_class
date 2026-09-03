@@ -18,15 +18,29 @@
     --bg-alt:#f2f7f4;
     --red:#b3311f;
     --red-bg:#fbeae7;
+
+    /* === tema baru: halaman verifikasi (badge/lanyard hijau) === */
+    --login-green:#0c6b46;
+    --login-green-dark:#094f34;
+    --login-card-inner:#f8f9f8;
+
+    /* === tema baru: halaman soal ujian mode HP (ungu-gelap) === */
+    --exam-purple-deep:#1c1130;
+    --exam-purple-panel:#241638;
+    --exam-purple:#7b2ff0;
+    --exam-purple2:#9333ea;
+    --exam-cyan:#22d3ee;
+    --exam-text:#f1e9ff;
+    --exam-text-dim:#c4b3e0;
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
-  body{margin:0;background:#ffffff;color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;}
+  body{margin:0;background:#ffffff;color:var(--ink);font-family:'Inter',sans-serif;line-height:1.6;transition:background .25s ease;}
   a{color:inherit;text-decoration:none;}
   .display{font-family:'Poppins',sans-serif;}
   .hidden{display:none !important;}
 
-  header{position:sticky;top:0;z-index:60;background:var(--green-deep);}
+  header{position:sticky;top:0;z-index:60;background:var(--green-deep);transition:background .25s ease;}
   .nav-wrap{max-width:1000px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   .brand-text{font-family:'Poppins',sans-serif;font-weight:700;letter-spacing:.02em;font-size:16px;color:#fff;}
   .brand-text span{color:var(--gold);}
@@ -36,7 +50,7 @@
   .admin-link.tampak{display:inline-block;}
   .admin-link:hover{color:#fff;border-color:var(--gold);}
 
-  main{max-width:840px;margin:0 auto;padding:48px 24px 80px;}
+  main{max-width:840px;margin:0 auto;padding:48px 24px 80px;transition:padding .25s ease;}
 
   .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);font-weight:700;margin-bottom:8px;display:block;}
   h1{font-family:'Poppins',sans-serif;font-weight:800;font-size:28px;margin:0 0 8px;color:var(--green-deep);}
@@ -160,7 +174,159 @@
 
   .loading{padding:60px 20px;text-align:center;color:var(--muted);font-size:13.5px;}
 
-  footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;font-size:12px;color:var(--muted);}
+  footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;font-size:12px;color:var(--muted);transition:background .25s ease;}
+
+  /* =========================================================================
+     TEMA BARU 1 — HALAMAN VERIFIKASI SISWA (viewNama)
+     Gaya kartu ID / lencana bergantung (reel), sesuai referensi desain login.
+     Semua id/elemen form (NISN, tanggal lahir, tombol, dsb) TIDAK berubah,
+     hanya dibungkus ulang secara visual — logic di ruang-ujian.js tetap jalan.
+     ========================================================================= */
+  body.tema-login{background:linear-gradient(180deg,var(--login-green) 0%,var(--login-green-dark) 480px, var(--login-green-dark) 100%);}
+  body.tema-login header{background:var(--login-green-dark);}
+  body.tema-login footer{background:var(--login-green-dark);color:#cfe8dc;border-top-color:rgba(255,255,255,.12);}
+  body.tema-login main{padding-top:28px;}
+  body.tema-login .crumb{color:#dff2e8;}
+  body.tema-login .crumb:hover{color:#fff;}
+
+  .badge-login-wrap{display:flex;flex-direction:column;align-items:center;padding:14px 0 6px;}
+  .badge-reel{display:flex;flex-direction:column;align-items:center;}
+  .badge-reel-outer{
+    width:112px;height:112px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%,#4c4c4c,#161616 72%);
+    box-shadow:0 10px 22px rgba(0,0,0,.4), inset 0 0 0 4px #2a2a2a;
+    display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .badge-reel-outer svg{position:absolute;width:100%;height:100%;}
+  .badge-emblem{
+    width:52px;height:52px;
+    clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);
+    background:#111;display:flex;align-items:center;justify-content:center;
+    border:1.5px solid #999;font-size:19px;
+  }
+  .badge-cord{width:3px;height:50px;background:linear-gradient(#222,#000);margin-top:-4px;}
+  .badge-hook{width:15px;height:15px;border-radius:50%;border:3px solid #c7c7c7;margin-top:-2px;background:transparent;}
+  .badge-tag{width:58px;height:92px;margin-top:-6px;background:rgba(255,255,255,.28);border-radius:4px;}
+
+  .badge-card{
+    margin-top:-50px;width:min(360px,90vw);
+    background:linear-gradient(180deg,#f4f5f4,#dfe2e0);
+    border-radius:16px;box-shadow:0 20px 45px rgba(0,0,0,.35);
+    padding:16px 14px 20px;
+    clip-path:polygon(12% 0%,88% 0%,100% 9%,100% 100%,0% 100%,0% 9%);
+  }
+  .badge-notches{display:flex;justify-content:space-between;align-items:center;padding:0 6px 10px;margin-top:2px;}
+  .badge-notches .hole{width:24px;height:11px;border-radius:8px;background:var(--login-green-dark);}
+  .badge-notches .slot{width:40px;height:11px;border-radius:8px;background:var(--login-green-dark);}
+
+  .badge-card-inner{
+    background:var(--login-card-inner);border-radius:10px;
+    padding:24px 22px 22px;text-align:center;
+    box-shadow:inset 0 0 0 1px #e2e5e3;
+  }
+  .badge-card-inner .eyebrow{color:var(--login-green);}
+  .badge-card-inner h1{color:var(--login-green-dark);font-size:21px;}
+  .badge-card-inner .lead{color:#5c6b66;font-size:12.5px;max-width:100%;margin-bottom:20px;}
+  .badge-qr{width:92px;height:92px;margin:0 auto 20px;position:relative;}
+  .badge-qr .corner{position:absolute;width:18px;height:18px;border-color:#9aa39e;border-style:solid;}
+  .badge-qr .c1{top:0;left:0;border-width:3px 0 0 3px;}
+  .badge-qr .c2{top:0;right:0;border-width:3px 3px 0 0;}
+  .badge-qr .c3{bottom:0;left:0;border-width:0 0 3px 3px;}
+  .badge-qr .c4{bottom:0;right:0;border-width:0 3px 3px 0;}
+  .badge-qr-grid{position:absolute;inset:12px;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);}
+  .badge-qr-grid div.on{background:#5b6560;}
+
+  .badge-card-inner .field{text-align:left;max-width:100%;margin-bottom:14px;}
+  .badge-card-inner .field label{color:var(--login-green-dark);font-size:11.5px;}
+  .badge-card-inner .field input{
+    border:none;border-bottom:2px solid #b7bcb9;border-radius:0;padding:8px 2px;
+    background:transparent;font-weight:600;color:#3d4a45;
+  }
+  .badge-card-inner .field input:focus{border-color:var(--login-green);}
+  .badge-card-inner #btnCariSiswaUjian{width:100%;margin-bottom:12px;}
+  .badge-card-inner #hasilCariNamaUjian,
+  .badge-card-inner #namaTerpilihInfo{text-align:left;font-size:12px;margin-bottom:10px;}
+  .badge-card-inner #btnMulaiUjian{
+    width:100%;background:linear-gradient(180deg,var(--login-green),var(--login-green-dark));
+    color:#fff;border:none;border-radius:6px;padding:13px;
+    font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;
+    box-shadow:0 6px 16px rgba(12,107,70,.35);margin-top:4px;
+  }
+  .badge-card-inner #btnMulaiUjian[disabled]{opacity:.5;box-shadow:none;}
+  .badge-card-inner .copyright-mini{font-size:10.5px;color:#a4aca7;margin-top:16px;}
+
+  /* =========================================================================
+     TEMA BARU 2 — HALAMAN SOAL UJIAN, MODE HP (viewUjian)
+     Kartu soal ungu-gelap dengan header gradient, aksen cyan pada opsi jawaban.
+     Hanya CSS scoped lewat body.tema-ujian — struktur/logic soal tidak berubah.
+     ========================================================================= */
+  body.tema-ujian{background:var(--exam-purple-deep);}
+  body.tema-ujian header{background:var(--exam-purple-deep);border-bottom:1px solid rgba(255,255,255,.08);}
+  body.tema-ujian footer{background:var(--exam-purple-deep);color:var(--exam-text-dim);border-top-color:rgba(255,255,255,.08);}
+  body.tema-ujian .eyebrow{color:var(--exam-cyan);}
+  body.tema-ujian h1{color:#fff;}
+  body.tema-ujian .lead{color:var(--exam-text-dim);}
+  body.tema-ujian .hint{color:var(--exam-text-dim);}
+  body.tema-ujian #soalProgress{color:var(--exam-cyan);font-size:12.5px;letter-spacing:.03em;}
+  body.tema-ujian #timerUjian{background:var(--exam-purple-panel) !important;border-color:rgba(147,51,234,.4) !important;}
+  body.tema-ujian #timerAngka{color:#fff !important;}
+  body.tema-ujian .banner-error{background:rgba(179,49,31,.18);color:#ff9d8a;border-color:rgba(255,157,138,.3);}
+  body.tema-ujian .banner-ok{background:rgba(34,211,238,.1);color:var(--exam-cyan);border-color:rgba(34,211,238,.3);}
+
+  body.tema-ujian .soal-block{
+    background:var(--exam-purple-panel);
+    border:1.5px solid rgba(147,51,234,.5);
+    border-radius:16px;overflow:hidden;padding:0;
+  }
+  body.tema-ujian .soal-head{
+    background:linear-gradient(135deg,var(--exam-purple),var(--exam-purple2));
+    padding:16px 20px;display:flex;gap:10px;align-items:flex-start;
+  }
+  body.tema-ujian .qmark-icon{
+    width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.18);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;
+    color:#fff;flex-shrink:0;margin-top:2px;
+  }
+  body.tema-ujian .soal-no{font-size:13px;font-weight:700;color:#fff;text-transform:none;letter-spacing:0;margin-bottom:6px;}
+  body.tema-ujian .soal-text{font-size:14.5px;line-height:1.7;color:#f4edff;margin:0;font-weight:600;}
+  body.tema-ujian .soal-block audio{margin:14px 20px 0;width:calc(100% - 40px);}
+
+  body.tema-ujian .opsi{
+    display:flex;align-items:center;gap:12px;padding:15px 20px;
+    border:none;border-bottom:1px solid rgba(147,51,234,.25);
+    border-radius:0;margin-bottom:0;background:transparent;
+  }
+  body.tema-ujian .opsi:last-child{border-bottom:none;}
+  body.tema-ujian .opsi:hover{background:rgba(147,51,234,.1);}
+  body.tema-ujian .opsi.checked{background:rgba(34,211,238,.07);}
+  body.tema-ujian .opsi::before{
+    content:attr(data-key);order:1;font-size:13.5px;font-weight:800;
+    color:var(--exam-cyan);width:18px;flex-shrink:0;
+  }
+  body.tema-ujian .opsi span{order:2;flex:1;font-size:13.5px;color:var(--exam-text-dim);line-height:1.6;}
+  body.tema-ujian .opsi.checked span{color:#fff;}
+  body.tema-ujian .opsi input{
+    order:3;appearance:none;-webkit-appearance:none;width:17px;height:17px;
+    border-radius:50%;border:1.5px solid #6a5a8f;flex-shrink:0;margin:0;cursor:pointer;
+  }
+  body.tema-ujian .opsi.checked input{
+    border-color:var(--exam-cyan);
+    background:radial-gradient(circle,var(--exam-cyan) 40%,transparent 42%);
+  }
+  body.tema-ujian .soal-esai{
+    margin:16px 20px 20px;width:calc(100% - 40px);
+    background:var(--exam-purple-deep);border:1.5px solid rgba(147,51,234,.4);
+    border-radius:8px;color:#fff;padding:12px;font-family:inherit;font-size:14px;
+  }
+  body.tema-ujian .arabic-inline{color:inherit;}
+
+  body.tema-ujian .btn-solid{background:linear-gradient(135deg,var(--exam-purple),var(--exam-purple2));}
+  body.tema-ujian .btn-solid:hover{filter:brightness(1.12);}
+  body.tema-ujian .btn-outline{border-color:var(--exam-cyan);color:var(--exam-cyan);background:transparent;}
+  body.tema-ujian .btn-outline:hover{background:var(--exam-cyan);color:var(--exam-purple-deep);}
+  body.tema-ujian .btn-gold{background:var(--exam-cyan);color:var(--exam-purple-deep);}
+  body.tema-ujian .btn-gold:hover{filter:brightness(1.1);}
+  body.tema-ujian #watermarkUjian span{color:#fff;}
 </style>
 </head>
 <body>
@@ -197,27 +363,58 @@
     <div id="topikList"><div class="loading">Memuat daftar materi…</div></div>
   </div>
 
-  <!-- View: verifikasi identitas (NISN + tanggal lahir) -->
+  <!-- View: verifikasi identitas (NISN + tanggal lahir) — GAYA BADGE/LENCANA -->
   <div id="viewNama" class="hidden">
     <span class="crumb" id="crumbTopik">&larr; Pilih materi lain</span>
-    <span class="eyebrow" id="namaEyebrow">Materi</span>
-    <h1 id="namaTitle">Mulai ujian</h1>
-    <p class="lead" id="infoJumlahSoal">Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.</p>
-    <div class="field" style="max-width:280px;">
-      <label>NISN</label>
-      <input type="text" id="inputNisnSiswa" maxlength="10" placeholder="10 digit NISN" autocomplete="off">
+
+    <div class="badge-login-wrap">
+      <div class="badge-reel">
+        <div class="badge-reel-outer">
+          <svg viewBox="0 0 112 112">
+            <path id="curveNama" d="M 15,56 A 41,41 0 0 1 97,56" fill="none"/>
+            <text font-size="7.6" fill="#cfcfcf" letter-spacing="1.2" font-family="sans-serif">
+              <textPath href="#curveNama" startOffset="50%" text-anchor="middle">RUANG UJIAN &middot; MAN BALIKPAPAN</textPath>
+            </text>
+          </svg>
+          <div class="badge-emblem"><span style="color:#fff;">📖</span></div>
+        </div>
+        <div class="badge-cord"></div>
+        <div class="badge-hook"></div>
+      </div>
+      <div class="badge-tag"></div>
+
+      <div class="badge-card">
+        <div class="badge-notches"><div class="hole"></div><div class="slot"></div><div class="hole"></div></div>
+        <div class="badge-card-inner">
+          <div class="badge-qr">
+            <div class="corner c1"></div><div class="corner c2"></div>
+            <div class="corner c3"></div><div class="corner c4"></div>
+            <div class="badge-qr-grid" id="badgeQrGrid"></div>
+          </div>
+
+          <span class="eyebrow" id="namaEyebrow">Materi</span>
+          <h1 id="namaTitle">Mulai ujian</h1>
+          <p class="lead" id="infoJumlahSoal">Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.</p>
+
+          <div class="field">
+            <label>NISN</label>
+            <input type="text" id="inputNisnSiswa" maxlength="10" placeholder="10 digit NISN" autocomplete="off">
+          </div>
+          <div class="field">
+            <label>Tanggal Lahir</label>
+            <input type="date" id="inputLahirSiswa">
+          </div>
+          <button class="btn btn-outline btn-sm" id="btnCariSiswaUjian">Cari</button>
+          <div id="hasilCariNamaUjian"></div>
+          <div id="namaTerpilihInfo" class="hint"></div>
+          <button class="btn btn-solid" id="btnMulaiUjian" disabled>Mulai Mengerjakan</button>
+          <div class="copyright-mini">© 2025 &middot; MAN Balikpapan</div>
+        </div>
+      </div>
     </div>
-    <div class="field" style="max-width:280px;">
-      <label>Tanggal Lahir</label>
-      <input type="date" id="inputLahirSiswa">
-    </div>
-    <button class="btn btn-outline btn-sm" id="btnCariSiswaUjian" style="margin-bottom:14px;">Cari</button>
-    <div id="hasilCariNamaUjian"></div>
-    <div id="namaTerpilihInfo" class="hint" style="margin-bottom:14px;"></div>
-    <button class="btn btn-solid" id="btnMulaiUjian" disabled>Mulai Mengerjakan</button>
   </div>
 
-  <!-- View: ujian -->
+  <!-- View: ujian (mode HP — kartu ungu-gelap) -->
   <div id="viewUjian" class="hidden">
     <div class="row-between" style="align-items:flex-start;">
       <div>
@@ -427,6 +624,21 @@
 <footer>
   Ruang Ujian · MAN Balikpapan · Bahasa Arab &middot; <a href="index.html" style="text-decoration:underline;">Kembali ke Beranda</a>
 </footer>
+
+<!-- Pola QR dekoratif untuk kartu badge login (statis, hanya visual) -->
+<script>
+(function(){
+  var on = new Set(["0,0","0,1","0,2","1,0","1,2","2,0","2,1","2,2","0,4","0,5","0,6","1,4","1,6","2,4","2,5","2,6","4,0","4,1","4,2","5,0","5,2","6,0","6,1","6,2","3,3","4,4","5,3","3,5","2,3","4,6","6,4","5,5","6,6","3,1","1,4"]);
+  var html = "";
+  for(var r=0;r<7;r++){
+    for(var c=0;c<7;c++){
+      html += '<div class="'+(on.has(r+","+c)?'on':'')+'"></div>';
+    }
+  }
+  var el = document.getElementById('badgeQrGrid');
+  if(el) el.innerHTML = html;
+})();
+</script>
 
 <!-- ============ FIREBASE ============ -->
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>

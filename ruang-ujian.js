@@ -33,9 +33,15 @@ const state = {
 };
 const BATAS_PELANGGARAN = 3;
 
+// PERBAIKAN TAMPILAN: tambahkan/lepas class tema pada <body> sesuai view yang aktif —
+// 'tema-login' untuk kartu verifikasi (badge/lencana hijau), 'tema-ujian' untuk kartu
+// soal ungu-gelap (mode HP). Ini murni kosmetik (lihat CSS di ruang-ujian.html),
+// tidak memengaruhi logic apa pun di bawah.
 function showView(id){
   document.querySelectorAll('#studentApp > div').forEach(el => el.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
+  document.body.classList.toggle('tema-login', id === 'viewNama');
+  document.body.classList.toggle('tema-ujian', id === 'viewUjian');
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -455,13 +461,22 @@ function renderSoalHalaman(){
 
   progress.textContent = `Soal ${i + 1} dari ${total}`;
 
-  let inner = `<div class="soal-block"><div class="soal-no">Soal ${i + 1}</div>`;
+  // PERBAIKAN TAMPILAN: nomor soal + teks pertanyaan (+ audio bila ada) dibungkus
+  // dalam .soal-head, supaya di tema ujian (mode HP) tampil sebagai header
+  // gradient ungu di atas kartu — sementara di tema default (putih/hijau) tetap
+  // terlihat rapi seperti sebelumnya karena .soal-head tidak diberi style khusus.
+  let inner = `<div class="soal-block"><div class="soal-head">
+    <span class="qmark-icon">?</span>
+    <div style="flex:1;">
+      <div class="soal-no">Pertanyaan ${i + 1}</div>`;
   if(d.audioUrl){
     inner += `<audio controls preload="none" style="width:100%;margin-bottom:14px;" src="${escapeHtml(d.audioUrl)}"></audio>`;
   }
   // PERBAIKAN: highlightArabic() membungkus otomatis bagian teks Arab di dalam
   // kalimat campuran Indonesia+Arab dengan span.arabic-inline (font & ukuran lebih besar).
   inner += `<p class="soal-text">${highlightArabic(escapeHtml(d.pertanyaan))}</p>`;
+  inner += `</div></div>`; // tutup .soal-head
+
   if(d.tipe === 'pilihan_ganda'){
     if(!d._kunciAcak){
       const kunciTersedia = ['A','B','C','D','E'].filter(k => d.pilihan && d.pilihan[k]);
