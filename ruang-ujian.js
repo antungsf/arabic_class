@@ -1,7 +1,7 @@
 /* ============================================================
    RUANG UJIAN — logic
    Struktur Firestore:
-   - topik    { kelas, nama, deskripsi, urutan, aktif }
+   - topik    { kelas, semester, nama, deskripsi, urutan, aktif }
    - soal     { topikId, tipe: 'pilihan_ganda'|'esai', pertanyaan,
                 pilihan: {A,B,C,D} (khusus pilihan_ganda), jawabanBenar,
                 urutan }
@@ -12,6 +12,7 @@
 
 const state = {
   kelas: null,
+  semester: null,
   topik: null,
   namaSiswa: "",
   soalList: [],
@@ -48,32 +49,44 @@ function showView(id){
 function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}</div>`; }
 function bannerErr(el, msg){ el.innerHTML = `<div class="banner banner-error">${msg}</div>`; }
 
+// PERBAIKAN TAMPILAN: alur siswa sekarang 3 langkah — Kelas -> Semester (folder) -> Materi.
+// Klik kartu kelas TIDAK langsung ke daftar materi lagi, tapi ke folder semester dulu.
 document.querySelectorAll('#viewKelas .card').forEach(card => {
   card.addEventListener('click', () => {
     state.kelas = card.dataset.kelas;
-    document.getElementById('topikEyebrow').textContent = 'Kelas ' + state.kelas;
-    showView('viewTopik');
-    loadTopikSiswa(state.kelas);
+    document.getElementById('semesterEyebrow').textContent = 'Kelas ' + state.kelas;
+    showView('viewSemester');
   });
 });
 
-document.getElementById('crumbKelas').addEventListener('click', () => showView('viewKelas'));
-document.getElementById('crumbTopik').addEventListener('click', () => {
-  showView('viewTopik');
-  loadTopikSiswa(state.kelas);
+document.querySelectorAll('#viewSemester .folder-card').forEach(card => {
+  card.addEventListener('click', () => {
+    state.semester = card.dataset.semester;
+    document.getElementById('topikEyebrow').textContent = 'Kelas ' + state.kelas + ' · Semester ' + state.semester;
+    showView('viewTopik');
+    loadTopikSiswa(state.kelas, state.semester);
+  });
 });
 
-async function loadTopikSiswa(kelas){
+document.getElementById('crumbSemesterBack').addEventListener('click', () => showView('viewKelas'));
+document.getElementById('crumbSemester').addEventListener('click', () => showView('viewSemester'));
+document.getElementById('crumbTopik').addEventListener('click', () => {
+  showView('viewTopik');
+  loadTopikSiswa(state.kelas, state.semester);
+});
+
+async function loadTopikSiswa(kelas, semester){
   const box = document.getElementById('topikList');
   box.innerHTML = '<div class="loading">Memuat daftar materi…</div>';
   try{
     const snap = await db.collection('topik')
       .where('kelas','==',kelas)
+      .where('semester','==',String(semester))
       .where('aktif','==',true)
       .orderBy('urutan','asc')
       .get();
     if(snap.empty){
-      box.innerHTML = '<div class="empty">Belum ada materi asesmen untuk kelas ini. Silakan cek lagi nanti.</div>';
+      box.innerHTML = '<div class="empty">Belum ada materi asesmen untuk kelas & semester ini. Silakan cek lagi nanti.</div>';
       return;
     }
     box.innerHTML = '';
@@ -83,7 +96,7 @@ async function loadTopikSiswa(kelas){
       card.className = 'topik-card';
       card.innerHTML = `
         <div>
-          <div class="topik-meta">Kelas ${d.kelas}</div>
+          <div class="topik-meta">Kelas ${d.kelas} · Semester ${d.semester || '-'}</div>
           <h3>${escapeHtml(d.nama)}</h3>
           <p>${escapeHtml(d.deskripsi||'')}</p>
         </div>
@@ -97,8 +110,8 @@ async function loadTopikSiswa(kelas){
 }
 
 function bukaTopik(id, d){
-  state.topik = {id, nama:d.nama, kelas:d.kelas, tpTerhubung:d.tpTerhubung||null};
-  document.getElementById('namaEyebrow').textContent = 'Kelas ' + d.kelas + ' · ' + d.nama;
+  state.topik = {id, nama:d.nama, kelas:d.kelas, semester:d.semester, tpTerhubung:d.tpTerhubung||null};
+  document.getElementById('namaEyebrow').textContent = 'Kelas ' + d.kelas + ' · Semester ' + (d.semester||'-') + ' · ' + d.nama;
   document.getElementById('namaTitle').textContent = 'Mulai: ' + d.nama;
   resetLangkahNama();
   showView('viewNama');
@@ -252,7 +265,7 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
 
   btn.textContent = 'Mulai Mengerjakan';
 
-  document.getElementById('ujianEyebrow').textContent = 'Kelas ' + state.topik.kelas + ' · ' + state.topik.nama;
+  document.getElementById('ujianEyebrow').textContent = 'Kelas ' + state.topik.kelas + ' · Semester ' + (state.topik.semester||'-') + ' · ' + state.topik.nama;
   document.getElementById('ujianTitle').textContent = state.topik.nama;
   showView('viewUjian');
 
@@ -292,6 +305,7 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
       topikId: state.topik.id,
       topikNama: state.topik.nama,
       kelas: state.topik.kelas,
+      semester: state.topik.semester || null,
       namaSiswa: state.namaSiswa,
       siswaId: state.siswaTerpilihId,
       kelasAbsensiId: state.kelasAbsensiId,
@@ -652,6 +666,7 @@ document.getElementById('btnKumpulkan').addEventListener('click', async () => {
     } else {
       await db.collection('hasil_ujian').add({
         topikId: state.topik.id, topikNama: state.topik.nama, kelas: state.topik.kelas,
+        semester: state.topik.semester || null,
         namaSiswa: state.namaSiswa, catatanGuru:null, ...payload
       });
     }
@@ -723,37 +738,71 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
+// PERBAIKAN: filter Kelas & Semester di tab Materi/Topik admin, plus daftar dikelompokkan
+// per "Semester X" (mirip folder) supaya guru juga lebih mudah menyusurinya.
+document.getElementById('topikFilterKelas').addEventListener('change', renderTopikAdminList);
+document.getElementById('topikFilterSemester').addEventListener('change', renderTopikAdminList);
+
 async function loadTopikAdmin(){
   const box = document.getElementById('topikAdminList');
   box.innerHTML = '<div class="loading">Memuat…</div>';
   try{
-    const snap = await db.collection('topik').orderBy('kelas').orderBy('urutan').get();
+    const snap = await db.collection('topik').orderBy('kelas').orderBy('semester').orderBy('urutan').get();
     state.adminTopikCache = [];
-    if(snap.empty){ box.innerHTML = '<div class="empty">Belum ada materi. Klik "+ Tambah Materi".</div>'; return; }
-    box.innerHTML = '';
-    snap.forEach(doc => {
-      const d = doc.data();
-      state.adminTopikCache.push({id:doc.id, ...d});
-      const item = document.createElement('div');
-      item.className = 'list-item';
-      item.innerHTML = `
-        <div class="list-item-head">
-          <div>
-            <h4>${escapeHtml(d.nama)} <span class="badge ${d.aktif?'badge-done':'badge-wait'}">${d.aktif?'Aktif':'Nonaktif'}</span>${d.tpTerhubung ? ` <span class="badge badge-done" style="background:#eaf5ee;">→ ${escapeHtml(d.tpTerhubung)}</span>` : ''}</h4>
-            <div class="meta">Kelas ${d.kelas} · urutan ${d.urutan ?? '-'} · ${escapeHtml(d.deskripsi||'')}</div>
-          </div>
-          <div>
-            <button class="icon-btn" data-act="edit">Edit</button>
-            <button class="icon-btn danger" data-act="hapus">Hapus</button>
-          </div>
-        </div>`;
-      item.querySelector('[data-act="edit"]').addEventListener('click', () => openTopikModal(doc.id, d));
-      item.querySelector('[data-act="hapus"]').addEventListener('click', () => hapusTopik(doc.id, d.nama));
-      box.appendChild(item);
-    });
+    snap.forEach(doc => state.adminTopikCache.push({id:doc.id, ...doc.data()}));
+    renderTopikAdminList();
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
   }
+}
+
+function renderTopikAdminList(){
+  const box = document.getElementById('topikAdminList');
+  const filterKelas = document.getElementById('topikFilterKelas').value;
+  const filterSemester = document.getElementById('topikFilterSemester').value;
+
+  let list = state.adminTopikCache.slice();
+  if(filterKelas) list = list.filter(d => d.kelas === filterKelas);
+  if(filterSemester) list = list.filter(d => String(d.semester||'') === filterSemester);
+
+  if(!list.length){ box.innerHTML = '<div class="empty">Belum ada materi. Klik "+ Tambah Materi".</div>'; return; }
+
+  // Kelompokkan per Semester supaya terlihat seperti folder Semester 1 / Semester 2
+  const grup = {};
+  list.forEach(d => {
+    const key = d.semester ? String(d.semester) : '-';
+    if(!grup[key]) grup[key] = [];
+    grup[key].push(d);
+  });
+  const urutanSemester = Object.keys(grup).sort((a,b) => a.localeCompare(b));
+
+  let html = '';
+  urutanSemester.forEach(sem => {
+    html += `<div class="semester-heading">📁 ${sem === '-' ? 'Belum diatur semesternya' : 'Semester ' + sem}</div>`;
+    grup[sem].forEach(d => {
+      html += `
+        <div class="list-item" data-id="${d.id}">
+          <div class="list-item-head">
+            <div>
+              <h4>${escapeHtml(d.nama)} <span class="badge ${d.aktif?'badge-done':'badge-wait'}">${d.aktif?'Aktif':'Nonaktif'}</span>${d.tpTerhubung ? ` <span class="badge badge-done" style="background:#eaf5ee;">→ ${escapeHtml(d.tpTerhubung)}</span>` : ''}</h4>
+              <div class="meta">Kelas ${escapeHtml(d.kelas)} · Semester ${escapeHtml(String(d.semester||'-'))} · urutan ${d.urutan ?? '-'} · ${escapeHtml(d.deskripsi||'')}</div>
+            </div>
+            <div>
+              <button class="icon-btn" data-act="edit">Edit</button>
+              <button class="icon-btn danger" data-act="hapus">Hapus</button>
+            </div>
+          </div>
+        </div>`;
+    });
+  });
+  box.innerHTML = html;
+
+  box.querySelectorAll('.list-item[data-id]').forEach(item => {
+    const d = list.find(x => x.id === item.dataset.id);
+    if(!d) return;
+    item.querySelector('[data-act="edit"]').addEventListener('click', () => openTopikModal(d.id, d));
+    item.querySelector('[data-act="hapus"]').addEventListener('click', () => hapusTopik(d.id, d.nama));
+  });
 }
 
 document.getElementById('btnTambahTopik').addEventListener('click', () => openTopikModal(null, {}));
@@ -768,6 +817,13 @@ function openTopikModal(id, d){
         <option value="XI" ${d.kelas==='XI'?'selected':''}>XI</option>
         <option value="XII" ${d.kelas==='XII'?'selected':''}>XII</option>
       </select>
+    </div>
+    <div class="field"><label>Semester</label>
+      <select id="mTopikSemester">
+        <option value="1" ${String(d.semester)==='1'||!d.semester?'selected':''}>Semester 1</option>
+        <option value="2" ${String(d.semester)==='2'?'selected':''}>Semester 2</option>
+      </select>
+      <p class="hint">Menentukan folder semester tempat materi ini muncul di tampilan siswa.</p>
     </div>
     <div class="field"><label>Nama Materi</label>
       <input type="text" id="mTopikNama" value="${escapeHtml(d.nama||'')}" placeholder="Contoh: Qawaid Bilangan (Adad)"></div>
@@ -808,6 +864,7 @@ async function simpanTopik(){
   if(!nama){ bannerErr(banner, 'Nama materi wajib diisi.'); return; }
   const payload = {
     kelas: document.getElementById('mTopikKelas').value,
+    semester: document.getElementById('mTopikSemester').value,
     nama,
     deskripsi: document.getElementById('mTopikDeskripsi').value.trim(),
     urutan: Number(document.getElementById('mTopikUrutan').value) || 1,
@@ -842,13 +899,13 @@ async function hapusTopik(id, nama){
 async function loadSelectTopikSoal(){
   const sel = document.getElementById('selectTopikSoal');
   try{
-    const snap = await db.collection('topik').orderBy('kelas').orderBy('urutan').get();
+    const snap = await db.collection('topik').orderBy('kelas').orderBy('semester').orderBy('urutan').get();
     sel.innerHTML = '<option value="">— pilih materi —</option>';
     snap.forEach(doc => {
       const d = doc.data();
       const opt = document.createElement('option');
       opt.value = doc.id;
-      opt.textContent = `Kelas ${d.kelas} · ${d.nama}`;
+      opt.textContent = `Kelas ${d.kelas} · Semester ${d.semester||'-'} · ${d.nama}`;
       sel.appendChild(opt);
     });
   }catch(err){
@@ -967,6 +1024,7 @@ document.getElementById('btnCetakPdfBank').addEventListener('click', cetakBankPD
 
 async function ambilBankSoalTerfilter(){
   const kelasFilter = document.getElementById('bankFilterKelas').value;
+  const semesterFilter = document.getElementById('bankFilterSemester').value;
   const kataKunci = document.getElementById('bankCari').value.trim().toLowerCase();
 
   const topikSnap = await db.collection('topik').get();
@@ -981,14 +1039,15 @@ async function ambilBankSoalTerfilter(){
     const t = topikMap[s.topikId];
     if(!t) return;
     if(kelasFilter && t.kelas !== kelasFilter) return;
+    if(semesterFilter && String(t.semester||'') !== semesterFilter) return;
     if(kataKunci && !s.pertanyaan.toLowerCase().includes(kataKunci)) return;
-    const key = `${t.kelas}||${t.nama}`;
-    if(!grup[key]) grup[key] = { kelas:t.kelas, materi:t.nama, topikId:s.topikId, soal:[] };
+    const key = `${t.kelas}||${t.semester||'-'}||${t.nama}`;
+    if(!grup[key]) grup[key] = { kelas:t.kelas, semester:t.semester||'-', materi:t.nama, topikId:s.topikId, soal:[] };
     grup[key].soal.push(s);
   });
 
   Object.values(grup).forEach(g => g.soal.sort((a,b) => (a.urutan||0) - (b.urutan||0)));
-  return Object.values(grup).sort((a,b) => (a.kelas+a.materi).localeCompare(b.kelas+b.materi));
+  return Object.values(grup).sort((a,b) => (a.kelas+a.semester+a.materi).localeCompare(b.kelas+b.semester+b.materi));
 }
 
 async function loadBankSoal(){
@@ -999,7 +1058,7 @@ async function loadBankSoal(){
     if(!groups.length){ box.innerHTML = '<div class="empty">Tidak ada soal yang cocok.</div>'; return; }
     let html = '';
     groups.forEach(g => {
-      html += `<h4 style="margin:18px 0 8px;font-family:'Poppins',sans-serif;color:var(--green-deep);">${escapeHtml(g.kelas)} &middot; ${escapeHtml(g.materi)} <span class="hint">(${g.soal.length} soal)</span></h4>`;
+      html += `<h4 style="margin:18px 0 8px;font-family:'Poppins',sans-serif;color:var(--green-deep);">${escapeHtml(g.kelas)} &middot; Semester ${escapeHtml(String(g.semester))} &middot; ${escapeHtml(g.materi)} <span class="hint">(${g.soal.length} soal)</span></h4>`;
       g.soal.forEach(s => {
         html += `<div class="list-item" style="cursor:pointer;" data-id="${s.id}" data-topik="${s.topikId}">
           <div class="meta">${s.tipe==='pilihan_ganda'?'Pilihan Ganda':'Esai'} &middot; urutan ${s.urutan ?? '-'}</div>
@@ -1047,7 +1106,7 @@ async function cetakBankPDF(){
 
     let nomorGlobal = 1;
     groups.forEach(g => {
-      html += `<h2 class="grp">${escapeHtml(g.kelas)} &middot; ${escapeHtml(g.materi)}</h2>`;
+      html += `<h2 class="grp">${escapeHtml(g.kelas)} &middot; Semester ${escapeHtml(String(g.semester))} &middot; ${escapeHtml(g.materi)}</h2>`;
       g.soal.forEach(s => {
         html += `<div class="soal"><div><span class="no">${nomorGlobal}.</span> <span class="arab">${escapeHtml(s.pertanyaan)}</span></div>`;
         if(s.tipe === 'pilihan_ganda' && s.pilihan){
@@ -1066,7 +1125,7 @@ async function cetakBankPDF(){
     if(sertakanKunci){
       html += `<div class="kunci-page"><h2>Kunci Jawaban</h2>`;
       groups.forEach(g => {
-        html += `<div class="kunci-grp"><b>${escapeHtml(g.kelas)} &middot; ${escapeHtml(g.materi)}</b><div class="kunci-list">`;
+        html += `<div class="kunci-grp"><b>${escapeHtml(g.kelas)} &middot; Semester ${escapeHtml(String(g.semester))} &middot; ${escapeHtml(g.materi)}</b><div class="kunci-list">`;
         g.soal.forEach(s => {
           html += `<div>${s._nomorCetak}. ${s.jawabanBenar || '-'}</div>`;
         });
@@ -1767,11 +1826,11 @@ if(CONFIG_BELUM_DIISI){
 async function loadJwTopikOptions(){
   const sel = document.getElementById('jwTopik');
   try{
-    const snap = await db.collection('topik').orderBy('kelas').orderBy('urutan').get();
+    const snap = await db.collection('topik').orderBy('kelas').orderBy('semester').orderBy('urutan').get();
     let opts = '<option value="">— pilih materi —</option>';
     snap.forEach(doc => {
       const d = doc.data();
-      opts += `<option value="${doc.id}" data-kelas="${escapeHtml(d.kelas)}" data-nama="${escapeHtml(d.nama)}">${escapeHtml(d.kelas)} · ${escapeHtml(d.nama)}</option>`;
+      opts += `<option value="${doc.id}" data-kelas="${escapeHtml(d.kelas)}" data-nama="${escapeHtml(d.nama)}">${escapeHtml(d.kelas)} · Semester ${escapeHtml(String(d.semester||'-'))} · ${escapeHtml(d.nama)}</option>`;
     });
     sel.innerHTML = opts;
   }catch(err){ sel.innerHTML = '<option value="">Gagal memuat</option>'; }

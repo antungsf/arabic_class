@@ -61,11 +61,25 @@
 
   .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
   @media (max-width:680px){.grid-3{grid-template-columns:1fr;}}
+  .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  @media (max-width:680px){.grid-2{grid-template-columns:1fr;}}
 
   .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:24px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left;}
   .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,54,39,.1);border-color:var(--green);}
   .card .k{font-family:'Poppins',sans-serif;font-weight:800;font-size:22px;color:var(--green-deep);margin:0 0 4px;}
   .card .d{font-size:13px;color:var(--muted);margin:0;}
+
+  /* PERBAIKAN: kartu "folder" semester — dipakai di viewSemester (tampilan siswa)
+     supaya materi asesmen terasa dikelompokkan per semester, bukan ditumpuk semua. */
+  .folder-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:26px 22px;cursor:pointer;
+    transition:transform .15s,box-shadow .15s,border-color .15s;text-align:left;display:flex;align-items:center;gap:16px;}
+  .folder-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,54,39,.1);border-color:var(--green);}
+  .folder-card .folder-icon{
+    width:46px;height:46px;flex-shrink:0;border-radius:10px;background:var(--bg-alt);
+    display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--gold-deep);
+  }
+  .folder-card .k{font-family:'Poppins',sans-serif;font-weight:800;font-size:19px;color:var(--green-deep);margin:0 0 3px;}
+  .folder-card .d{font-size:12.5px;color:var(--muted);margin:0;}
 
   .topik-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   .topik-card h3{font-family:'Poppins',sans-serif;font-weight:700;font-size:16px;margin:0 0 4px;color:var(--green-deep);}
@@ -173,6 +187,13 @@
   .modal-box h3{margin:0 0 18px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
 
   .loading{padding:60px 20px;text-align:center;color:var(--muted);font-size:13.5px;}
+
+  /* PERBAIKAN: header sub-grup "Semester X" di dalam panel admin tab Materi/Topik */
+  .semester-heading{
+    font-family:'Poppins',sans-serif;font-weight:800;font-size:14px;color:var(--gold-deep);
+    text-transform:uppercase;letter-spacing:.04em;margin:26px 0 12px;padding-top:14px;border-top:2px solid var(--line);
+  }
+  .semester-heading:first-child{margin-top:0;padding-top:0;border-top:none;}
 
   footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;font-size:12px;color:var(--muted);transition:background .25s ease;}
 
@@ -354,9 +375,27 @@
     </div>
   </div>
 
+  <!-- View: pilih semester (folder) -->
+  <div id="viewSemester" class="hidden">
+    <span class="crumb" id="crumbSemesterBack">&larr; Ganti kelas</span>
+    <span class="eyebrow" id="semesterEyebrow">Kelas X</span>
+    <h1>Pilih semester</h1>
+    <p class="lead">Materi dikelompokkan per semester. Pilih folder semester sesuai materi yang sudah diajarkan.</p>
+    <div class="grid-2">
+      <div class="folder-card" data-semester="1">
+        <div class="folder-icon">📁</div>
+        <div><p class="k">Semester 1</p><p class="d">Materi asesmen semester ganjil</p></div>
+      </div>
+      <div class="folder-card" data-semester="2">
+        <div class="folder-icon">📁</div>
+        <div><p class="k">Semester 2</p><p class="d">Materi asesmen semester genap</p></div>
+      </div>
+    </div>
+  </div>
+
   <!-- View: pilih topik -->
   <div id="viewTopik" class="hidden">
-    <span class="crumb" id="crumbKelas">&larr; Ganti kelas</span>
+    <span class="crumb" id="crumbSemester">&larr; Ganti semester</span>
     <span class="eyebrow" id="topikEyebrow">Kelas X</span>
     <h1>Pilih materi asesmen</h1>
     <p class="lead">Pilih tahapan asesmen sesuai materi yang sudah diajarkan.</p>
@@ -506,8 +545,25 @@
     <!-- Tab: Topik -->
     <div id="tabTopik">
       <div class="row-between">
-        <p class="lead" style="margin:0;">Materi/tahapan asesmen yang muncul ke siswa, per kelas.</p>
+        <p class="lead" style="margin:0;">Materi/tahapan asesmen yang muncul ke siswa, per kelas &amp; semester.</p>
         <button class="btn btn-gold btn-sm" id="btnTambahTopik">+ Tambah Materi</button>
+      </div>
+      <div class="row" style="align-items:flex-end;margin-bottom:6px;">
+        <div class="field" style="max-width:200px;"><label>Filter Kelas</label>
+          <select id="topikFilterKelas">
+            <option value="">Semua Kelas</option>
+            <option value="X">X</option>
+            <option value="XI">XI</option>
+            <option value="XII">XII</option>
+          </select>
+        </div>
+        <div class="field" style="max-width:200px;"><label>Filter Semester</label>
+          <select id="topikFilterSemester">
+            <option value="">Semua Semester</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+          </select>
+        </div>
       </div>
       <div id="topikAdminList"><div class="loading">Memuat…</div></div>
     </div>
@@ -539,6 +595,13 @@
             <option value="X">X</option>
             <option value="XI">XI</option>
             <option value="XII">XII</option>
+          </select>
+        </div>
+        <div class="field" style="max-width:220px;"><label>Filter Semester</label>
+          <select id="bankFilterSemester">
+            <option value="">Semua Semester</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
           </select>
         </div>
         <div class="field" style="max-width:280px;flex:1;"><label>Cari kata kunci</label>
