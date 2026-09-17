@@ -79,19 +79,25 @@ async function loadTopikSiswa(kelas, semester){
   const box = document.getElementById('topikList');
   box.innerHTML = '<div class="loading">Memuat daftar materi…</div>';
   try{
+    // PERBAIKAN: sengaja TIDAK pakai .orderBy() di query Firestore di sini — kombinasi
+    // beberapa filter .where() dengan .orderBy() butuh "composite index" khusus yang
+    // harus dibuat manual di Firebase Console. Supaya guru tidak perlu bikin index apa pun,
+    // datanya diambil apa adanya lalu diurutkan berdasarkan field "urutan" di JavaScript.
     const snap = await db.collection('topik')
       .where('kelas','==',kelas)
       .where('semester','==',String(semester))
       .where('aktif','==',true)
-      .orderBy('urutan','asc')
       .get();
     if(snap.empty){
       box.innerHTML = '<div class="empty">Belum ada materi asesmen untuk kelas & semester ini. Silakan cek lagi nanti.</div>';
       return;
     }
+    let daftar = [];
+    snap.forEach(doc => daftar.push({id:doc.id, ...doc.data()}));
+    daftar.sort((a,b) => (a.urutan||0) - (b.urutan||0));
+
     box.innerHTML = '';
-    snap.forEach(doc => {
-      const d = doc.data();
+    daftar.forEach(d => {
       const card = document.createElement('div');
       card.className = 'topik-card';
       card.innerHTML = `
@@ -101,7 +107,7 @@ async function loadTopikSiswa(kelas, semester){
           <p>${escapeHtml(d.deskripsi||'')}</p>
         </div>
         <button class="btn btn-solid btn-sm">Mulai</button>`;
-      card.querySelector('button').addEventListener('click', () => bukaTopik(doc.id, d));
+      card.querySelector('button').addEventListener('click', () => bukaTopik(d.id, d));
       box.appendChild(card);
     });
   }catch(err){
@@ -747,9 +753,17 @@ async function loadTopikAdmin(){
   const box = document.getElementById('topikAdminList');
   box.innerHTML = '<div class="loading">Memuat…</div>';
   try{
-    const snap = await db.collection('topik').orderBy('kelas').orderBy('semester').orderBy('urutan').get();
+    // PERBAIKAN: ambil tanpa orderBy berlapis (butuh composite index) — urutkan di JS saja.
+    const snap = await db.collection('topik').get();
     state.adminTopikCache = [];
     snap.forEach(doc => state.adminTopikCache.push({id:doc.id, ...doc.data()}));
+    state.adminTopikCache.sort((a,b) => {
+      const k = String(a.kelas||'').localeCompare(String(b.kelas||''));
+      if(k !== 0) return k;
+      const s = String(a.semester||'').localeCompare(String(b.semester||''));
+      if(s !== 0) return s;
+      return (a.urutan||0) - (b.urutan||0);
+    });
     renderTopikAdminList();
   }catch(err){
     box.innerHTML = `<div class="empty">Gagal memuat. ${escapeHtml(err.message)}</div>`;
@@ -899,12 +913,21 @@ async function hapusTopik(id, nama){
 async function loadSelectTopikSoal(){
   const sel = document.getElementById('selectTopikSoal');
   try{
-    const snap = await db.collection('topik').orderBy('kelas').orderBy('semester').orderBy('urutan').get();
+    // PERBAIKAN: hapus orderBy berlapis (butuh composite index) — urutkan di JS.
+    const snap = await db.collection('topik').get();
+    let daftar = [];
+    snap.forEach(doc => daftar.push({id:doc.id, ...doc.data()}));
+    daftar.sort((a,b) => {
+      const k = String(a.kelas||'').localeCompare(String(b.kelas||''));
+      if(k !== 0) return k;
+      const s = String(a.semester||'').localeCompare(String(b.semester||''));
+      if(s !== 0) return s;
+      return (a.urutan||0) - (b.urutan||0);
+    });
     sel.innerHTML = '<option value="">— pilih materi —</option>';
-    snap.forEach(doc => {
-      const d = doc.data();
+    daftar.forEach(d => {
       const opt = document.createElement('option');
-      opt.value = doc.id;
+      opt.value = d.id;
       opt.textContent = `Kelas ${d.kelas} · Semester ${d.semester||'-'} · ${d.nama}`;
       sel.appendChild(opt);
     });
@@ -1826,11 +1849,20 @@ if(CONFIG_BELUM_DIISI){
 async function loadJwTopikOptions(){
   const sel = document.getElementById('jwTopik');
   try{
-    const snap = await db.collection('topik').orderBy('kelas').orderBy('semester').orderBy('urutan').get();
+    // PERBAIKAN: hapus orderBy berlapis (butuh composite index) — urutkan di JS.
+    const snap = await db.collection('topik').get();
+    let daftar = [];
+    snap.forEach(doc => daftar.push({id:doc.id, ...doc.data()}));
+    daftar.sort((a,b) => {
+      const k = String(a.kelas||'').localeCompare(String(b.kelas||''));
+      if(k !== 0) return k;
+      const s = String(a.semester||'').localeCompare(String(b.semester||''));
+      if(s !== 0) return s;
+      return (a.urutan||0) - (b.urutan||0);
+    });
     let opts = '<option value="">— pilih materi —</option>';
-    snap.forEach(doc => {
-      const d = doc.data();
-      opts += `<option value="${doc.id}" data-kelas="${escapeHtml(d.kelas)}" data-nama="${escapeHtml(d.nama)}">${escapeHtml(d.kelas)} · Semester ${escapeHtml(String(d.semester||'-'))} · ${escapeHtml(d.nama)}</option>`;
+    daftar.forEach(d => {
+      opts += `<option value="${d.id}" data-kelas="${escapeHtml(d.kelas)}" data-nama="${escapeHtml(d.nama)}">${escapeHtml(d.kelas)} · Semester ${escapeHtml(String(d.semester||'-'))} · ${escapeHtml(d.nama)}</option>`;
     });
     sel.innerHTML = opts;
   }catch(err){ sel.innerHTML = '<option value="">Gagal memuat</option>'; }
