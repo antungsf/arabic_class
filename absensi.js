@@ -669,7 +669,12 @@ function openEditSiswaMini(siswaId, nama, jk, nisn, tanggalLahir, kelasId){
       <button class="btn btn-solid btn-sm" data-act="simpan-edit">Simpan</button>
       <button class="btn btn-outline btn-sm" data-act="batal-edit">Batal</button>
     </div>`;
-  wrap.prepend(editBox);
+  // tampilkan form edit tepat di bawah kartu siswa yang diklik
+const tombolAsal = wrap.querySelector(`[data-act="edit"][data-id="${siswaId}"]`);
+const kartuAsal = tombolAsal ? tombolAsal.closest('.list-item') : null;
+if(kartuAsal) kartuAsal.insertAdjacentElement('afterend', editBox);
+else wrap.prepend(editBox);
+editBox.scrollIntoView({behavior:'smooth', block:'center'});
   const inputNama = editBox.querySelector('.editSiswaNamaInput');
   const inputJk = editBox.querySelector('.editSiswaJkInput');
   const inputNisn = editBox.querySelector('.editSiswaNisnInput');
