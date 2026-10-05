@@ -34,12 +34,6 @@ const state = {
 };
 const BATAS_PELANGGARAN = 3;
 
-// Tanggal LOKAL perangkat (YYYY-MM-DD), bukan UTC.
-// (toISOString() memakai UTC: di WITA, antara 00:00-07:59 tanggalnya masih "kemarin".)
-function tanggalLokal(d = new Date()){
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
 // PERBAIKAN TAMPILAN: tambahkan/lepas class tema pada <body> sesuai view yang aktif —
 // 'tema-login' untuk kartu verifikasi (badge/lencana hijau), 'tema-ujian' untuk kartu
 // soal ungu-gelap (mode HP). Ini murni kosmetik (lihat CSS di ruang-ujian.html),
@@ -184,7 +178,7 @@ document.getElementById('btnCariSiswaUjian').addEventListener('click', async () 
 async function eligibilitasSekarang(){
   const snap = await db.collection('jadwal_ujian').where('topikId','==',state.topik.id).get();
   const now = new Date();
-  const tanggalSekarang = tanggalLokal(now);
+  const tanggalSekarang = now.toISOString().slice(0,10);
   const jamSekarang = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   let cocokTarget = null;
   let aktifSekarang = false;
@@ -244,31 +238,38 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
     alert('Gagal memeriksa jadwal: ' + err.message);
     return;
   }
+  // PERBAIKAN BUG: cek dulu apakah siswa ini SUDAH PERNAH menyelesaikan ujian untuk materi ini
+  // sebelumnya (status belum_dinilai/sudah_dinilai/didiskualifikasi). Kalau ada, JANGAN buat
+  // percobaan baru — sebelumnya sistem selalu membuat entri "berlangsung" baru setiap kali tombol
+  // "Mulai Mengerjakan" diklik, sehingga muncul entri duplikat yang terlihat "belum dinilai" padahal
+  // siswa itu sebenarnya sudah pernah mengumpulkan (dan mungkin sudah dinilai) di percobaan lain.
   btn.textContent = 'Memeriksa riwayat ujian…';
-  const refHasil = db.collection('hasil_ujian').doc(state.topik.id + '_' + state.siswaTerpilihId);
-  let dataLama = null;
   try{
-    const snapLama = await refHasil.get();
-    if(snapLama.exists) dataLama = snapLama.data();
-  }catch(err){
-    btn.disabled = false; btn.textContent = 'Mulai Mengerjakan';
-    alert('Gagal memeriksa riwayat ujian: ' + err.message);
-    return;
-  }
-  btn.textContent = 'Mulai Mengerjakan';
-
-  // Sudah pernah selesai / didiskualifikasi -> tidak boleh mulai lagi
-  if(dataLama && dataLama.status !== 'berlangsung'){
-    btn.disabled = false;
-    if(dataLama.status === 'didiskualifikasi'){
-      alert('Kamu sebelumnya didiskualifikasi dari ujian ini. Hubungi guru untuk membuka kembali kesempatanmu.');
-    } else if(dataLama.status === 'sudah_dinilai'){
-      alert(`Kamu sudah pernah mengerjakan & mendapat nilai untuk materi ini (Nilai: ${dataLama.nilai ?? '-'}). Kalau menurutmu ini keliru, hubungi guru.`);
-    } else {
-      alert('Jawabanmu untuk materi ini sudah pernah dikumpulkan dan sedang menunggu penilaian guru. Kamu tidak bisa mengerjakan ulang.');
+    const snapSelesai = await db.collection('hasil_ujian')
+      .where('topikId','==', state.topik.id)
+      .where('siswaId','==', state.siswaTerpilihId)
+      .where('status','in', ['belum_dinilai','sudah_dinilai','didiskualifikasi'])
+      .limit(1).get();
+    if(!snapSelesai.empty){
+      const dataLama = snapSelesai.docs[0].data();
+      btn.disabled = false; btn.textContent = 'Mulai Mengerjakan';
+      if(dataLama.status === 'didiskualifikasi'){
+        alert('Kamu sebelumnya didiskualifikasi dari ujian ini. Hubungi guru untuk membuka kembali kesempatanmu.');
+      } else if(dataLama.status === 'sudah_dinilai'){
+        alert(`Kamu sudah pernah mengerjakan & mendapat nilai untuk materi ini (Nilai: ${dataLama.nilai ?? '-'}). Kalau menurutmu ini keliru, hubungi guru.`);
+      } else {
+        alert('Jawabanmu untuk materi ini sudah pernah dikumpulkan dan sedang menunggu penilaian guru. Kamu tidak bisa mengerjakan ulang.');
+      }
+      return;
     }
-    return;
+  }catch(err){
+    // Kalau query gagal (misal index Firestore composite belum ada / index masih dibuat otomatis),
+    // jangan blokir siswa yang sah — lanjut seperti biasa. Firestore biasanya akan menampilkan
+    // link "create index" di console browser saat query ini pertama kali dijalankan; klik link
+    // itu sekali agar pengecekan ini berjalan optimal ke depannya.
   }
+
+  btn.textContent = 'Mulai Mengerjakan';
 
   document.getElementById('ujianEyebrow').textContent = 'Kelas ' + state.topik.kelas + ' · Semester ' + (state.topik.semester||'-') + ' · ' + state.topik.nama;
   document.getElementById('ujianTitle').textContent = state.topik.nama;
@@ -279,14 +280,25 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
   mulaiTimerUjian(jadwalAktifSaatMulai);
   pasangWatermark();
 
-  // Percobaan sebelumnya masih berlangsung -> lanjutkan
-  if(dataLama){
-    state.hasilUjianId = refHasil.id;
-    state.jumlahPelanggaran = dataLama.pelanggaran || 0;
-    state.jawaban = dataLama.jawabanSementara ? { ...dataLama.jawabanSementara } : {};
+  // PERBAIKAN: cek dulu apakah siswa ini sudah punya percobaan "berlangsung" yang belum selesai
+  // untuk materi yang sama — kalau ada, lanjutkan dari situ alih-alih membuat percobaan baru.
+  let percobaanLama = null;
+  try{
+    const snap = await db.collection('hasil_ujian')
+      .where('topikId','==',state.topik.id)
+      .where('siswaId','==',state.siswaTerpilihId)
+      .where('status','==','berlangsung')
+      .limit(1).get();
+    if(!snap.empty){ percobaanLama = { id: snap.docs[0].id, ...snap.docs[0].data() }; }
+  }catch(err){ /* kalau gagal cek, lanjut anggap tidak ada percobaan lama */ }
+
+  if(percobaanLama){
+    state.hasilUjianId = percobaanLama.id;
+    state.jumlahPelanggaran = percobaanLama.pelanggaran || 0;
+    state.jawaban = percobaanLama.jawabanSementara ? { ...percobaanLama.jawabanSementara } : {};
     mintaFullscreen();
     aktifkanPengawasanUjian();
-    await loadSoalSiswa(state.topik.id, dataLama.soalUrutan || null);
+    await loadSoalSiswa(state.topik.id, percobaanLama.soalUrutan || null);
     const jumlahTerjawab = Object.keys(state.jawaban).length;
     if(jumlahTerjawab > 0){
       bannerOk(document.getElementById('banner'), `Melanjutkan ujian sebelumnya — ${jumlahTerjawab} soal sudah terjawab.`);
@@ -294,10 +306,8 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
     return;
   }
 
-  // Percobaan baru
-  state.jawaban = {};
   try{
-    await refHasil.set({
+    const docRef = await db.collection('hasil_ujian').add({
       topikId: state.topik.id,
       topikNama: state.topik.nama,
       kelas: state.topik.kelas,
@@ -316,7 +326,7 @@ document.getElementById('btnMulaiUjian').addEventListener('click', async () => {
       nilai: null,
       catatanGuru: null
     });
-    state.hasilUjianId = refHasil.id;
+    state.hasilUjianId = docRef.id;
   }catch(err){
     state.hasilUjianId = null;
   }
@@ -475,7 +485,14 @@ function renderSoalHalaman(){
   // dalam .soal-head, supaya di tema ujian (mode HP) tampil sebagai header
   // gradient ungu di atas kartu — sementara di tema default (putih/hijau) tetap
   // terlihat rapi seperti sebelumnya karena .soal-head tidak diberi style khusus.
-  let inner = `<div class="soal-block"><div class="soal-head">
+  // PERBAIKAN: kalau soal punya teks bacaan (field "bacaan"), tampilkan di kotak sendiri
+  // di atas soal. Tanda " || " di dalam teks diubah jadi pergantian paragraf (supaya
+  // teks bacaan bisa ditempel dari Excel tanpa baris baru).
+  let inner = '';
+  if(d.bacaan){
+    inner += `<div class="bacaan-box" dir="rtl" style="background:#eaf5ee;border:1.5px solid #cfe3d8;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:20px;line-height:2.1;text-align:right;max-height:260px;overflow:auto;color:#1c2624;">${escapeHtml(d.bacaan).replaceAll(' || ','<br><br>')}</div>`;
+  }
+  inner += `<div class="soal-block"><div class="soal-head">
     <span class="qmark-icon">?</span>
     <div style="flex:1;">
       <div class="soal-no">Pertanyaan ${i + 1}</div>`;
@@ -1167,7 +1184,7 @@ function openBulkSoalModal(topikId){
   renderModal(`
     <h3>Tambah Cepat — Banyak Soal Sekaligus</h3>
     <p class="hint" style="margin-bottom:10px;">
-      Siapkan tabel di Excel dengan kolom urut: <b>Pertanyaan | A | B | C | D | E | Kunci</b> (Kolom E &amp; Kunci boleh dikosongkan).
+      Siapkan tabel di Excel dengan kolom urut: <b>Pertanyaan | A | B | C | D | E | Kunci | Bacaan</b> (Kolom E, Kunci &amp; Bacaan boleh dikosongkan).
       Lalu <b>select semua baris</b> di Excel (tanpa header), <b>copy</b>, dan <b>paste</b> ke kotak di bawah ini — satu soal otomatis jadi satu baris.
     </p>
     <div class="field">
@@ -1207,18 +1224,20 @@ async function simpanBulkSoal(topikId){
       const D = (kolom[4] || '').trim();
       const E = (kolom[5] || '').trim();
       const kunci = (kolom[6] || '').trim().toUpperCase();
+      const bacaan = (kolom[7] || '').trim();
       const adaOpsi = A || B || C || D || E;
 
       const ref = db.collection('soal').doc();
       if(adaOpsi){
         batch.set(ref, {
           topikId, tipe:'pilihan_ganda', pertanyaan,
+          bacaan: bacaan || null,
           pilihan:{A,B,C,D,E},
           jawabanBenar: ['A','B','C','D','E'].includes(kunci) ? kunci : null,
           urutan: urutan++
         });
       } else {
-        batch.set(ref, { topikId, tipe:'esai', pertanyaan, pilihan:null, jawabanBenar:null, urutan: urutan++ });
+        batch.set(ref, { topikId, tipe:'esai', pertanyaan, bacaan: bacaan || null, pilihan:null, jawabanBenar:null, urutan: urutan++ });
       }
       jumlah++;
     });
@@ -1248,6 +1267,8 @@ function openSoalModal(id, d, topikId){
       <textarea id="mSoalPertanyaan" placeholder="Tulis pertanyaan…">${escapeHtml(d.pertanyaan||'')}</textarea></div>
     <div class="field"><label>Link Audio <span class="hint">(opsional, untuk soal listening — mp3/wav dari Google Drive/hosting lain)</span></label>
       <input type="text" id="mSoalAudio" value="${escapeHtml(d.audioUrl||'')}" placeholder="https://..."></div>
+    <div class="field"><label>Teks Bacaan <span class="hint">(opsional — tampil di atas soal; pakai " || " untuk pergantian paragraf)</span></label>
+      <textarea id="mSoalBacaan" dir="auto" style="min-height:120px;">${escapeHtml(d.bacaan||'')}</textarea></div>
     <div id="mSoalOpsiWrap" class="${tipe==='pilihan_ganda'?'':'hidden'}">
       <div class="field"><label>Pilihan A</label><input type="text" id="mOpsiA" value="${escapeHtml(p.A||'')}"></div>
       <div class="field"><label>Pilihan B</label><input type="text" id="mOpsiB" value="${escapeHtml(p.B||'')}"></div>
@@ -1295,6 +1316,7 @@ async function simpanSoal(topikId){
     tipe,
     pertanyaan,
     audioUrl: audioUrl || null,
+    bacaan: document.getElementById('mSoalBacaan').value.trim() || null,
     urutan: Number(document.getElementById('mSoalUrutan').value) || 1
   };
   if(tipe === 'pilihan_ganda'){
@@ -1516,7 +1538,7 @@ document.getElementById('btnDownloadHasil').addEventListener('click', () => {
   ws['!cols'] = [{wch:22},{wch:16},{wch:22},{wch:20},{wch:16},{wch:11},{wch:8},{wch:26}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Hasil Ujian');
-  const tgl = tanggalLokal();
+  const tgl = new Date().toISOString().slice(0,10);
   XLSX.writeFile(wb, `hasil-ujian-${tgl}.xlsx`);
 });
 
@@ -1807,7 +1829,7 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
 
 async function sinkronNilaiKeAbsensi(kelasAbsensiId, siswaId, tp, nilai){
   if(!kelasAbsensiId || !siswaId || !tp || nilai === null || nilai === undefined) return;
-  const tanggal = tanggalLokal();
+  const tanggal = new Date().toISOString().slice(0,10);
   await db.collection('nilai').doc(`${kelasAbsensiId}_${siswaId}_${tp}`).set({
     kelasId: kelasAbsensiId, siswaId, tp, nilai: Number(nilai), tanggal, sumber: 'ruang_ujian'
   }, {merge:true});
@@ -1939,7 +1961,7 @@ function kosongkanFormJadwal(){
   state.jwEditId = null;
   state.jwTargetSiswaTerpilih = [];
   document.getElementById('jwTopik').value = '';
-  document.getElementById('jwTanggal').value = tanggalLokal();
+  document.getElementById('jwTanggal').value = new Date().toISOString().slice(0,10);
   document.getElementById('jwJamMulai').value = '';
   document.getElementById('jwJamSelesai').value = '';
   document.getElementById('jwNamaSesi').value = '';
@@ -2069,7 +2091,7 @@ document.querySelector('.tab-btn[data-tab="jadwal"]').addEventListener('click', 
   jwSudahDiinit = true;
   loadJwTopikOptions();
   loadJwKelasCheckboxes();
-  document.getElementById('jwTanggal').value = tanggalLokal();
+  document.getElementById('jwTanggal').value = new Date().toISOString().slice(0,10);
   loadDaftarJadwal();
 });
 
