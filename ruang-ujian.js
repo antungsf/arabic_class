@@ -43,8 +43,48 @@ function showView(id){
   document.getElementById(id).classList.remove('hidden');
   document.body.classList.toggle('tema-login', id === 'viewNama');
   document.body.classList.toggle('tema-ujian', id === 'viewUjian');
+  // PERBAIKAN: tombol zoom teks (A+ / A-) hanya muncul di halaman ujian
+  const zb = document.getElementById('zoomBar');
+  if(zb) zb.style.display = (id === 'viewUjian') ? 'flex' : 'none';
   window.scrollTo({top:0, behavior:'smooth'});
 }
+
+/* PERBAIKAN: zoom in/out ukuran teks soal (termasuk teks Arab, bacaan, dan pilihan jawaban)
+   khusus tampilan siswa. Pilihan ukuran disimpan di HP siswa (localStorage) supaya
+   tidak perlu diatur ulang di tiap soal. Semua teks dihitung relatif terhadap ukuran
+   aslinya dari CSS, jadi proporsi teks Arab vs Indonesia tetap terjaga. */
+const ZOOM_MIN = 0.8, ZOOM_MAX = 2.0, ZOOM_STEP = 0.1;
+let zoomTeks = 1;
+try{
+  const z = parseFloat(localStorage.getItem('ujianZoomTeks'));
+  if(z >= ZOOM_MIN && z <= ZOOM_MAX) zoomTeks = z;
+}catch(e){}
+
+function terapkanZoomTeks(){
+  const target = document.querySelectorAll('#soalList .soal-text, #soalList .opsi span, #soalList .bacaan-box, #soalList .arabic-inline, #soalList .soal-esai');
+  // ukur dulu semua ukuran asli, baru terapkan (supaya elemen bersarang tidak saling memengaruhi)
+  target.forEach(el => { if(!el.dataset.base) el.dataset.base = parseFloat(getComputedStyle(el).fontSize); });
+  target.forEach(el => { el.style.fontSize = (Number(el.dataset.base) * zoomTeks).toFixed(1) + 'px'; });
+  const label = document.getElementById('zoomLabel');
+  if(label) label.textContent = Math.round(zoomTeks * 100) + '%';
+}
+function ubahZoomTeks(delta){
+  zoomTeks = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((zoomTeks + delta) * 10) / 10));
+  try{ localStorage.setItem('ujianZoomTeks', String(zoomTeks)); }catch(e){}
+  terapkanZoomTeks();
+}
+(function buatZoomBar(){
+  const bar = document.createElement('div');
+  bar.id = 'zoomBar';
+  bar.style.cssText = 'display:none;position:fixed;right:8px;top:50%;transform:translateY(-50%);z-index:9998;flex-direction:column;align-items:center;gap:4px;background:rgba(255,255,255,.92);border:1.5px solid #cfd8d4;border-radius:22px;padding:6px 4px;box-shadow:0 2px 10px rgba(0,0,0,.18);';
+  const btnCss = 'width:38px;height:38px;border-radius:50%;border:none;background:#175c41;color:#fff;font-size:16px;font-weight:700;cursor:pointer;touch-action:manipulation;';
+  bar.innerHTML = `<button type="button" id="zoomPlus" style="${btnCss}" aria-label="Perbesar teks">A+</button>
+    <div id="zoomLabel" style="font-size:11px;font-weight:700;color:#1c2624;">100%</div>
+    <button type="button" id="zoomMinus" style="${btnCss}" aria-label="Perkecil teks">A&minus;</button>`;
+  document.body.appendChild(bar);
+  document.getElementById('zoomPlus').addEventListener('click', () => ubahZoomTeks(ZOOM_STEP));
+  document.getElementById('zoomMinus').addEventListener('click', () => ubahZoomTeks(-ZOOM_STEP));
+})();
 
 function bannerOk(el, msg){ el.innerHTML = `<div class="banner banner-ok">${msg}</div>`; }
 function bannerErr(el, msg){ el.innerHTML = `<div class="banner banner-error">${msg}</div>`; }
@@ -116,7 +156,7 @@ async function loadTopikSiswa(kelas, semester){
 }
 
 function bukaTopik(id, d){
-  state.topik = {id, nama:d.nama, kelas:d.kelas, semester:d.semester, tpTerhubung:d.tpTerhubung||null};
+  state.topik = {id, nama:d.nama, kelas:d.kelas, semester:d.semester, tpTerhubung:d.tpTerhubung||null, jumlahSoalUjian:d.jumlahSoalUjian||null};
   document.getElementById('namaEyebrow').textContent = 'Kelas ' + d.kelas + ' · Semester ' + (d.semester||'-') + ' · ' + d.nama;
   document.getElementById('namaTitle').textContent = 'Mulai: ' + d.nama;
   resetLangkahNama();
@@ -126,7 +166,9 @@ function bukaTopik(id, d){
   const infoEl = document.getElementById('infoJumlahSoal');
   infoEl.textContent = 'Memuat info materi…';
   db.collection('soal').where('topikId','==',id).get().then(snap => {
-    infoEl.textContent = `Materi ini berisi ${snap.size} soal. Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.`;
+    // PERBAIKAN: kalau guru membatasi jumlah soal yang diujikan, tampilkan jumlah itu (bukan seluruh isi bank soal)
+    const diujikan = (state.topik.jumlahSoalUjian && state.topik.jumlahSoalUjian < snap.size) ? state.topik.jumlahSoalUjian : snap.size;
+    infoEl.textContent = `Materi ini berisi ${diujikan} soal. Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.`;
   }).catch(() => {
     infoEl.textContent = 'Masukkan NISN dan tanggal lahirmu untuk verifikasi identitas.';
   });
@@ -446,6 +488,10 @@ async function loadSoalSiswa(topikId, urutanTersimpan){
       daftarSoal = urutanTersimpan.map(id => petaSoal[id]).filter(Boolean);
     } else {
       daftarSoal = acakArray(daftarSoal);
+      // PERBAIKAN: kalau guru mengatur "jumlah soal yang diujikan" (misal 25 dari bank 50),
+      // ambil sebanyak itu dari hasil acakan — tiap siswa dapat kombinasi soal yang berbeda.
+      const batasSoal = state.topik && state.topik.jumlahSoalUjian;
+      if(batasSoal && batasSoal < daftarSoal.length) daftarSoal = daftarSoal.slice(0, batasSoal);
       // simpan urutan ini ke Firestore sekali di awal, supaya kalau siswa keluar-masuk lagi urutannya tetap sama
       if(state.hasilUjianId && daftarSoal.length){
         db.collection('hasil_ujian').doc(state.hasilUjianId)
@@ -546,6 +592,7 @@ function renderSoalHalaman(){
   document.getElementById('btnSoalBerikutnya').classList.toggle('hidden', isLast);
   document.getElementById('btnKumpulkan').classList.toggle('hidden', !isLast);
 
+  terapkanZoomTeks();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -806,7 +853,7 @@ function renderTopikAdminList(){
           <div class="list-item-head">
             <div>
               <h4>${escapeHtml(d.nama)} <span class="badge ${d.aktif?'badge-done':'badge-wait'}">${d.aktif?'Aktif':'Nonaktif'}</span>${d.tpTerhubung ? ` <span class="badge badge-done" style="background:#eaf5ee;">→ ${escapeHtml(d.tpTerhubung)}</span>` : ''}</h4>
-              <div class="meta">Kelas ${escapeHtml(d.kelas)} · Semester ${escapeHtml(String(d.semester||'-'))} · urutan ${d.urutan ?? '-'} · ${escapeHtml(d.deskripsi||'')}</div>
+              <div class="meta">Kelas ${escapeHtml(d.kelas)} · Semester ${escapeHtml(String(d.semester||'-'))} · urutan ${d.urutan ?? '-'}${d.jumlahSoalUjian ? ' · diujikan ' + d.jumlahSoalUjian + ' soal (acak)' : ''} · ${escapeHtml(d.deskripsi||'')}</div>
             </div>
             <div>
               <button class="icon-btn" data-act="edit">Edit</button>
@@ -852,6 +899,9 @@ function openTopikModal(id, d){
       <textarea id="mTopikDeskripsi" placeholder="Contoh: Angka 1-100 dalam Bahasa Arab">${escapeHtml(d.deskripsi||'')}</textarea></div>
     <div class="field"><label>Urutan tampil (angka)</label>
       <input type="number" id="mTopikUrutan" value="${d.urutan ?? 1}"></div>
+    <div class="field"><label>Jumlah soal yang diujikan <span class="hint">(opsional)</span></label>
+      <input type="number" id="mTopikJumlahSoal" min="1" value="${d.jumlahSoalUjian ?? ''}" placeholder="Kosongkan = semua soal di bank soal">
+      <p class="hint">Contoh: bank soal berisi 50 soal, isi 25 → tiap siswa mengerjakan 25 soal yang dipilih acak (kombinasi tiap siswa berbeda). Nilai dihitung dari 25 soal itu. Kalau angkanya lebih besar dari isi bank soal, semua soal dipakai.</p></div>
     <div class="field">
       <label><input type="checkbox" id="mTopikAktif" ${d.aktif!==false?'checked':''} style="width:auto;margin-right:8px;">Tampilkan ke siswa (aktif)</label>
     </div>
@@ -883,7 +933,10 @@ async function simpanTopik(){
   const banner = document.getElementById('mTopikBanner');
   const nama = document.getElementById('mTopikNama').value.trim();
   if(!nama){ bannerErr(banner, 'Nama materi wajib diisi.'); return; }
+  const jmlRaw = document.getElementById('mTopikJumlahSoal').value.trim();
+  const jumlahSoalUjian = jmlRaw === '' ? null : Math.max(1, Math.floor(Number(jmlRaw)) || 1);
   const payload = {
+    jumlahSoalUjian,
     kelas: document.getElementById('mTopikKelas').value,
     semester: document.getElementById('mTopikSemester').value,
     nama,
