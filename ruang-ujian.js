@@ -997,14 +997,61 @@ async function loadSelectTopikSoal(){
 }
 document.getElementById('selectTopikSoal').addEventListener('change', (e) => {
   if(e.target.value) loadSoalAdmin(e.target.value);
-  else document.getElementById('soalAdminList').innerHTML = '<div class="empty">Pilih materi dahulu.</div>';
+  else {
+    document.getElementById('soalAdminList').innerHTML = '<div class="empty">Pilih materi dahulu.</div>';
+    const b = document.getElementById('batasSoalBar'); if(b) b.remove();
+  }
 });
+
+/* PERBAIKAN: kotak "Soal yang diujikan ke siswa" langsung di tab Soal (di atas daftar soal),
+   supaya guru bisa membatasi jumlah soal dari bank soal tanpa membuka form Edit Materi.
+   Nilainya disimpan di dokumen materi (topik.jumlahSoalUjian) — sama dengan kolom di form Edit Materi. */
+async function tampilkanBarBatasSoal(topikId, totalSoal){
+  const list = document.getElementById('soalAdminList');
+  let bar = document.getElementById('batasSoalBar');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'batasSoalBar';
+    bar.style.cssText = 'background:#fdf6e3;border:1.5px solid #ecd9a0;border-radius:10px;padding:12px 14px;margin-bottom:14px;';
+    list.parentNode.insertBefore(bar, list);
+  }
+  let saatIni = '';
+  try{
+    const tdoc = await db.collection('topik').doc(topikId).get();
+    if(tdoc.exists && tdoc.data().jumlahSoalUjian) saatIni = tdoc.data().jumlahSoalUjian;
+  }catch(e){}
+  bar.innerHTML = `
+    <div style="font-weight:700;margin-bottom:8px;">Soal yang diujikan ke siswa</div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+      <input type="number" id="batasSoalInput" min="1" value="${saatIni}" placeholder="semua" style="width:90px;">
+      <span>dari <b>${totalSoal}</b> soal di bank soal</span>
+      <button type="button" class="btn btn-solid btn-sm" id="batasSoalSimpan">Simpan</button>
+    </div>
+    <p class="hint" style="margin:8px 0 0;">Kosongkan = semua soal diujikan. Isi misalnya 25 → tiap siswa mengerjakan 25 soal yang dipilih acak (kombinasi tiap siswa berbeda).</p>
+    <div id="batasSoalBanner"></div>`;
+  document.getElementById('batasSoalSimpan').addEventListener('click', async () => {
+    const info = document.getElementById('batasSoalBanner');
+    const raw = document.getElementById('batasSoalInput').value.trim();
+    const nilai = raw === '' ? null : Math.floor(Number(raw));
+    if(nilai !== null && (!nilai || nilai < 1)){ bannerErr(info, 'Isi angka 1 atau lebih, atau kosongkan.'); return; }
+    try{
+      await db.collection('topik').doc(topikId).update({ jumlahSoalUjian: nilai });
+      if(nilai === null) bannerOk(info, 'Tersimpan: semua soal di bank soal akan diujikan.');
+      else if(nilai >= totalSoal) bannerOk(info, `Tersimpan. Angka ${nilai} sama/lebih besar dari isi bank soal (${totalSoal}), jadi semua soal diujikan.`);
+      else bannerOk(info, `Tersimpan: tiap siswa akan mendapat ${nilai} soal acak dari ${totalSoal} soal.`);
+      loadTopikAdmin();
+    }catch(err){
+      bannerErr(info, 'Gagal menyimpan: ' + escapeHtml(err.message));
+    }
+  });
+}
 
 async function loadSoalAdmin(topikId){
   const box = document.getElementById('soalAdminList');
   box.innerHTML = '<div class="loading">Memuat…</div>';
   try{
     const snap = await db.collection('soal').where('topikId','==',topikId).orderBy('urutan','asc').get();
+    tampilkanBarBatasSoal(topikId, snap.size);
     if(snap.empty){ box.innerHTML = '<div class="empty">Belum ada soal untuk materi ini.</div>'; return; }
     box.innerHTML = '';
     snap.forEach(doc => {
