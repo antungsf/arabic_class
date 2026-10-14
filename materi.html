@@ -84,6 +84,11 @@
   .modal-box{background:#fff;border-radius:10px;padding:28px;max-width:480px;width:100%;max-height:88vh;overflow:auto;}
   .modal-box h3{margin:0 0 18px;font-family:'Poppins',sans-serif;color:var(--green-deep);}
 
+  .card-buku{display:block;background:#fdf3da;border:1px solid var(--gold);border-radius:10px;padding:20px 18px;text-align:left;transition:transform .15s,box-shadow .15s,border-color .15s;}
+  .card-buku:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,54,39,.1);border-color:var(--gold-deep);}
+  .card-buku .k{font-family:'Poppins',sans-serif;font-weight:800;font-size:17px;color:var(--green-deep);margin:0 0 4px;}
+  .card-buku .d{font-size:12px;color:var(--muted);margin:0;}
+
   footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;font-size:12px;color:var(--muted);}
 </style>
 </head>
@@ -120,6 +125,7 @@
     <div class="grid-cards">
       <div class="card" data-sem="1"><p class="k">Semester 1</p></div>
       <div class="card" data-sem="2"><p class="k">Semester 2</p></div>
+      <a class="card-buku" id="bukuCard" href="buku/Buku_Bahasa_Arab_Kelas_X.pdf" target="_blank" rel="noopener"><p class="k" id="bukuName">Buku PDF</p><p class="d">Buku Bahasa Arab Kelas X</p></a>
     </div>
   </div>
 
@@ -221,5 +227,26 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 </script>
 <script src="materi.js"></script>
+<script>
+// Buku Bahasa Arab per kelas: mengikuti kelas yang dipilih di halaman semester
+(function(){
+  const BUKU = {
+    'X':   'buku/Buku_Bahasa_Arab_Kelas_X.pdf',
+    'XI':  'buku/Buku_Bahasa_Arab_Kelas_XI.pdf',
+    'XII': 'buku/Buku_Bahasa_Arab_Kelas_XII.pdf'
+  };
+  const eyebrow = document.getElementById('semEyebrow');
+  const card = document.getElementById('bukuCard');
+  const nama = document.getElementById('bukuName');
+  function sinkron(){
+    const m = (eyebrow.textContent || '').trim().match(/^Kelas\s+(XII|XI|X)\b/);
+    if(!m) return;
+    card.href = BUKU[m[1]];
+    nama.nextElementSibling.textContent = 'Buku Bahasa Arab Kelas ' + m[1];
+  }
+  new MutationObserver(sinkron).observe(eyebrow, {childList:true, characterData:true, subtree:true});
+  sinkron();
+})();
+</script>
 </body>
 </html>
