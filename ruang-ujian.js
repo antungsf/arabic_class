@@ -2218,3 +2218,131 @@ document.querySelector('.tab-btn[data-tab="jadwal"]').addEventListener('click', 
     });
   }
 })();
+/* ============================================================
+   PERBAIKAN RUANG PENGAWAS — muat SETELAH ruang-ujian.js
+   Isi:
+   1. Heartbeat siswa (lastSeen tiap 30 detik) selama ujian berlangsung
+   2. Panel pengawas memisahkan sesi "tidak aktif" (siswa sudah menutup
+      browser/HP) dari yang benar-benar masih mengerjakan
+   3. Tombol "Selesaikan semua" untuk memindahkan sesi tidak aktif ke Hasil Ujian
+   ============================================================ */
+
+/* ---------- 1. Sisi siswa: heartbeat ---------- */
+let heartbeatInterval = null;
+function mulaiHeartbeat(){
+  hentikanHeartbeat();
+  const kirim = () => {
+    if(!state.hasilUjianId || state.ujianSelesai) return;
+    db.collection('hasil_ujian').doc(state.hasilUjianId)
+      .update({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() })
+      .catch(() => {});
+  };
+  kirim();
+  heartbeatInterval = setInterval(kirim, 30000);
+}
+function hentikanHeartbeat(){
+  if(heartbeatInterval){ clearInterval(heartbeatInterval); heartbeatInterval = null; }
+}
+
+// menimpa versi asli di ruang-ujian.js (isi sama + heartbeat)
+function aktifkanPengawasanUjian(){
+  if(pengawasanAktif) return;
+  pengawasanAktif = true;
+  document.addEventListener('visibilitychange', handlePelanggaran);
+  window.addEventListener('blur', handlePelanggaran);
+  mulaiHeartbeat();
+}
+function nonaktifkanPengawasanUjian(){
+  pengawasanAktif = false;
+  document.removeEventListener('visibilitychange', handlePelanggaran);
+  window.removeEventListener('blur', handlePelanggaran);
+  hentikanHeartbeat();
+}
+
+/* ---------- 2. Sisi admin: pisahkan sesi tidak aktif ---------- */
+const BATAS_TIDAK_AKTIF_MS = 2 * 60 * 1000;      // sesi baru: tanpa heartbeat > 2 menit
+const BATAS_SESI_LAMA_MS  = 3 * 60 * 60 * 1000;  // sesi lama (tanpa lastSeen): > 3 jam
+
+function sesiTidakAktif(r){
+  const seen = r.lastSeen && r.lastSeen.toDate ? r.lastSeen.toDate() : null;
+  if(seen) return Date.now() - seen.getTime() > BATAS_TIDAK_AKTIF_MS;
+  const mulai = r.waktuMulai && r.waktuMulai.toDate ? r.waktuMulai.toDate() : null;
+  return mulai ? Date.now() - mulai.getTime() > BATAS_SESI_LAMA_MS : false;
+}
+
+function renderPengawasList(){
+  const box = document.getElementById('pengawasList');
+  if(!cachePengawasRows.length){
+    box.innerHTML = '<div class="empty">Tidak ada siswa yang sedang mengerjakan ujian saat ini.</div>';
+    return;
+  }
+  const aktif = cachePengawasRows.filter(r => !sesiTidakAktif(r))
+    .sort((a,b) => (b.pelanggaran||0) - (a.pelanggaran||0));
+  const nonaktif = cachePengawasRows.filter(sesiTidakAktif);
+
+  const kartu = (r, redup) => {
+    const mulai = r.waktuMulai && r.waktuMulai.toDate ? r.waktuMulai.toDate() : null;
+    const durasi = mulai ? formatDurasi(Date.now() - mulai.getTime()) : '-';
+    const jmlJawab = r.jawabanSementara ? Object.keys(r.jawabanSementara).length : 0;
+    const totalSoal = r.soalUrutan ? r.soalUrutan.length : 0;
+    return `<div class="pengawas-card${r.pelanggaran ? ' ada-pelanggaran' : ''}" data-id="${r.id}" style="${redup ? 'opacity:.6;' : ''}">
+      <div class="pengawas-head">
+        <div>
+          <div class="pengawas-nama">${escapeHtml(r.namaSiswa)}</div>
+          <div class="pengawas-meta">${escapeHtml(r.kelas)}${r.kelasAbsensiNama ? ' · '+escapeHtml(r.kelasAbsensiNama) : ''} &middot; ${escapeHtml(r.topikNama)} &middot; ${jmlJawab}/${totalSoal || '?'} terjawab${r.pelanggaran ? ' &middot; <b style="color:var(--red);">'+r.pelanggaran+'x pindah tab</b>' : ''}</div>
+        </div>
+        <div class="pengawas-durasi">${redup ? 'Tidak aktif' : durasi}</div>
+      </div>
+    </div>`;
+  };
+
+  let html = aktif.length
+    ? aktif.map(r => kartu(r, false)).join('')
+    : '<div class="empty">Tidak ada siswa yang sedang aktif mengerjakan.</div>';
+
+  if(nonaktif.length){
+    html += `<div class="row-between" style="margin-top:22px;">
+      <div><b>Sesi tidak aktif (${nonaktif.length})</b>
+        <div class="hint">Siswa menutup browser/HP atau koneksi putus sebelum mengumpulkan.</div></div>
+      <button class="btn btn-gold btn-sm" id="btnBersihkanTidakAktif">Selesaikan semua &amp; pindah ke Hasil Ujian</button>
+    </div>` + nonaktif.map(r => kartu(r, true)).join('');
+  }
+  box.innerHTML = html;
+
+  box.querySelectorAll('.pengawas-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const r = cachePengawasRows.find(x => x.id === el.dataset.id);
+      if(r) bukaHasilDetail(el.dataset.id, r);
+    });
+  });
+  const b = document.getElementById('btnBersihkanTidakAktif');
+  if(b) b.addEventListener('click', selesaikanSemuaTidakAktif);
+}
+
+/* ---------- 3. Selesaikan semua sesi tidak aktif ---------- */
+async function selesaikanSemuaTidakAktif(){
+  const daftar = cachePengawasRows.filter(sesiTidakAktif);
+  if(!daftar.length) return;
+  if(!confirm(`Tandai ${daftar.length} sesi tidak aktif sebagai selesai?\n\nJawaban terakhir yang ter-autosave dipakai sebagai jawaban final dan statusnya jadi "Belum Dinilai". Siswa tidak bisa melanjutkan lagi setelah ini.`)) return;
+  const btn = document.getElementById('btnBersihkanTidakAktif');
+  if(btn){ btn.disabled = true; btn.textContent = 'Memproses…'; }
+  for(const r of daftar){
+    try{
+      let jawabanFinal = [];
+      if(r.soalUrutan && r.soalUrutan.length){
+        const docs = await Promise.all(r.soalUrutan.map(sid => db.collection('soal').doc(sid).get()));
+        const js = r.jawabanSementara || {};
+        jawabanFinal = docs.filter(d => d.exists).map(d => ({
+          soalId: d.id, pertanyaan: d.data().pertanyaan, tipe: d.data().tipe,
+          jawabanSiswa: js[d.id] ?? null
+        }));
+      }
+      await db.collection('hasil_ujian').doc(r.id).update({
+        jawaban: jawabanFinal,
+        waktuSubmit: firebase.firestore.FieldValue.serverTimestamp(),
+        status: 'belum_dinilai'
+      });
+    }catch(e){ /* lanjut ke sesi berikutnya */ }
+  }
+  loadHasilAdmin();
+}
